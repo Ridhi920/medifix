@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Medifix",
+    "slug": "medifix",
+    "version": "0.1.0",
+  "sdkVersion": "54.0.0",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "orientation": "portrait",
+    "ios": {
+      "bundleIdentifier": "com.ridhi26.medifix"
+    }
+  }
+}
