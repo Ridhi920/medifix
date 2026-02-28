@@ -1,13 +1,14 @@
-import { useState } from "react";
-import { Pressable, ScrollView, Text, View, TextInput } from "react-native";
+import { useState, useEffect } from "react";
+import { Pressable, ScrollView, Text, View, TextInput, ActivityIndicator } from "react-native";
 import { styles } from "../../styles";
 import { DOCTORS, type Doctor } from "../../data/doctors";
 
 type DoctorAppointmentScreenProps = {
-  onBack: () => void;
+  readonly onBack: () => void;
 };
 
-export default function DoctorAppointmentScreen({ onBack }: DoctorAppointmentScreenProps) {
+export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppointmentScreenProps>) {
+  const [loading, setLoading] = useState<boolean>(true);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [selectedSlot, setSelectedSlot] = useState<string>("");
@@ -15,16 +16,20 @@ export default function DoctorAppointmentScreen({ onBack }: DoctorAppointmentScr
   const [patientAge, setPatientAge] = useState<string>("");
   const [symptoms, setSymptoms] = useState<string>("");
   const [showBookingForm, setShowBookingForm] = useState<boolean>(false);
-  const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // Filter doctors based on search query
-  const filteredDoctors = DOCTORS.filter((doctor) => {
-    const query = searchQuery.toLowerCase();
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 2500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading) {
     return (
-      doctor.name.toLowerCase().includes(query) ||
-      doctor.specialty.toLowerCase().includes(query)
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#ffffff" }}>
+        <ActivityIndicator size="large" color="#FF6B35" />
+        <Text style={{ marginTop: 16, fontSize: 16, color: "#64748b" }}>Loading Doctor Appointments...</Text>
+      </View>
     );
-  });
+  }
 
   const handleDoctorSelect = (doctor: Doctor) => {
     setSelectedDoctor(doctor);
@@ -68,59 +73,11 @@ export default function DoctorAppointmentScreen({ onBack }: DoctorAppointmentScr
           Browse through our expert doctors and book an appointment that suits you best.
         </Text>
 
-        {/* Search Bar */}
-        {!selectedDoctor && (
-          <View style={{
-            backgroundColor: "#f1f5f9",
-            borderRadius: 16,
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            flexDirection: "row",
-            alignItems: "center",
-            marginTop: 16,
-            borderWidth: 1,
-            borderColor: "#e2e8f0"
-          }}>
-            <Text style={{ fontSize: 16, color: "#94a3b8", marginRight: 8 }}>🔍</Text>
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search by name or specialty"
-              placeholderTextColor="#94a3b8"
-              style={{
-                flex: 1,
-                fontSize: 14,
-                color: "#0f172a",
-                paddingVertical: 0
-              }}
-            />
-            {searchQuery ? (
-              <Pressable onPress={() => setSearchQuery("")}>
-                <Text style={{ fontSize: 16, color: "#64748b", fontWeight: "700" }}>✕</Text>
-              </Pressable>
-            ) : null}
-          </View>
-        )}
-
         {/* Doctors List */}
         {!selectedDoctor && (
           <View style={{ marginTop: 24 }}>
-            <Text style={[styles.sectionTitle, { marginBottom: 16 }]}>
-              Available Doctors {searchQuery ? `(${filteredDoctors.length})` : ""}
-            </Text>
-            {filteredDoctors.length === 0 ? (
-              <View style={{
-                backgroundColor: "#f8fafc",
-                borderRadius: 16,
-                padding: 24,
-                alignItems: "center"
-              }}>
-                <Text style={{ fontSize: 16, color: "#64748b", textAlign: "center" }}>
-                  No doctors found matching "{searchQuery}"
-                </Text>
-              </View>
-            ) : (
-              filteredDoctors.map((doctor) => (
+            <Text style={[styles.sectionTitle, { marginBottom: 16 }]}>Available Doctors</Text>
+            {DOCTORS.map((doctor) => (
               <Pressable
                 key={doctor.id}
                 onPress={() => handleDoctorSelect(doctor)}
@@ -171,8 +128,7 @@ export default function DoctorAppointmentScreen({ onBack }: DoctorAppointmentScr
                   </View>
                 </View>
               </Pressable>
-            ))
-            )}
+            ))}
           </View>
         )}
 
@@ -244,7 +200,7 @@ export default function DoctorAppointmentScreen({ onBack }: DoctorAppointmentScr
             </View>
 
             {/* Select Time Slot */}
-            {selectedDay && (
+            {Boolean(selectedDay) && (
               <>
                 <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Select Time Slot</Text>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
@@ -278,7 +234,7 @@ export default function DoctorAppointmentScreen({ onBack }: DoctorAppointmentScr
             )}
 
             {/* Booking Form */}
-            {showBookingForm && selectedSlot && (
+            {Boolean(showBookingForm && selectedSlot) && (
               <View style={{
                 backgroundColor: "#f8fafc",
                 borderRadius: 16,

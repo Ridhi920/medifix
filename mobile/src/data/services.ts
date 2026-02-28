@@ -1,4 +1,4 @@
-export type ServiceKey = "dental" | "cardiology" | "pediatrics";
+export type ServiceKey = "dental" | "cardiology" | "pediatrics" | "ambulance" | "lab" | "pharmacy";
 
 export type ServiceItem = {
   key: ServiceKey;
@@ -28,5 +28,26 @@ export const SERVICES: ServiceItem[] = [
     summary: "Vaccinations, growth tracking, and family care reminders.",
     description:
       "Schedule pediatric visits, immunizations, and routine checkups for kids."
+  },
+  {
+    key: "ambulance",
+    title: "Ambulance booking",
+    summary: "Emergency ambulance services and scheduled medical transport.",
+    description:
+      "Book ambulances for emergencies or scheduled appointments with multiple vehicle types."
+  },
+  {
+    key: "lab",
+    title: "Lab test booking",
+    summary: "Blood tests, diagnostics, and health screening packages.",
+    description:
+      "Schedule lab appointments for tests, diagnostics, and comprehensive health checkups."
+  },
+  {
+    key: "pharmacy",
+    title: "Pharmacy",
+    summary: "Upload prescription and get medicines delivered to your home.",
+    description:
+      "Order medicines online with prescription upload and convenient home delivery."
   }
 ];

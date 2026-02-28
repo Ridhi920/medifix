@@ -13,6 +13,9 @@ import DentalServiceScreen from "./src/screens/services/DentalServiceScreen";
 import CardiologyServiceScreen from "./src/screens/services/CardiologyServiceScreen";
 import PediatricsServiceScreen from "./src/screens/services/PediatricsServiceScreen";
 import DoctorAppointmentScreen from "./src/screens/appointments/DoctorAppointmentScreen";
+import AmbulanceBookingScreen from "./src/screens/ambulance/AmbulanceBookingScreen";
+import LabTestBookingScreen from "./src/screens/lab/LabTestBookingScreen";
+import PharmacyScreen from "./src/screens/pharmacy/PharmacyScreen";
 
 type Screen =
   | "login"
@@ -23,12 +26,18 @@ type Screen =
   | "service-dental"
   | "service-cardiology"
   | "service-pediatrics"
-  | "appointments";
+  | "appointments"
+  | "ambulance"
+  | "lab"
+  | "pharmacy";
 
 const serviceScreenMap: Record<ServiceKey, Screen> = {
   dental: "appointments",
   cardiology: "service-cardiology",
-  pediatrics: "service-pediatrics"
+  pediatrics: "service-pediatrics",
+  ambulance: "ambulance",
+  lab: "lab",
+  pharmacy: "pharmacy"
 };
 
 function renderScreen(
@@ -69,10 +78,14 @@ function renderScreen(
           onSelectService={(key: ServiceKey) => setScreen(serviceScreenMap[key])}
           onOpenServices={() => setScreen("services")}
           onOpenAppointments={() => setScreen("appointments")}
+          onOpenAmbulance={() => setScreen("ambulance")}
+          onOpenPharmacy={() => setScreen("pharmacy")}
         />
       );
     case "appointments":
-      return <DoctorAppointmentScreen onBack={() => setScreen("home")} />;
+      return <DoctorAppointmentScreen onBack={() => setScreen("services")} />;
+    case "ambulance":
+      return <AmbulanceBookingScreen onBack={() => setScreen("services")} />;
     case "services":
       return (
         <ServicesListScreen
@@ -87,6 +100,10 @@ function renderScreen(
       return <CardiologyServiceScreen onBack={() => setScreen("services")} />;
     case "service-pediatrics":
       return <PediatricsServiceScreen onBack={() => setScreen("services")} />;
+    case "lab":
+      return <LabTestBookingScreen onBack={() => setScreen("services")} />;
+    case "pharmacy":
+      return <PharmacyScreen onBack={() => setScreen("services")} />;
     default:
       return null;
   }
@@ -96,13 +113,16 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>("login");
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const isAuthScreen = screen === "login" || screen === "signup" || screen === "forgot";
+  const containerStyle = screen === "home" || !isAuthScreen ? { flex: 1 } : styles.container;
+
   return (
     <LinearGradient
       colors={screen === "home" ? ["#f8fafc", "#ffffff", "#ffffff"] : ["#FFE8DD", "#FFF5F0", "#ffffff"]}
       locations={[0, 0.45, 1]}
       style={styles.gradient}
     >
-      <View style={screen === "home" ? { flex: 1 } : styles.container}>
+      <View style={containerStyle}>
         <StatusBar style="dark" />
         {renderScreen(screen, menuOpen, setScreen, setMenuOpen)}
       </View>

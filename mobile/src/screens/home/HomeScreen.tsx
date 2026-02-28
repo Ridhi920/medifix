@@ -9,6 +9,8 @@ type HomeScreenProps = {
   readonly onSelectService: (key: ServiceKey) => void;
   readonly onOpenServices: () => void;
   readonly onOpenAppointments: () => void;
+  readonly onOpenAmbulance: () => void;
+  readonly onOpenPharmacy: () => void;
 };
 
 export default function HomeScreen({
@@ -17,7 +19,9 @@ export default function HomeScreen({
   onToggleMenu,
   onSelectService,
   onOpenServices,
-  onOpenAppointments
+  onOpenAppointments,
+  onOpenAmbulance,
+  onOpenPharmacy
 }: Readonly<HomeScreenProps>) {
   return (
     <View style={{ flex: 1 }}>
@@ -27,12 +31,11 @@ export default function HomeScreen({
       >
         {/* White Header */}
         <View style={styles.newHeader}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <View style={styles.logoBox}>
-              <Text style={styles.logoPlus}>+</Text>
-            </View>
-            <Text style={styles.logoText}>MedEfix</Text>
-          </View>
+          <Image
+            source={require("../../../assets/medEfix.png")}
+            style={{ width: 120, height: 40 }}
+            resizeMode="contain"
+          />
           <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
             <Pressable style={styles.headerIcon}>
               <Text style={{ fontSize: 20 }}>🔔</Text>
@@ -76,7 +79,7 @@ export default function HomeScreen({
             <Text style={styles.serviceCardText}>Doctor Consultation</Text>
           </Pressable>
 
-          <Pressable style={styles.serviceCard}>
+          <Pressable style={styles.serviceCard} onPress={onOpenPharmacy}>
             <Image
               source={require("../../../assets/pharmacy.png")}
               style={styles.serviceCardIcon}
@@ -85,7 +88,7 @@ export default function HomeScreen({
             <Text style={styles.serviceCardText}>Pharmacy</Text>
           </Pressable>
 
-          <Pressable style={styles.serviceCard}>
+          <Pressable style={styles.serviceCard} onPress={onOpenAmbulance}>
             <Image
               source={require("../../../assets/ambulance.png")}
               style={styles.serviceCardIcon}
