@@ -31,63 +31,80 @@ const serviceScreenMap: Record<ServiceKey, Screen> = {
   pediatrics: "service-pediatrics"
 };
 
+function renderScreen(
+  screen: Screen,
+  menuOpen: boolean,
+  setScreen: (screen: Screen) => void,
+  setMenuOpen: (value: boolean) => void
+) {
+  switch (screen) {
+    case "login":
+      return (
+        <LoginScreen
+          onLogin={() => setScreen("home")}
+          onSwitchToSignup={() => setScreen("signup")}
+          onForgot={() => setScreen("forgot")}
+        />
+      );
+    case "signup":
+      return (
+        <SignupScreen
+          onSignup={() => setScreen("home")}
+          onSwitchToLogin={() => setScreen("login")}
+        />
+      );
+    case "forgot":
+      return (
+        <ForgotScreen
+          onSendOtp={() => setScreen("login")}
+          onBackToLogin={() => setScreen("login")}
+        />
+      );
+    case "home":
+      return (
+        <HomeScreen
+          services={SERVICES}
+          menuOpen={menuOpen}
+          onToggleMenu={() => setMenuOpen(!menuOpen)}
+          onSelectService={(key: ServiceKey) => setScreen(serviceScreenMap[key])}
+          onOpenServices={() => setScreen("services")}
+          onOpenAppointments={() => setScreen("appointments")}
+        />
+      );
+    case "appointments":
+      return <DoctorAppointmentScreen onBack={() => setScreen("home")} />;
+    case "services":
+      return (
+        <ServicesListScreen
+          services={SERVICES}
+          onSelectService={(key: ServiceKey) => setScreen(serviceScreenMap[key])}
+          onBack={() => setScreen("home")}
+        />
+      );
+    case "service-dental":
+      return <DentalServiceScreen onBack={() => setScreen("services")} />;
+    case "service-cardiology":
+      return <CardiologyServiceScreen onBack={() => setScreen("services")} />;
+    case "service-pediatrics":
+      return <PediatricsServiceScreen onBack={() => setScreen("services")} />;
+    default:
+      return null;
+  }
+}
+
 export default function App() {
   const [screen, setScreen] = useState<Screen>("login");
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const handleSelectService = (key: ServiceKey) => {
-    setScreen(serviceScreenMap[key]);
-  };
-
   return (
     <LinearGradient
-      colors={["#FFE8DD", "#FFF5F0", "#ffffff"]}
+      colors={screen === "home" ? ["#f8fafc", "#ffffff", "#ffffff"] : ["#FFE8DD", "#FFF5F0", "#ffffff"]}
       locations={[0, 0.45, 1]}
       style={styles.gradient}
     >
-      <View style={styles.container}>
+      <View style={screen === "home" ? { flex: 1 } : styles.container}>
         <StatusBar style="dark" />
-
-        {screen === "login" ? (
-          <LoginScreen
-            onLogin={() => setScreen("home")}
-            onSwitchToSignup={() => setScreen("signup")}
-            onForgot={() => setScreen("forgot")}
-          />
-        ) : screen === "signup" ? (
-          <SignupScreen
-            onSignup={() => setScreen("home")}
-            onSwitchToLogin={() => setScreen("login")}
-          />
-        ) : screen === "forgot" ? (
-          <ForgotScreen
-            onSendOtp={() => setScreen("login")}
-            onBackToLogin={() => setScreen("login")}
-          />
-        ) : screen === "home" ? (
-          <HomeScreen
-            services={SERVICES}
-            menuOpen={menuOpen}
-            onToggleMenu={() => setMenuOpen((prev) => !prev)}
-            onSelectService={handleSelectService}
-            onOpenServices={() => setScreen("services")}
-            onOpenAppointments={() => setScreen("appointments")}
-          />
-        ) : screen === "appointments" ? (
-          <DoctorAppointmentScreen onBack={() => setScreen("home")} />
-        ) : screen === "services" ? (
-          <ServicesListScreen
-            services={SERVICES}
-            onSelectService={handleSelectService}
-            onBack={() => setScreen("home")}
-          />
-        ) : screen === "service-dental" ? (
-          <DentalServiceScreen onBack={() => setScreen("services")} />
-        ) : screen === "service-cardiology" ? (
-          <CardiologyServiceScreen onBack={() => setScreen("services")} />
-        ) : (
-          <PediatricsServiceScreen onBack={() => setScreen("services")} />
-        )}
+        {renderScreen(screen, menuOpen, setScreen, setMenuOpen)}
       </View>
     </LinearGradient>
   );

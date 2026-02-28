@@ -331,31 +331,36 @@ export const styles = StyleSheet.create({
     fontSize: 12
   },
   bottomNav: {
-    marginTop: 16,
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: "row",
     justifyContent: "space-around",
     backgroundColor: "#ffffff",
-    borderRadius: 18,
     paddingVertical: 12,
-    paddingHorizontal: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     shadowColor: "#0f172a",
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 }
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 10
   },
   navItem: {
     alignItems: "center",
-    gap: 6
+    gap: 4,
+    paddingVertical: 4
   },
   navIcon: {
-    width: 18,
-    height: 18,
-    borderRadius: 6,
-    backgroundColor: "#e2e8f0"
+    fontSize: 22
   },
   navLabel: {
     fontSize: 11,
-    color: "#64748b"
+    color: "#64748b",
+    fontWeight: "500"
   },
   heroBlock: {
     alignItems: "center",
@@ -368,11 +373,6 @@ export const styles = StyleSheet.create({
     backgroundColor: "#eef2ff",
     alignItems: "center",
     justifyContent: "center"
-  },
-  heroImage: {
-    width: 90,
-    height: 90,
-    resizeMode: "contain"
   },
   title: {
     fontSize: 24,
@@ -436,5 +436,231 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     color: "#FF6B35",
     fontWeight: "700"
+  },
+  // New Home Screen Styles
+  newHeader: {
+    backgroundColor: "#ffffff",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingTop: 50,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 }
+  },
+  logoBox: {
+    width: 40,
+    height: 40,
+    backgroundColor: "#FF6B35",
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  logoPlus: {
+    color: "#ffffff",
+    fontSize: 28,
+    fontWeight: "700"
+  },
+  logoText: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#0f172a"
+  },
+  headerIcon: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  heroSection: {
+    backgroundColor: "#FF6B35",
+    paddingHorizontal: 24,
+    paddingVertical: 32,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16
+  },
+  heroTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#ffffff",
+    marginBottom: 12,
+    lineHeight: 34
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    color: "#FFE8DD",
+    marginBottom: 20,
+    lineHeight: 20
+  },
+  heroButton: {
+    backgroundColor: "#ffffff",
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignSelf: "flex-start"
+  },
+  heroButtonText: {
+    color: "#FF6B35",
+    fontWeight: "700",
+    fontSize: 14
+  },
+  heroImageContainer: {
+    width: 140,
+    height: 140,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  heroImage: {
+    width: "100%",
+    height: "100%"
+  },
+  servicesGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    padding: 20,
+    gap: 16,
+    backgroundColor: "#f8fafc"
+  },
+  serviceCard: {
+    width: "47%",
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "flex-start",
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2
+  },
+  serviceCardIcon: {
+    width: 48,
+    height: 48,
+    marginBottom: 12
+  },
+  serviceCardText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#0f172a",
+    lineHeight: 18
+  },
+  emergencyBanner: {
+    backgroundColor: "#FF6B35",
+    marginHorizontal: 20,
+    marginVertical: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center"
+  },
+  emergencyText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#ffffff",
+    flex: 1,
+    marginRight: 12
+  },
+  callNowButton: {
+    backgroundColor: "#ffffff",
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20
+  },
+  callNowText: {
+    color: "#FF6B35",
+    fontWeight: "700",
+    fontSize: 13
+  },
+  whySection: {
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    backgroundColor: "#ffffff"
+  },
+  whySectionTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#0f172a",
+    textAlign: "center",
+    marginBottom: 24
+  },
+  whyGrid: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center"
+  },
+  whyCard: {
+    alignItems: "center",
+    width: "30%"
+  },
+  whyIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#eef2ff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12
+  },
+  whyCardText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#334155",
+    textAlign: "center",
+    lineHeight: 16
+  },
+  testimonialSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    backgroundColor: "#f8fafc"
+  },
+  testimonialTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#0f172a",
+    textAlign: "center",
+    marginBottom: 20
+  },
+  testimonialCard: {
+    backgroundColor: "#dbeafe",
+    borderRadius: 16,
+    padding: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    marginBottom: 16
+  },
+  testimonialAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#93c5fd",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  testimonialQuote: {
+    fontSize: 13,
+    color: "#1e3a8a",
+    fontStyle: "italic",
+    lineHeight: 18
+  },
+  testimonialDots: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#cbd5e1"
+  },
+  activeDot: {
+    backgroundColor: "#FF6B35"
   }
 });
