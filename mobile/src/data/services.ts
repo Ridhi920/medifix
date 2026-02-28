@@ -10,7 +10,7 @@ export type ServiceItem = {
 export const SERVICES: ServiceItem[] = [
   {
     key: "dental",
-    title: "Dental appointment booking",
+    title: "Doctor appointment booking",
     summary: "Cleanings, fillings, and urgent dental care scheduling.",
     description:
       "Book dentist visits, hygiene checkups, and follow-ups with verified clinics."

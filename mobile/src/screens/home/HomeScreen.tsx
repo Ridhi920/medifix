@@ -8,6 +8,7 @@ type HomeScreenProps = {
   onToggleMenu: () => void;
   onSelectService: (key: ServiceKey) => void;
   onOpenServices: () => void;
+  onOpenAppointments: () => void;
 };
 
 export default function HomeScreen({
@@ -15,7 +16,8 @@ export default function HomeScreen({
   menuOpen,
   onToggleMenu,
   onSelectService,
-  onOpenServices
+  onOpenServices,
+  onOpenAppointments
 }: HomeScreenProps) {
   return (
     <ScrollView
@@ -90,9 +92,13 @@ export default function HomeScreen({
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.quickRow}>
           {["Place Order", "Appointments", "My Orders", "Support"].map((item) => (
-            <View key={item} style={styles.quickCard}>
+            <Pressable 
+              key={item} 
+              style={styles.quickCard}
+              onPress={() => item === "Appointments" ? onOpenAppointments() : null}
+            >
               <Text style={styles.quickText}>{item}</Text>
-            </View>
+            </Pressable>
           ))}
         </View>
 

@@ -12,6 +12,7 @@ import ServicesListScreen from "./src/screens/services/ServicesListScreen";
 import DentalServiceScreen from "./src/screens/services/DentalServiceScreen";
 import CardiologyServiceScreen from "./src/screens/services/CardiologyServiceScreen";
 import PediatricsServiceScreen from "./src/screens/services/PediatricsServiceScreen";
+import DoctorAppointmentScreen from "./src/screens/appointments/DoctorAppointmentScreen";
 
 type Screen =
   | "login"
@@ -21,10 +22,11 @@ type Screen =
   | "services"
   | "service-dental"
   | "service-cardiology"
-  | "service-pediatrics";
+  | "service-pediatrics"
+  | "appointments";
 
 const serviceScreenMap: Record<ServiceKey, Screen> = {
-  dental: "service-dental",
+  dental: "appointments",
   cardiology: "service-cardiology",
   pediatrics: "service-pediatrics"
 };
@@ -69,7 +71,10 @@ export default function App() {
             onToggleMenu={() => setMenuOpen((prev) => !prev)}
             onSelectService={handleSelectService}
             onOpenServices={() => setScreen("services")}
+            onOpenAppointments={() => setScreen("appointments")}
           />
+        ) : screen === "appointments" ? (
+          <DoctorAppointmentScreen onBack={() => setScreen("home")} />
         ) : screen === "services" ? (
           <ServicesListScreen
             services={SERVICES}
