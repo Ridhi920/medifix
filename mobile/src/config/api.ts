@@ -29,12 +29,12 @@ export const getApiBaseUrl = (): string => {
   if (Platform.OS === 'android') {
     // For Android emulator, use special alias for host machine
     // For physical Android device, use actual IP
-    // You can detect this, but for simplicity, use IP that works for both
+    // Using IP works for both Android emulator and physical device
     return `http://${DEV_SERVER_IP}:${DEV_SERVER_PORT}`;
   } else if (Platform.OS === 'ios') {
-    // For iOS simulator, localhost works
-    // For physical iOS device, use actual IP
-    return `http://${DEV_SERVER_IP}:${DEV_SERVER_PORT}`;
+    // For iOS simulator, use localhost (runs on same machine)
+    // For physical iOS device, change to: http://${DEV_SERVER_IP}:${DEV_SERVER_PORT}
+    return `http://localhost:${DEV_SERVER_PORT}`;
   } else {
     // Web or other platforms
     return `http://localhost:${DEV_SERVER_PORT}`;

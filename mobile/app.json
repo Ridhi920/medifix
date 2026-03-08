@@ -21,7 +21,15 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "This app needs access to the camera to take photos for medical records.",
-        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select photos for medical records."
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select photos for medical records.",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true,
+          "NSExceptionDomains": {
+            "localhost": {
+              "NSExceptionAllowsInsecureHTTPLoads": true
+            }
+          }
+        }
       }
     },
     "android": {
