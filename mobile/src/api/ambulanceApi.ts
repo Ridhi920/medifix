@@ -1,7 +1,6 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const API_BASE_URL = 'http://10.175.59.188:8000';
+import { API_BASE_URL } from '../config/api';
 
 export interface Ambulance {
   id: number;

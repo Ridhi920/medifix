@@ -1,9 +1,4 @@
-// API URL Configuration
-// Use the same URL as in services/api.ts
-// For iOS Simulator: http://localhost:8000
-// For Android Emulator: http://10.0.2.2:8000
-// For Physical Device: http://YOUR_COMPUTER_IP:8000
-const API_BASE_URL = "http://10.175.59.188:8000";
+import { API_BASE_URL } from '../config/api';
 
 export interface LabTest {
   id: number;
