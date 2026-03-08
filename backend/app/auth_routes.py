@@ -75,7 +75,11 @@ def login(user_data: UserLogin, session: Session = Depends(get_session)) -> Toke
         data={"sub": user.email}, expires_delta=access_token_expires
     )
 
-    return Token(access_token=access_token, token_type="bearer")
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": UserResponse.model_validate(user, from_attributes=True)
+    }
 
 
 @router.post("/login/form", response_model=Token)

@@ -20,8 +20,6 @@ const API_BASE_URL = 'http://10.175.59.188:8000';
 //   default: 'http://10.175.59.188:8000'
 // });
 
-console.log('🌐 API connecting to:', API_BASE_URL);
-
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -109,9 +107,101 @@ export const authAPI = {
       await api.post('/auth/logout');
     } catch (error) {
       // Continue with logout even if API call fails
-      console.log('Logout API call failed, clearing local token anyway');
+      console.error('Logout API call failed, clearing local token anyway');
     }
     await AsyncStorage.removeItem('access_token');
+  },
+};
+
+// Doctor Types
+export interface Doctor {
+  id: number;
+  name: string;
+  specialty: string;
+  qualification: string;
+  experience: number;
+  rating: number;
+  consultation_fee: number;
+  available_days: string[];
+  available_slots: string[];
+  image: string;
+  address: string;
+  is_active: boolean;
+}
+
+export interface AppointmentCreate {
+  doctor_id: number;
+  patient_name: string;
+  patient_age: number;
+  symptoms?: string;
+  appointment_day: string;
+  appointment_slot: string;
+  appointment_date?: string;
+}
+
+export interface Appointment {
+  id: number;
+  user_id: number;
+  doctor_id: number;
+  patient_name: string;
+  patient_age: number;
+  symptoms?: string;
+  appointment_day: string;
+  appointment_slot: string;
+  appointment_date?: string;
+  consultation_fee: number;
+  status: string;
+  created_at: string;
+  doctor_name?: string;
+  doctor_specialty?: string;
+  doctor_image?: string;
+}
+
+// Doctor & Appointment API
+export const doctorAPI = {
+  // Get all doctors
+  getDoctors: async (specialty?: string): Promise<Doctor[]> => {
+    const params = specialty ? { specialty } : {};
+    const response = await api.get<Doctor[]>('/doctors', { params });
+    return response.data;
+  },
+
+  // Get specific doctor
+  getDoctor: async (doctorId: number): Promise<Doctor> => {
+    const response = await api.get<Doctor>(`/doctors/${doctorId}`);
+    return response.data;
+  },
+
+  // Get booked slots for a doctor on a specific day
+  getBookedSlots: async (doctorId: number, day: string): Promise<string[]> => {
+    const response = await api.get<string[]>(`/doctors/${doctorId}/booked-slots`, {
+      params: { day }
+    });
+    return response.data;
+  },
+
+  // Book appointment
+  bookAppointment: async (data: AppointmentCreate): Promise<Appointment> => {
+    const response = await api.post<Appointment>('/doctors/doctor_appointments', data);
+    return response.data;
+  },
+
+  // Get my appointments
+  getMyAppointments: async (): Promise<Appointment[]> => {
+    const response = await api.get<Appointment[]>('/doctors/doctor_appointments');
+    return response.data;
+  },
+
+  // Get specific appointment
+  getAppointment: async (appointmentId: number): Promise<Appointment> => {
+    const response = await api.get<Appointment>(`/doctors/doctor_appointments/${appointmentId}`);
+    return response.data;
+  },
+
+  // Cancel appointment
+  cancelAppointment: async (appointmentId: number): Promise<{ message: string }> => {
+    const response = await api.patch<{ message: string }>(`/doctors/doctor_appointments/${appointmentId}/cancel`);
+    return response.data;
   },
 };
 

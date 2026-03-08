@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Pressable, ScrollView, Text, View, TextInput, ActivityIndicator } from "react-native";
+import { Pressable, ScrollView, Text, View, TextInput, ActivityIndicator, Alert } from "react-native";
 import { styles } from "../../styles";
-import { DOCTORS, type Doctor } from "../../data/doctors";
+import { doctorAPI, type Doctor } from "../../services/api";
 
 type DoctorAppointmentScreenProps = {
   readonly onBack: () => void;
@@ -9,6 +9,8 @@ type DoctorAppointmentScreenProps = {
 
 export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppointmentScreenProps>) {
   const [loading, setLoading] = useState<boolean>(true);
+  const [booking, setBooking] = useState<boolean>(false);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [selectedSlot, setSelectedSlot] = useState<string>("");
@@ -16,17 +18,82 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
   const [patientAge, setPatientAge] = useState<string>("");
   const [symptoms, setSymptoms] = useState<string>("");
   const [showBookingForm, setShowBookingForm] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState<boolean>(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 2500);
-    return () => clearTimeout(timer);
+    fetchDoctors();
   }, []);
+
+  const fetchDoctors = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const data = await doctorAPI.getDoctors();
+      setDoctors(data);
+    } catch (err: any) {
+      console.error("Error fetching doctors:", err);
+      setError(err.response?.data?.detail || "Failed to load doctors");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchBookedSlots = async (doctorId: number, day: string) => {
+    try {
+      setLoadingSlots(true);
+      const slots = await doctorAPI.getBookedSlots(doctorId, day);
+      setBookedSlots(slots);
+    } catch (err: any) {
+      console.error("Error fetching booked slots:", err);
+      setBookedSlots([]);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  const handleDaySelect = async (day: string) => {
+    setSelectedDay(day);
+    setSelectedSlot("");
+    setShowBookingForm(false);
+    
+    if (selectedDoctor) {
+      await fetchBookedSlots(selectedDoctor.id, day);
+    }
+  };
 
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#ffffff" }}>
         <ActivityIndicator size="large" color="#FF6B35" />
-        <Text style={{ marginTop: 16, fontSize: 16, color: "#64748b" }}>Loading Doctor Appointments...</Text>
+        <Text style={{ marginTop: 16, fontSize: 16, color: "#64748b" }}>Loading Doctors...</Text>
+      </View>
+    );
+  }
+
+  if (error && doctors.length === 0) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#ffffff", padding: 24 }}>
+        <Text style={{ fontSize: 18, fontWeight: "600", color: "#ef4444", marginBottom: 12 }}>
+          Error Loading Doctors
+        </Text>
+        <Text style={{ fontSize: 14, color: "#64748b", textAlign: "center", marginBottom: 24 }}>
+          {error}
+        </Text>
+        <Pressable
+          onPress={fetchDoctors}
+          style={{
+            backgroundColor: "#FF6B35",
+            borderRadius: 12,
+            paddingHorizontal: 24,
+            paddingVertical: 12
+          }}
+        >
+          <Text style={{ fontSize: 14, fontWeight: "600", color: "#ffffff" }}>
+            Try Again
+          </Text>
+        </Pressable>
       </View>
     );
   }
@@ -36,20 +103,52 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
     setSelectedDay("");
     setSelectedSlot("");
     setShowBookingForm(false);
+    setBookedSlots([]);
   };
 
-  const handleBookAppointment = () => {
-    if (selectedDoctor && selectedDay && selectedSlot && patientName && patientAge) {
-      // In a real app, this would make an API call
-      alert(`Appointment booked with ${selectedDoctor.name}\nDay: ${selectedDay}\nTime: ${selectedSlot}\nPatient: ${patientName}`);
-      // Reset form
-      setSelectedDoctor(null);
-      setSelectedDay("");
-      setSelectedSlot("");
-      setPatientName("");
-      setPatientAge("");
-      setSymptoms("");
-      setShowBookingForm(false);
+  const handleBookAppointment = async () => {
+    if (!selectedDoctor || !selectedDay || !selectedSlot || !patientName || !patientAge) {
+      Alert.alert("Error", "Please fill in all required fields");
+      return;
+    }
+
+    const age = parseInt(patientAge, 10);
+    if (isNaN(age) || age <= 0 || age >= 150) {
+      Alert.alert("Error", "Please enter a valid age");
+      return;
+    }
+
+    try {
+      setBooking(true);
+      await doctorAPI.bookAppointment({
+        doctor_id: selectedDoctor.id,
+        patient_name: patientName,
+        patient_age: age,
+        symptoms: symptoms || undefined,
+        appointment_day: selectedDay,
+        appointment_slot: selectedSlot,
+      });
+
+      Alert.alert(
+        "Success!",
+        `Appointment booked with ${selectedDoctor.name}\nDay: ${selectedDay}\nTime: ${selectedSlot}`,
+        [{ text: "OK", onPress: () => {
+          // Reset form
+          setSelectedDoctor(null);
+          setSelectedDay("");
+          setSelectedSlot("");
+          setPatientName("");
+          setPatientAge("");
+          setSymptoms("");
+          setShowBookingForm(false);
+        }}]
+      );
+    } catch (err: any) {
+      console.error("Error booking appointment:", err);
+      const errorMessage = err.response?.data?.detail || "Failed to book appointment";
+      Alert.alert("Booking Failed", errorMessage);
+    } finally {
+      setBooking(false);
     }
   };
 
@@ -77,7 +176,7 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
         {!selectedDoctor && (
           <View style={{ marginTop: 24 }}>
             <Text style={[styles.sectionTitle, { marginBottom: 16 }]}>Available Doctors</Text>
-            {DOCTORS.map((doctor) => (
+            {doctors.map((doctor) => (
               <Pressable
                 key={doctor.id}
                 onPress={() => handleDoctorSelect(doctor)}
@@ -122,7 +221,7 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
                       alignSelf: "flex-start"
                     }}>
                       <Text style={{ fontSize: 14, fontWeight: "600", color: "#1e3a8a" }}>
-                        ₹{doctor.consultationFee}
+                        ₹{doctor.consultation_fee}
                       </Text>
                     </View>
                   </View>
@@ -175,10 +274,10 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
             {/* Select Day */}
             <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Select Day</Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
-              {selectedDoctor.availableDays.map((day) => (
+              {selectedDoctor.available_days.map((day) => (
                 <Pressable
                   key={day}
-                  onPress={() => setSelectedDay(day)}
+                  onPress={() => handleDaySelect(day)}
                   style={{
                     paddingHorizontal: 16,
                     paddingVertical: 10,
@@ -203,33 +302,49 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
             {Boolean(selectedDay) && (
               <>
                 <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Select Time Slot</Text>
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
-                  {selectedDoctor.availableSlots.map((slot) => (
-                    <Pressable
-                      key={slot}
-                      onPress={() => {
-                        setSelectedSlot(slot);
-                        setShowBookingForm(true);
-                      }}
-                      style={{
-                        paddingHorizontal: 14,
-                        paddingVertical: 10,
-                        borderRadius: 12,
-                        backgroundColor: selectedSlot === slot ? "#FF6B35" : "#f1f5f9",
-                        borderWidth: 1,
-                        borderColor: selectedSlot === slot ? "#FF6B35" : "#e2e8f0"
-                      }}
-                    >
-                      <Text style={{
-                        fontSize: 13,
-                        fontWeight: "600",
-                        color: selectedSlot === slot ? "#ffffff" : "#0f172a"
-                      }}>
-                        {slot}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
+                {loadingSlots && (
+                  <View style={{ paddingVertical: 20, alignItems: "center" }}>
+                    <ActivityIndicator size="small" color="#FF6B35" />
+                    <Text style={{ marginTop: 8, fontSize: 12, color: "#64748b" }}>Checking availability...</Text>
+                  </View>
+                )}
+                {!loadingSlots && (
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
+                    {selectedDoctor.available_slots.map((slot) => {
+                      const isBooked = bookedSlots.includes(slot);
+                      const isSelected = selectedSlot === slot;
+                      return (
+                        <Pressable
+                          key={slot}
+                          onPress={() => {
+                            if (!isBooked) {
+                              setSelectedSlot(slot);
+                              setShowBookingForm(true);
+                            }
+                          }}
+                          disabled={isBooked}
+                          style={{
+                            paddingHorizontal: 14,
+                            paddingVertical: 10,
+                            borderRadius: 12,
+                            backgroundColor: isBooked ? "#fecaca" : (isSelected ? "#FF6B35" : "#f1f5f9"),
+                            borderWidth: 1,
+                            borderColor: isBooked ? "#ef4444" : (isSelected ? "#FF6B35" : "#e2e8f0"),
+                            opacity: isBooked ? 0.6 : 1
+                          }}
+                        >
+                          <Text style={{
+                            fontSize: 13,
+                            fontWeight: "600",
+                            color: isBooked ? "#991b1b" : (isSelected ? "#ffffff" : "#0f172a")
+                          }}>
+                            {slot} {isBooked ? "✕" : ""}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
               </>
             )}
 
@@ -328,28 +443,31 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
                     Time: {selectedSlot}
                   </Text>
                   <Text style={{ fontSize: 14, fontWeight: "700", color: "#1e3a8a", marginTop: 8 }}>
-                    Consultation Fee: ₹{selectedDoctor.consultationFee}
+                    Consultation Fee: ₹{selectedDoctor.consultation_fee}
                   </Text>
                 </View>
 
                 {/* Book Button */}
                 <Pressable
                   onPress={handleBookAppointment}
-                  disabled={!patientName || !patientAge}
+                  disabled={!patientName || !patientAge || booking}
                   style={{
-                    backgroundColor: patientName && patientAge ? "#FF6B35" : "#cbd5e1",
+                    backgroundColor: (patientName && patientAge && !booking) ? "#FF6B35" : "#cbd5e1",
                     borderRadius: 14,
                     paddingVertical: 14,
                     alignItems: "center",
-                    justifyContent: "center"
+                    justifyContent: "center",
+                    flexDirection: "row",
+                    gap: 8
                   }}
                 >
+                  {booking && <ActivityIndicator size="small" color="#ffffff" />}
                   <Text style={{
                     fontSize: 16,
                     fontWeight: "700",
                     color: "#ffffff"
                   }}>
-                    Confirm Booking
+                    {booking ? "Booking..." : "Book Appointment"}
                   </Text>
                 </Pressable>
               </View>
