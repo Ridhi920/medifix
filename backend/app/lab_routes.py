@@ -237,7 +237,7 @@ def create_lab_booking(
 
 
 @router.get("/bookings/my", response_model=List[LabBookingWithTest])
-def get_my_lab_bookings(
+async def get_my_lab_bookings(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ) -> List[LabBookingWithTest]:

@@ -1,10 +1,21 @@
 import { useState, useEffect } from "react";
-import { Pressable, ScrollView, Text, View, TextInput, ActivityIndicator, Alert } from "react-native";
+import { Pressable, ScrollView, Text, View, TextInput, ActivityIndicator } from "react-native";
 import { styles } from "../../styles";
 import { doctorAPI, type Doctor } from "../../services/api";
+import { parseBackendErrors, validators } from "../../utils/errorHandler";
+import CustomAlert from "../../components/CustomAlert";
+import LoadingScreen from "../../components/LoadingScreen";
 
 type DoctorAppointmentScreenProps = {
   readonly onBack: () => void;
+};
+
+type AlertState = {
+  visible: boolean;
+  type: "success" | "error" | "warning" | "info";
+  title: string;
+  message: string;
+  onConfirm?: () => void;
 };
 
 export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppointmentScreenProps>) {
@@ -21,6 +32,12 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
   const [error, setError] = useState<string>("");
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState<boolean>(false);
+  const [alert, setAlert] = useState<AlertState>({
+    visible: false,
+    type: "info",
+    title: "",
+    message: ""
+  });
 
   useEffect(() => {
     fetchDoctors();
@@ -30,7 +47,10 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
     try {
       setLoading(true);
       setError("");
-      const data = await doctorAPI.getDoctors();
+      const [data] = await Promise.all([
+        doctorAPI.getDoctors(),
+        new Promise(resolve => setTimeout(resolve, 2000))
+      ]);
       setDoctors(data);
     } catch (err: any) {
       console.error("Error fetching doctors:", err);
@@ -64,12 +84,7 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
   };
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#ffffff" }}>
-        <ActivityIndicator size="large" color="#FF6B35" />
-        <Text style={{ marginTop: 16, fontSize: 16, color: "#64748b" }}>Loading Doctors...</Text>
-      </View>
-    );
+    return <LoadingScreen message="Dr. Meddy is looking for the best doctors for you" />;
   }
 
   if (error && doctors.length === 0) {
@@ -107,32 +122,63 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
   };
 
   const handleBookAppointment = async () => {
-    if (!selectedDoctor || !selectedDay || !selectedSlot || !patientName || !patientAge) {
-      Alert.alert("Error", "Please fill in all required fields");
+    if (!selectedDoctor || !selectedDay || !selectedSlot) {
+      setAlert({
+        visible: true,
+        type: "warning",
+        title: "Missing Information",
+        message: "Please select doctor, day, and time slot"
+      });
+      return;
+    }
+
+    // Validate patient name
+    const nameError = validators.name(patientName);
+    if (nameError) {
+      setAlert({
+        visible: true,
+        type: "error",
+        title: "Invalid Name",
+        message: nameError
+      });
+      return;
+    }
+
+    // Validate patient age
+    const ageError = validators.age(patientAge);
+    if (ageError) {
+      setAlert({
+        visible: true,
+        type: "error",
+        title: "Invalid Age",
+        message: ageError
+      });
       return;
     }
 
     const age = parseInt(patientAge, 10);
-    if (isNaN(age) || age <= 0 || age >= 150) {
-      Alert.alert("Error", "Please enter a valid age");
-      return;
-    }
 
     try {
       setBooking(true);
       await doctorAPI.bookAppointment({
         doctor_id: selectedDoctor.id,
-        patient_name: patientName,
+        patient_name: patientName.trim(),
         patient_age: age,
-        symptoms: symptoms || undefined,
+        symptoms: symptoms.trim() || undefined,
         appointment_day: selectedDay,
         appointment_slot: selectedSlot,
       });
 
-      Alert.alert(
-        "Success!",
-        `Appointment booked with ${selectedDoctor.name}\nDay: ${selectedDay}\nTime: ${selectedSlot}`,
-        [{ text: "OK", onPress: () => {
+      setAlert({
+        visible: true,
+        type: "success",
+        title: "Appointment Booked! ✅",
+        message: `Appointment booked with ${selectedDoctor.name}\n\n` +
+          `Patient: ${patientName}\n` +
+          `Day: ${selectedDay}\n` +
+          `Time: ${selectedSlot}\n\n` +
+          `You will receive a confirmation shortly.`,
+        onConfirm: () => {
           // Reset form
           setSelectedDoctor(null);
           setSelectedDay("");
@@ -141,12 +187,17 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
           setPatientAge("");
           setSymptoms("");
           setShowBookingForm(false);
-        }}]
-      );
+        }
+      });
     } catch (err: any) {
       console.error("Error booking appointment:", err);
-      const errorMessage = err.response?.data?.detail || "Failed to book appointment";
-      Alert.alert("Booking Failed", errorMessage);
+      const errorMessage = parseBackendErrors(err);
+      setAlert({
+        visible: true,
+        type: "error",
+        title: "Booking Failed",
+        message: errorMessage
+      });
     } finally {
       setBooking(false);
     }
@@ -475,6 +526,20 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
           </View>
         )}
       </View>
+
+      <CustomAlert
+        visible={alert.visible}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onClose={() => {
+          if (alert.onConfirm) {
+            alert.onConfirm();
+          }
+          setAlert({ ...alert, visible: false });
+        }}
+        primaryButtonText="OK"
+      />
     </ScrollView>
   );
 }

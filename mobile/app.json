@@ -10,9 +10,7 @@
       "web"
     ],
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "splash": {
-      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -34,10 +32,6 @@
     },
     "android": {
       "package": "com.ridhi26.medifix",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",

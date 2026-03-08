@@ -29,6 +29,17 @@ class UserResponse(BaseModel):
     created_at: datetime
 
 
+class UserUpdate(BaseModel):
+    full_name: str | None = None
+    phone: str | None = None
+    email: EmailStr | None = None
+
+
+class PasswordUpdate(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=6, max_length=72)
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str

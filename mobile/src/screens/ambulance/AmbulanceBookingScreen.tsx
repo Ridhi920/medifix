@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { Pressable, ScrollView, Text, View, TextInput, Linking, ActivityIndicator } from "react-native";
 import { styles } from "../../styles";
 import { ambulanceAPI, type Ambulance } from "../../api/ambulanceApi";
+import { parseBackendErrors, validators } from "../../utils/errorHandler";
+import CustomAlert from "../../components/CustomAlert";
+import LoadingScreen from "../../components/LoadingScreen";
 
 const EMERGENCY_CONTACTS = [
   { name: "Emergency", number: "108" },
@@ -15,6 +18,22 @@ type AmbulanceBookingScreenProps = {
 };
 
 type BookingMode = "now" | "schedule";
+
+type ValidationErrors = {
+  patientName?: string;
+  contactNumber?: string;
+  pickupAddress?: string;
+  scheduledDate?: string;
+  scheduledTime?: string;
+};
+
+type AlertState = {
+  visible: boolean;
+  type: "success" | "error" | "warning" | "info";
+  title: string;
+  message: string;
+  onConfirm?: () => void;
+};
 
 export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBookingScreenProps>) {
   const [loading, setLoading] = useState<boolean>(true);
@@ -30,6 +49,13 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
   const [scheduledDate, setScheduledDate] = useState<string>("");
   const [scheduledTime, setScheduledTime] = useState<string>("");
   const [showBookingForm, setShowBookingForm] = useState<boolean>(false);
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [alert, setAlert] = useState<AlertState>({
+    visible: false,
+    type: "info",
+    title: "",
+    message: ""
+  });
 
   useEffect(() => {
     fetchAmbulances();
@@ -38,7 +64,10 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
   const fetchAmbulances = async () => {
     try {
       setLoading(true);
-      const data = await ambulanceAPI.getAmbulances();
+      const [data] = await Promise.all([
+        ambulanceAPI.getAmbulances(),
+        new Promise(resolve => setTimeout(resolve, 2000))
+      ]);
       setAmbulances(data);
     } catch (error: any) {
       console.error('Failed to fetch ambulances:', error);
@@ -57,10 +86,62 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
     Linking.openURL(`tel:${number}`);
   };
 
+  const validateForm = (): { isValid: boolean; errors: ValidationErrors } => {
+    const errors: ValidationErrors = {};
+
+    // Use validators from utility
+    errors.patientName = validators.name(patientName);
+    errors.contactNumber = validators.phone(contactNumber);
+    errors.pickupAddress = validators.address(pickupAddress);
+
+    // Schedule validation
+    if (bookingMode === "schedule") {
+      errors.scheduledDate = validators.date(scheduledDate);
+      errors.scheduledTime = validators.required(scheduledTime, "Scheduled time");
+    }
+
+    // Remove undefined errors
+    Object.keys(errors).forEach(key => {
+      if (errors[key as keyof ValidationErrors] === undefined) {
+        delete errors[key as keyof ValidationErrors];
+      }
+    });
+
+    return {
+      isValid: Object.keys(errors).length === 0,
+      errors
+    };
+  };
+
   const handleBookAmbulance = async () => {
-    if (!selectedAmbulance || !patientName || !contactNumber || !pickupAddress) {
+    if (!selectedAmbulance) {
+      setAlert({
+        visible: true,
+        type: "error",
+        title: "Selection Required",
+        message: "Please select an ambulance type to continue."
+      });
       return;
     }
+
+    // Validate form
+    const validation = validateForm();
+    if (!validation.isValid) {
+      setValidationErrors(validation.errors);
+      
+      // Show first error in alert
+      const firstError = Object.values(validation.errors)[0];
+      setAlert({
+        visible: true,
+        type: "warning",
+        title: "Check Your Information",
+        message: firstError || "Please fill in all required fields correctly."
+      });
+      return;
+    }
+
+    // Clear validation errors
+    setValidationErrors({});
 
     try {
       setSubmitting(true);
@@ -89,41 +170,52 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
 
       const booking = await ambulanceAPI.createAmbulanceBooking(bookingData);
 
-      alert(
-        `Ambulance Booking Confirmed! ✅\n\n` +
-        `Booking ID: #${booking.id}\n` +
-        `Ambulance: ${selectedAmbulance.name}\n` +
-        `Type: ${booking.booking_type}\n` +
-        `Patient: ${patientName}\n` +
-        `Status: ${booking.status}\n` +
-        `Price: ₹${booking.ambulance_price}\n\n` +
-        `We will contact you shortly.`
-      );
-
-      // Reset form
-      setSelectedAmbulance(null);
-      setPatientName("");
-      setContactNumber("");
-      setPickupAddress("");
-      setDropoffAddress("");
-      setMedicalCondition("");
-      setScheduledDate("");
-      setScheduledTime("");
-      setShowBookingForm(false);
-      setBookingMode("now");
+      // Success alert
+      setAlert({
+        visible: true,
+        type: "success",
+        title: "Booking Confirmed!",
+        message: `Your ambulance has been booked successfully.\n\n` +
+          `Booking ID: #${booking.id}\n` +
+          `Ambulance: ${selectedAmbulance.name}\n` +
+          `Patient: ${patientName}\n` +
+          `Price: ₹${booking.ambulance_price}\n\n` +
+          `Our team will contact you shortly at ${contactNumber}`,
+        onConfirm: () => {
+          // Reset form
+          setSelectedAmbulance(null);
+          setPatientName("");
+          setContactNumber("");
+          setPickupAddress("");
+          setDropoffAddress("");
+          setMedicalCondition("");
+          setScheduledDate("");
+          setScheduledTime("");
+          setShowBookingForm(false);
+          setBookingMode("now");
+          setValidationErrors({});
+        }
+      });
     } catch (error: any) {
       console.error('Failed to book ambulance:', error);
-      alert(
-        `Booking Failed ❌\n\n` +
-        `${error.response?.data?.detail || 'Unable to create booking. Please try again.'}`
-      );
+      
+      const errorMessage = parseBackendErrors(error);
+      
+      setAlert({
+        visible: true,
+        type: "error",
+        title: "Booking Failed",
+        message: errorMessage
+      });
     } finally {
       setSubmitting(false);
     }
   };
 
   const isFormValid = () => {
-    const basicValid = patientName && contactNumber && pickupAddress;
+    const basicValid = patientName.trim().length >= 2 && 
+                      contactNumber.trim().length >= 10 && 
+                      pickupAddress.trim().length >= 5;
     if (bookingMode === "schedule") {
       return basicValid && scheduledDate && scheduledTime;
     }
@@ -131,14 +223,7 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
   };
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, backgroundColor: "#ffffff", alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator size="large" color="#FF6B35" />
-        <Text style={{ marginTop: 16, fontSize: 16, color: "#64748b", fontWeight: "600" }}>
-          Loading Ambulance Service...
-        </Text>
-      </View>
-    );
+    return <LoadingScreen message="Dr. Meddy is locating ambulances for you" />;
   }
 
   return (
@@ -413,20 +498,30 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
               </Text>
               <TextInput
                 value={patientName}
-                onChangeText={setPatientName}
-                placeholder="Enter patient name"
+                onChangeText={(text) => {
+                  setPatientName(text);
+                  if (validationErrors.patientName) {
+                    setValidationErrors({ ...validationErrors, patientName: undefined });
+                  }
+                }}
+                placeholder="Enter patient name (min 2 characters)"
                 style={{
                   backgroundColor: "#ffffff",
                   borderRadius: 12,
                   paddingHorizontal: 14,
                   paddingVertical: 12,
-                  marginBottom: 16,
+                  marginBottom: validationErrors.patientName ? 4 : 16,
                   borderWidth: 1,
-                  borderColor: "#e2e8f0",
+                  borderColor: validationErrors.patientName ? "#ef4444" : "#e2e8f0",
                   fontSize: 14,
                   color: "#0f172a"
                 }}
               />
+              {validationErrors.patientName && (
+                <Text style={{ fontSize: 12, color: "#ef4444", marginBottom: 12 }}>
+                  {validationErrors.patientName}
+                </Text>
+              )}
 
               {/* Contact Number */}
               <Text style={{ fontSize: 13, fontWeight: "600", color: "#0f172a", marginBottom: 6 }}>
@@ -434,21 +529,32 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
               </Text>
               <TextInput
                 value={contactNumber}
-                onChangeText={setContactNumber}
-                placeholder="Enter contact number"
+                onChangeText={(text) => {
+                  setContactNumber(text);
+                  if (validationErrors.contactNumber) {
+                    setValidationErrors({ ...validationErrors, contactNumber: undefined });
+                  }
+                }}
+                placeholder="Enter 10-digit contact number"
                 keyboardType="phone-pad"
+                maxLength={15}
                 style={{
                   backgroundColor: "#ffffff",
                   borderRadius: 12,
                   paddingHorizontal: 14,
                   paddingVertical: 12,
-                  marginBottom: 16,
+                  marginBottom: validationErrors.contactNumber ? 4 : 16,
                   borderWidth: 1,
-                  borderColor: "#e2e8f0",
+                  borderColor: validationErrors.contactNumber ? "#ef4444" : "#e2e8f0",
                   fontSize: 14,
                   color: "#0f172a"
                 }}
               />
+              {validationErrors.contactNumber && (
+                <Text style={{ fontSize: 12, color: "#ef4444", marginBottom: 12 }}>
+                  {validationErrors.contactNumber}
+                </Text>
+              )}
 
               {/* Pickup Address */}
               <Text style={{ fontSize: 13, fontWeight: "600", color: "#0f172a", marginBottom: 6 }}>
@@ -456,8 +562,13 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
               </Text>
               <TextInput
                 value={pickupAddress}
-                onChangeText={setPickupAddress}
-                placeholder="Enter pickup location"
+                onChangeText={(text) => {
+                  setPickupAddress(text);
+                  if (validationErrors.pickupAddress) {
+                    setValidationErrors({ ...validationErrors, pickupAddress: undefined });
+                  }
+                }}
+                placeholder="Enter pickup location (min 5 characters)"
                 multiline
                 numberOfLines={2}
                 style={{
@@ -465,15 +576,20 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
                   borderRadius: 12,
                   paddingHorizontal: 14,
                   paddingVertical: 12,
-                  marginBottom: 16,
+                  marginBottom: validationErrors.pickupAddress ? 4 : 16,
                   borderWidth: 1,
-                  borderColor: "#e2e8f0",
+                  borderColor: validationErrors.pickupAddress ? "#ef4444" : "#e2e8f0",
                   fontSize: 14,
                   color: "#0f172a",
                   textAlignVertical: "top",
                   minHeight: 60
                 }}
               />
+              {validationErrors.pickupAddress && (
+                <Text style={{ fontSize: 12, color: "#ef4444", marginBottom: 12 }}>
+                  {validationErrors.pickupAddress}
+                </Text>
+              )}
 
               {/* Dropoff Address */}
               <Text style={{ fontSize: 13, fontWeight: "600", color: "#0f172a", marginBottom: 6 }}>
@@ -508,40 +624,60 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
                   </Text>
                   <TextInput
                     value={scheduledDate}
-                    onChangeText={setScheduledDate}
-                    placeholder="DD/MM/YYYY"
+                    onChangeText={(text) => {
+                      setScheduledDate(text);
+                      if (validationErrors.scheduledDate) {
+                        setValidationErrors({ ...validationErrors, scheduledDate: undefined });
+                      }
+                    }}
+                    placeholder="DD/MM/YYYY (e.g., 15/03/2026)"
                     style={{
                       backgroundColor: "#ffffff",
                       borderRadius: 12,
                       paddingHorizontal: 14,
                       paddingVertical: 12,
-                      marginBottom: 16,
+                      marginBottom: validationErrors.scheduledDate ? 4 : 16,
                       borderWidth: 1,
-                      borderColor: "#e2e8f0",
+                      borderColor: validationErrors.scheduledDate ? "#ef4444" : "#e2e8f0",
                       fontSize: 14,
                       color: "#0f172a"
                     }}
                   />
+                  {validationErrors.scheduledDate && (
+                    <Text style={{ fontSize: 12, color: "#ef4444", marginBottom: 12 }}>
+                      {validationErrors.scheduledDate}
+                    </Text>
+                  )}
 
                   <Text style={{ fontSize: 13, fontWeight: "600", color: "#0f172a", marginBottom: 6 }}>
                     Scheduled Time*
                   </Text>
                   <TextInput
                     value={scheduledTime}
-                    onChangeText={setScheduledTime}
-                    placeholder="HH:MM AM/PM"
+                    onChangeText={(text) => {
+                      setScheduledTime(text);
+                      if (validationErrors.scheduledTime) {
+                        setValidationErrors({ ...validationErrors, scheduledTime: undefined });
+                      }
+                    }}
+                    placeholder="HH:MM AM/PM (e.g., 10:30 AM)"
                     style={{
                       backgroundColor: "#ffffff",
                       borderRadius: 12,
                       paddingHorizontal: 14,
                       paddingVertical: 12,
-                      marginBottom: 16,
+                      marginBottom: validationErrors.scheduledTime ? 4 : 16,
                       borderWidth: 1,
-                      borderColor: "#e2e8f0",
+                      borderColor: validationErrors.scheduledTime ? "#ef4444" : "#e2e8f0",
                       fontSize: 14,
                       color: "#0f172a"
                     }}
                   />
+                  {validationErrors.scheduledTime && (
+                    <Text style={{ fontSize: 12, color: "#ef4444", marginBottom: 12 }}>
+                      {validationErrors.scheduledTime}
+                    </Text>
+                  )}
                 </>
               )}
 
@@ -630,6 +766,20 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
           )}
         </View>
       </ScrollView>
+
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={alert.visible}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onClose={() => {
+          setAlert({ ...alert, visible: false });
+          if (alert.onConfirm) {
+            alert.onConfirm();
+          }
+        }}
+      />
     </View>
   );
 }

@@ -400,7 +400,7 @@ export default function PharmacyScreen({ onBack }: Readonly<PharmacyScreenProps>
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 2500);
+    }, 2000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -518,14 +518,7 @@ export default function PharmacyScreen({ onBack }: Readonly<PharmacyScreenProps>
   };
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, backgroundColor: "#ffffff", alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator size="large" color="#FF6B35" />
-        <Text style={{ marginTop: 16, fontSize: 16, color: "#64748b", fontWeight: "600" }}>
-          Loading Pharmacy...
-        </Text>
-      </View>
-    );
+    return <LoadingScreen message="Dr. Meddy is stocking up medicines for you" />;
   }
 
   if (showCart) {

@@ -17,6 +17,10 @@ import DoctorAppointmentScreen from "./src/screens/appointments/DoctorAppointmen
 import AmbulanceBookingScreen from "./src/screens/ambulance/AmbulanceBookingScreen";
 import LabTestBookingScreen from "./src/screens/lab/LabTestBookingScreen";
 import PharmacyScreen from "./src/screens/pharmacy/PharmacyScreen";
+import ProfileMenuScreen from "./src/screens/profile/ProfileMenuScreen";
+import EditProfileScreen from "./src/screens/profile/EditProfileScreen";
+import UpcomingBookingsScreen from "./src/screens/profile/UpcomingBookingsScreen";
+import CompletedBookingsScreen from "./src/screens/profile/CompletedBookingsScreen";
 
 type Screen =
   | "login"
@@ -30,7 +34,11 @@ type Screen =
   | "appointments"
   | "ambulance"
   | "lab"
-  | "pharmacy";
+  | "pharmacy"
+  | "profile"
+  | "edit-profile"
+  | "upcoming-bookings"
+  | "completed-bookings";
 
 const serviceScreenMap: Record<ServiceKey, Screen> = {
   dental: "appointments",
@@ -81,6 +89,11 @@ function renderScreen(
           onOpenAppointments={() => setScreen("appointments")}
           onOpenAmbulance={() => setScreen("ambulance")}
           onOpenPharmacy={() => setScreen("pharmacy")}
+          onOpenLab={() => setScreen("lab")}
+          onOpenDental={() => setScreen("service-dental")}
+          onOpenCardiology={() => setScreen("service-cardiology")}
+          onOpenPediatrics={() => setScreen("service-pediatrics")}
+          onOpenProfile={() => setScreen("profile")}
           onLogout={() => setScreen("login")}
         />
       );
@@ -106,6 +119,22 @@ function renderScreen(
       return <LabTestBookingScreen onBack={() => setScreen("services")} />;
     case "pharmacy":
       return <PharmacyScreen onBack={() => setScreen("services")} />;
+    case "profile":
+      return (
+        <ProfileMenuScreen
+          onBack={() => setScreen("home")}
+          onOpenEditProfile={() => setScreen("edit-profile")}
+          onOpenUpcomingBookings={() => setScreen("upcoming-bookings")}
+          onOpenCompletedBookings={() => setScreen("completed-bookings")}
+          onLogout={() => setScreen("login")}
+        />
+      );
+    case "edit-profile":
+      return <EditProfileScreen onBack={() => setScreen("profile")} />;
+    case "upcoming-bookings":
+      return <UpcomingBookingsScreen onBack={() => setScreen("profile")} />;
+    case "completed-bookings":
+      return <CompletedBookingsScreen onBack={() => setScreen("profile")} />;
     default:
       return null;
   }

@@ -1,13 +1,23 @@
 import { useState, useEffect } from "react";
-import { Pressable, ScrollView, Text, View, TextInput, ActivityIndicator, Alert } from "react-native";
+import { Pressable, ScrollView, Text, View, TextInput, ActivityIndicator, Image } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { styles } from "../../styles";
 import { LAB_CENTERS } from "../../data/labTests";
 import * as labTestApi from "../../api/labTestApi";
 import type { LabTest } from "../../api/labTestApi";
+import { parseBackendErrors, validators } from "../../utils/errorHandler";
+import CustomAlert from "../../components/CustomAlert";
 
 type LabTestBookingScreenProps = {
   readonly onBack: () => void;
+};
+
+type AlertState = {
+  visible: boolean;
+  type: "success" | "error" | "warning" | "info";
+  title: string;
+  message: string;
+  onConfirm?: () => void;
 };
 
 export default function LabTestBookingScreen({ onBack }: Readonly<LabTestBookingScreenProps>) {
@@ -24,6 +34,12 @@ export default function LabTestBookingScreen({ onBack }: Readonly<LabTestBooking
   const [address, setAddress] = useState<string>("");
   const [showBookingForm, setShowBookingForm] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [alert, setAlert] = useState<AlertState>({
+    visible: false,
+    type: "info",
+    title: "",
+    message: ""
+  });
 
   useEffect(() => {
     fetchLabTests();
@@ -32,11 +48,19 @@ export default function LabTestBookingScreen({ onBack }: Readonly<LabTestBooking
   const fetchLabTests = async () => {
     try {
       setLoading(true);
-      const tests = await labTestApi.getLabTests();
+      const [tests] = await Promise.all([
+        labTestApi.getLabTests(),
+        new Promise(resolve => setTimeout(resolve, 2000))
+      ]);
       setLabTests(tests);
     } catch (error) {
       console.error("Failed to load lab tests:", error);
-      Alert.alert("Error", "Failed to load lab tests. Please try again.");
+      setAlert({
+        visible: true,
+        type: "error",
+        title: "Loading Failed",
+        message: "Failed to load lab tests. Please try again."
+      });
     } finally {
       setLoading(false);
     }
@@ -69,7 +93,92 @@ export default function LabTestBookingScreen({ onBack }: Readonly<LabTestBooking
   };
 
   const handleBookTest = async () => {
-    if (!selectedTest || !patientName || !patientAge || !patientPhone) {
+    if (!selectedTest) {
+      setAlert({
+        visible: true,
+        type: "warning",
+        title: "Missing Information",
+        message: "Please select a lab test"
+      });
+      return;
+    }
+
+    // Validate patient name
+    const nameError = validators.name(patientName);
+    if (nameError) {
+      setAlert({
+        visible: true,
+        type: "error",
+        title: "Invalid Name",
+        message: nameError
+      });
+      return;
+    }
+
+    // Validate patient age
+    const ageError = validators.age(patientAge);
+    if (ageError) {
+      setAlert({
+        visible: true,
+        type: "error",
+        title: "Invalid Age",
+        message: ageError
+      });
+      return;
+    }
+
+    // Validate patient phone
+    const phoneError = validators.phone(patientPhone);
+    if (phoneError) {
+      setAlert({
+        visible: true,
+        type: "error",
+        title: "Invalid Phone",
+        message: phoneError
+      });
+      return;
+    }
+
+    // Validate date and time
+    if (!selectedDate) {
+      setAlert({
+        visible: true,
+        type: "warning",
+        title: "Missing Information",
+        message: "Please select a collection date"
+      });
+      return;
+    }
+
+    if (!selectedTime) {
+      setAlert({
+        visible: true,
+        type: "warning",
+        title: "Missing Information",
+        message: "Please select a collection time"
+      });
+      return;
+    }
+
+    // Validate address if home collection
+    if (homeCollection) {
+      const addressError = validators.address(address);
+      if (addressError) {
+        setAlert({
+          visible: true,
+          type: "error",
+          title: "Invalid Address",
+          message: addressError
+        });
+        return;
+      }
+    } else if (!selectedCenter) {
+      setAlert({
+        visible: true,
+        type: "warning",
+        title: "Missing Information",
+        message: "Please select a lab center"
+      });
       return;
     }
 
@@ -79,7 +188,12 @@ export default function LabTestBookingScreen({ onBack }: Readonly<LabTestBooking
       // Get auth token
       const token = await AsyncStorage.getItem('access_token');
       if (!token) {
-        Alert.alert("Authentication Required", "Please log in to book a lab test.");
+        setAlert({
+          visible: true,
+          type: "warning",
+          title: "Authentication Required",
+          message: "Please log in to book a lab test."
+        });
         return;
       }
 
@@ -93,50 +207,52 @@ export default function LabTestBookingScreen({ onBack }: Readonly<LabTestBooking
       // Create booking
       const bookingData: labTestApi.LabBookingCreate = {
         lab_test_id: selectedTest.id,
-        patient_name: patientName,
+        patient_name: patientName.trim(),
         patient_age: parseInt(patientAge),
-        patient_phone: patientPhone,
+        patient_phone: patientPhone.trim(),
         collection_date: selectedDate,
         collection_time: selectedTime,
         home_collection: homeCollection,
-        address: homeCollection ? address : undefined,
+        address: homeCollection ? address.trim() : undefined,
         center_name: !homeCollection ? centerName : undefined,
       };
 
       await labTestApi.createLabBooking(bookingData, token);
 
-      Alert.alert(
-        "Success!",
-        `Lab test booked successfully!\n\nTest: ${selectedTest.name}\n${
-          homeCollection
-            ? `Home Collection at ${address}`
-            : `Lab Visit at ${centerName}`
-        }\nDate: ${selectedDate}\nTime: ${selectedTime}`,
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              // Reset form
-              setSelectedTest(null);
-              setSelectedCenter("");
-              setSelectedDate("");
-              setSelectedTime("");
-              setPatientName("");
-              setPatientAge("");
-              setPatientPhone("");
-              setHomeCollection(false);
-              setAddress("");
-              setShowBookingForm(false);
-            },
-          },
-        ]
-      );
+      setAlert({
+        visible: true,
+        type: "success",
+        title: "Booking Confirmed! ✅",
+        message: `Test: ${selectedTest.name}\n\n` +
+          `Patient: ${patientName}\n` +
+          `${homeCollection ? `Home Collection at ${address}` : `Lab Visit at ${centerName}`}\n` +
+          `Date: ${selectedDate}\n` +
+          `Time: ${selectedTime}\n` +
+          `Price: ₹${selectedTest.price}\n\n` +
+          `You will receive a confirmation call shortly.`,
+        onConfirm: () => {
+          // Reset form
+          setSelectedTest(null);
+          setSelectedCenter("");
+          setSelectedDate("");
+          setSelectedTime("");
+          setPatientName("");
+          setPatientAge("");
+          setPatientPhone("");
+          setHomeCollection(false);
+          setAddress("");
+          setShowBookingForm(false);
+        }
+      });
     } catch (error: any) {
       console.error("Failed to book lab test:", error);
-      Alert.alert(
-        "Booking Failed",
-        error.message || "Failed to book lab test. Please try again."
-      );
+      const errorMessage = parseBackendErrors(error);
+      setAlert({
+        visible: true,
+        type: "error",
+        title: "Booking Failed",
+        message: errorMessage
+      });
     } finally {
       setSubmitting(false);
     }
@@ -155,14 +271,7 @@ export default function LabTestBookingScreen({ onBack }: Readonly<LabTestBooking
   };
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, backgroundColor: "#ffffff", alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator size="large" color="#FF6B35" />
-        <Text style={{ marginTop: 16, fontSize: 16, color: "#64748b", fontWeight: "600" }}>
-          Loading Lab Tests...
-        </Text>
-      </View>
-    );
+    return <LoadingScreen message="Dr. Meddy is preparing lab tests for you" />;
   }
 
   return (
@@ -634,6 +743,20 @@ export default function LabTestBookingScreen({ onBack }: Readonly<LabTestBooking
           )}
         </View>
       </ScrollView>
+
+      <CustomAlert
+        visible={alert.visible}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onClose={() => {
+          if (alert.onConfirm) {
+            alert.onConfirm();
+          }
+          setAlert({ ...alert, visible: false });
+        }}
+        primaryButtonText="OK"
+      />
     </View>
   );
 }

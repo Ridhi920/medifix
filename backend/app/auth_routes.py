@@ -10,10 +10,11 @@ from .auth import (
     create_access_token,
     get_current_active_user,
     get_password_hash,
+    verify_password,
 )
 from .db import get_session
 from .models import User
-from .schemas import Token, UserLogin, UserResponse, UserSignup
+from .schemas import Token, UserLogin, UserResponse, UserSignup, UserUpdate, PasswordUpdate
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -141,6 +142,66 @@ async def get_current_user_info(
 ) -> UserResponse:
     """Get current user information."""
     return UserResponse.model_validate(current_user, from_attributes=True)
+
+
+@router.put("/me", response_model=UserResponse)
+async def update_profile(
+    user_update: UserUpdate,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session),
+) -> UserResponse:
+    """Update current user profile."""
+    # Check if email is being changed and if it's already taken
+    if user_update.email and user_update.email != current_user.email:
+        statement = select(User).where(User.email == user_update.email)
+        existing_user = session.exec(statement).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered",
+            )
+        current_user.email = user_update.email
+    
+    # Update other fields
+    if user_update.full_name is not None:
+        current_user.full_name = user_update.full_name
+    if user_update.phone is not None:
+        current_user.phone = user_update.phone
+    
+    from datetime import datetime, timezone
+    current_user.updated_at = datetime.now(tz=timezone.utc)
+    
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+    
+    return UserResponse.model_validate(current_user, from_attributes=True)
+
+
+@router.put("/me/password")
+async def update_password(
+    password_update: PasswordUpdate,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session),
+) -> dict:
+    """Update current user password."""
+    # Verify current password
+    if not verify_password(password_update.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
+        )
+    
+    # Update password
+    current_user.hashed_password = get_password_hash(password_update.new_password)
+    
+    from datetime import datetime, timezone
+    current_user.updated_at = datetime.now(tz=timezone.utc)
+    
+    session.add(current_user)
+    session.commit()
+    
+    return {"message": "Password updated successfully"}
 
 
 @router.post("/logout")

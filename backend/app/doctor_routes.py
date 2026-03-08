@@ -329,8 +329,8 @@ def get_all_appointments_admin(
     ]
 
 
-@router.get("/doctor_appointments", response_model=List[AppointmentWithDoctor])
-def get_my_appointments(
+@router.get("/appointments/my", response_model=List[AppointmentWithDoctor])
+async def get_my_appointments(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> List[AppointmentWithDoctor]:

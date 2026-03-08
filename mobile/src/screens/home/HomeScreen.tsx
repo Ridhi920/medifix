@@ -12,6 +12,11 @@ type HomeScreenProps = {
   readonly onOpenAppointments: () => void;
   readonly onOpenAmbulance: () => void;
   readonly onOpenPharmacy: () => void;
+  readonly onOpenLab: () => void;
+  readonly onOpenDental: () => void;
+  readonly onOpenCardiology: () => void;
+  readonly onOpenPediatrics: () => void;
+  readonly onOpenProfile: () => void;
   readonly onLogout: () => void;
 };
 
@@ -24,6 +29,11 @@ export default function HomeScreen({
   onOpenAppointments,
   onOpenAmbulance,
   onOpenPharmacy,
+  onOpenLab,
+  onOpenDental,
+  onOpenCardiology,
+  onOpenPediatrics,
+  onOpenProfile,
   onLogout
 }: Readonly<HomeScreenProps>) {
   const { user, logout } = useAuth();
@@ -73,7 +83,7 @@ export default function HomeScreen({
             <Pressable style={styles.headerIcon}>
               <Text style={{ fontSize: 20 }}>🔔</Text>
             </Pressable>
-            <Pressable style={styles.headerIcon} onPress={handleLogout}>
+            <Pressable style={styles.headerIcon} onPress={onOpenProfile}>
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>
                   {user?.full_name.charAt(0).toUpperCase() || 'U'}
@@ -96,7 +106,7 @@ export default function HomeScreen({
           </View>
           <View style={styles.heroImageContainer}>
             <Image
-              source={require("../../../assets/doctor.png")}
+              source={require("../../../assets/meddy.png")}
               style={styles.heroImage}
               resizeMode="contain"
             />
@@ -132,13 +142,47 @@ export default function HomeScreen({
             <Text style={styles.serviceCardText}>Ambulance</Text>
           </Pressable>
 
-          <Pressable style={styles.serviceCard}>
+          <Pressable style={styles.serviceCard} onPress={onOpenLab}>
             <Image
               source={require("../../../assets/Lab.png")}
               style={styles.serviceCardIcon}
               resizeMode="contain"
             />
-            <Text style={styles.serviceCardText}>Health Records</Text>
+            <Text style={styles.serviceCardText}>Lab Tests</Text>
+          </Pressable>
+
+          <Pressable style={styles.serviceCard} onPress={onOpenDental}>
+            <Image
+              source={require("../../../assets/dental-checkup.png")}
+              style={styles.serviceCardIcon}
+              resizeMode="contain"
+            />
+            <Text style={styles.serviceCardText}>Dental Care</Text>
+          </Pressable>
+
+          <Pressable style={styles.serviceCard} onPress={onOpenCardiology}>
+            <Image
+              source={require("../../../assets/doctor.png")}
+              style={styles.serviceCardIcon}
+              resizeMode="contain"
+            />
+            <Text style={styles.serviceCardText}>Cardiology</Text>
+          </Pressable>
+
+          <Pressable style={styles.serviceCard} onPress={onOpenPediatrics}>
+            <Image
+              source={require("../../../assets/doctor.png")}
+              style={styles.serviceCardIcon}
+              resizeMode="contain"
+            />
+            <Text style={styles.serviceCardText}>Pediatrics</Text>
+          </Pressable>
+
+          <Pressable style={styles.serviceCard} onPress={onOpenServices}>
+            <View style={[styles.serviceCardIcon, { backgroundColor: '#FF6B35', borderRadius: 50, justifyContent: 'center', alignItems: 'center' }]}>
+              <Text style={{ fontSize: 32, color: '#fff' }}>+</Text>
+            </View>
+            <Text style={styles.serviceCardText}>More Services</Text>
           </Pressable>
         </View>
 
@@ -215,7 +259,7 @@ export default function HomeScreen({
           <Text style={styles.navIcon}>💬</Text>
           <Text style={styles.navLabel}>Support</Text>
         </Pressable>
-        <Pressable style={styles.navItem}>
+        <Pressable style={styles.navItem} onPress={onOpenProfile}>
           <Text style={styles.navIcon}>👤</Text>
           <Text style={styles.navLabel}>Profile</Text>
         </Pressable>
