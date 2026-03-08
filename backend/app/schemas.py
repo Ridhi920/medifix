@@ -1,50 +1,34 @@
 from datetime import datetime
-from enum import Enum
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 
-class ServiceCategory(str, Enum):
-    medicine = "medicine"
-    clinic = "clinic"
-    lab = "lab"
-    dental = "dental"
-    ambulance = "ambulance"
-    physiotherapy = "physiotherapy"
-    nursing = "nursing"
-    equipment = "equipment"
+# Authentication Schemas
+class UserSignup(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=6, max_length=72)
+    full_name: str = Field(..., min_length=2)
+    phone: Optional[str] = None
 
 
-class Service(BaseModel):
-    id: str
-    name: str
-    category: ServiceCategory
-    description: str
-    delivery_mode: str
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
 
 
-class BookingStatus(str, Enum):
-    requested = "requested"
-    confirmed = "confirmed"
-    completed = "completed"
-
-
-class BookingCreate(BaseModel):
-    patient_name: str = Field(..., min_length=2)
-    contact_phone: str
-    service_id: str
-    scheduled_at: Optional[datetime] = None
-    location: Optional[str] = None
-    notes: Optional[str] = None
-
-
-class Booking(BaseModel):
-    id: str
-    status: BookingStatus
+class UserResponse(BaseModel):
+    id: int
+    email: str
+    full_name: str
+    phone: Optional[str] = None
+    is_active: bool
     created_at: datetime
-    patient_name: str
-    contact_phone: str
-    service_id: str
-    scheduled_at: Optional[datetime] = None
-    location: Optional[str] = None
-    notes: Optional[str] = None
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    email: Optional[str] = None

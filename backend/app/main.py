@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .db import init_db
 from .routes import router
+from .auth_routes import router as auth_router
 
 app = FastAPI(title="Medifix API", version="0.1.0")
 
@@ -14,6 +15,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
 app.include_router(router)
 
 

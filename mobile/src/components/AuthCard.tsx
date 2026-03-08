@@ -1,12 +1,22 @@
-import { Image, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, Image, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { styles } from "../styles";
 
 const heroImage = require("../../assets/agentregistration-img.png");
+
+export interface AuthFormData {
+  name?: string;
+  email: string;
+  password: string;
+  confirmPassword?: string;
+  phone?: string;
+}
 
 type AuthCardProps = {
   title: string;
   subtitle: string;
   showName?: boolean;
+  showPhone?: boolean;
   showPassword?: boolean;
   showConfirm?: boolean;
   showForgot?: boolean;
@@ -14,7 +24,8 @@ type AuthCardProps = {
   primaryLabel: string;
   switchText: string;
   switchLinkText: string;
-  onPrimary: () => void;
+  isLoading?: boolean;
+  onPrimary: (data: AuthFormData) => void;
   onSwitchPress: () => void;
   onForgotPress?: () => void;
 };
@@ -23,6 +34,7 @@ export default function AuthCard({
   title,
   subtitle,
   showName = false,
+  showPhone = false,
   showPassword = false,
   showConfirm = false,
   showForgot = false,
@@ -30,10 +42,30 @@ export default function AuthCard({
   primaryLabel,
   switchText,
   switchLinkText,
+  isLoading = false,
   onPrimary,
   onSwitchPress,
   onForgotPress
 }: AuthCardProps) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const handleSubmit = () => {
+    const data: AuthFormData = {
+      email: email.trim(),
+      password,
+    };
+
+    if (showName) data.name = name.trim();
+    if (showPhone) data.phone = phone.trim();
+    if (showConfirm) data.confirmPassword = confirmPassword;
+
+    onPrimary(data);
+  };
+
   return (
     <View style={styles.card}>
       <View style={styles.heroBlock}>
@@ -50,6 +82,9 @@ export default function AuthCard({
           placeholder="Full name"
           placeholderTextColor="#9ca3af"
           style={styles.input}
+          value={name}
+          onChangeText={setName}
+          editable={!isLoading}
         />
       ) : null}
 
@@ -57,7 +92,24 @@ export default function AuthCard({
         placeholder="Email address"
         placeholderTextColor="#9ca3af"
         style={styles.input}
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
+        editable={!isLoading}
       />
+
+      {showPhone ? (
+        <TextInput
+          placeholder="Phone number (optional)"
+          placeholderTextColor="#9ca3af"
+          style={styles.input}
+          value={phone}
+          onChangeText={setPhone}
+          keyboardType="phone-pad"
+          editable={!isLoading}
+        />
+      ) : null}
 
       {showPassword ? (
         <TextInput
@@ -65,6 +117,9 @@ export default function AuthCard({
           placeholderTextColor="#9ca3af"
           style={styles.input}
           secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+          editable={!isLoading}
         />
       ) : null}
 
@@ -74,24 +129,35 @@ export default function AuthCard({
           placeholderTextColor="#9ca3af"
           style={styles.input}
           secureTextEntry
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          editable={!isLoading}
         />
       ) : null}
 
       {showForgot ? (
-        <TouchableOpacity onPress={onForgotPress}>
+        <TouchableOpacity onPress={onForgotPress} disabled={isLoading}>
           <Text style={styles.linkText}>Forgot password?</Text>
         </TouchableOpacity>
       ) : null}
 
       {helperText ? <Text style={styles.helperText}>{helperText}</Text> : null}
 
-      <TouchableOpacity style={styles.primaryButton} onPress={onPrimary}>
-        <Text style={styles.primaryButtonText}>{primaryLabel}</Text>
+      <TouchableOpacity 
+        style={[styles.primaryButton, isLoading && { opacity: 0.6 }]} 
+        onPress={handleSubmit}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.primaryButtonText}>{primaryLabel}</Text>
+        )}
       </TouchableOpacity>
 
       <View style={styles.switchRow}>
         <Text style={styles.switchText}>{switchText}</Text>
-        <TouchableOpacity onPress={onSwitchPress}>
+        <TouchableOpacity onPress={onSwitchPress} disabled={isLoading}>
           <Text style={styles.switchLink}>{switchLinkText}</Text>
         </TouchableOpacity>
       </View>

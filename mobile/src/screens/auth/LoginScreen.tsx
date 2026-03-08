@@ -1,16 +1,39 @@
-import AuthCard from "../../components/AuthCard";
+import { Alert } from "react-native";
+import AuthCard, { AuthFormData } from "../../components/AuthCard";
+import { useAuth } from "../../context/AuthContext";
 
 type LoginScreenProps = {
-  onLogin: () => void;
+  onLoginSuccess: () => void;
   onSwitchToSignup: () => void;
   onForgot: () => void;
 };
 
 export default function LoginScreen({
-  onLogin,
+  onLoginSuccess,
   onSwitchToSignup,
   onForgot
 }: LoginScreenProps) {
+  const { login, isLoading } = useAuth();
+
+  const handleLogin = async (data: AuthFormData) => {
+    // Validate inputs
+    if (!data.email || !data.password) {
+      Alert.alert("Validation Error", "Please enter both email and password");
+      return;
+    }
+
+    try {
+      await login({
+        email: data.email,
+        password: data.password,
+      });
+      onLoginSuccess();
+    } catch (error) {
+      // Error is already handled in AuthContext
+      console.error("Login error:", error);
+    }
+  };
+
   return (
     <AuthCard
       title="Sign In"
@@ -20,7 +43,8 @@ export default function LoginScreen({
       primaryLabel="Login"
       switchText="Haven't any account?"
       switchLinkText="Sign up"
-      onPrimary={onLogin}
+      isLoading={isLoading}
+      onPrimary={handleLogin}
       onSwitchPress={onSwitchToSignup}
       onForgotPress={onForgot}
     />

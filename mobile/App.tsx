@@ -2,6 +2,7 @@ import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { View } from "react-native";
+import { AuthProvider } from "./src/context/AuthContext";
 import { SERVICES, type ServiceKey } from "./src/data/services";
 import { styles } from "./src/styles";
 import LoginScreen from "./src/screens/auth/LoginScreen";
@@ -50,7 +51,7 @@ function renderScreen(
     case "login":
       return (
         <LoginScreen
-          onLogin={() => setScreen("home")}
+          onLoginSuccess={() => setScreen("home")}
           onSwitchToSignup={() => setScreen("signup")}
           onForgot={() => setScreen("forgot")}
         />
@@ -58,7 +59,7 @@ function renderScreen(
     case "signup":
       return (
         <SignupScreen
-          onSignup={() => setScreen("home")}
+          onSignupSuccess={() => setScreen("home")}
           onSwitchToLogin={() => setScreen("login")}
         />
       );
@@ -80,6 +81,7 @@ function renderScreen(
           onOpenAppointments={() => setScreen("appointments")}
           onOpenAmbulance={() => setScreen("ambulance")}
           onOpenPharmacy={() => setScreen("pharmacy")}
+          onLogout={() => setScreen("login")}
         />
       );
     case "appointments":
@@ -109,7 +111,7 @@ function renderScreen(
   }
 }
 
-export default function App() {
+function AppContent() {
   const [screen, setScreen] = useState<Screen>("login");
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -127,5 +129,13 @@ export default function App() {
         {renderScreen(screen, menuOpen, setScreen, setMenuOpen)}
       </View>
     </LinearGradient>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

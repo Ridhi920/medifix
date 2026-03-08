@@ -4,25 +4,15 @@ from typing import Optional
 from sqlmodel import Field, SQLModel
 
 
-class ServiceModel(SQLModel, table=True):
-    __tablename__ = "services"
+class User(SQLModel, table=True):
+    __tablename__ = "users"
 
-    id: str = Field(primary_key=True)
-    name: str
-    category: str
-    description: str
-    delivery_mode: str
-
-
-class BookingModel(SQLModel, table=True):
-    __tablename__ = "bookings"
-
-    id: str = Field(primary_key=True)
-    status: str
+    id: Optional[int] = Field(default=None, primary_key=True)
+    email: str = Field(unique=True, index=True)
+    full_name: str
+    phone: Optional[str] = None
+    hashed_password: str
+    is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
-    patient_name: str
-    contact_phone: str
-    service_id: str = Field(foreign_key="services.id")
-    scheduled_at: Optional[datetime] = None
-    location: Optional[str] = None
-    notes: Optional[str] = None
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+

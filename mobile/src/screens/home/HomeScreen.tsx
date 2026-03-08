@@ -1,6 +1,7 @@
-import { Pressable, ScrollView, Text, View, Image } from "react-native";
+import { Alert, Pressable, ScrollView, Text, View, Image } from "react-native";
 import { styles } from "../../styles";
 import { type ServiceItem, type ServiceKey } from "../../data/services";
+import { useAuth } from "../../context/AuthContext";
 
 type HomeScreenProps = {
   readonly services: ServiceItem[];
@@ -11,6 +12,7 @@ type HomeScreenProps = {
   readonly onOpenAppointments: () => void;
   readonly onOpenAmbulance: () => void;
   readonly onOpenPharmacy: () => void;
+  readonly onLogout: () => void;
 };
 
 export default function HomeScreen({
@@ -21,8 +23,32 @@ export default function HomeScreen({
   onOpenServices,
   onOpenAppointments,
   onOpenAmbulance,
-  onOpenPharmacy
+  onOpenPharmacy,
+  onLogout
 }: Readonly<HomeScreenProps>) {
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to logout?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Logout",
+          style: "destructive",
+          onPress: async () => {
+            await logout();
+            onLogout();
+          }
+        }
+      ]
+    );
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <ScrollView
@@ -31,18 +57,27 @@ export default function HomeScreen({
       >
         {/* White Header */}
         <View style={styles.newHeader}>
-          <Image
-            source={require("../../../assets/medEfix.png")}
-            style={{ width: 120, height: 40 }}
-            resizeMode="contain"
-          />
+          <View>
+            <Image
+              source={require("../../../assets/medEfix.png")}
+              style={{ width: 120, height: 40 }}
+              resizeMode="contain"
+            />
+            {user && (
+              <Text style={{ fontSize: 10, color: "#666", marginTop: 2 }}>
+                Welcome, {user.full_name.split(' ')[0]}!
+              </Text>
+            )}
+          </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
             <Pressable style={styles.headerIcon}>
               <Text style={{ fontSize: 20 }}>🔔</Text>
             </Pressable>
-            <Pressable style={styles.headerIcon}>
+            <Pressable style={styles.headerIcon} onPress={handleLogout}>
               <View style={styles.avatar}>
-                <Text style={styles.avatarText}>R</Text>
+                <Text style={styles.avatarText}>
+                  {user?.full_name.charAt(0).toUpperCase() || 'U'}
+                </Text>
               </View>
             </Pressable>
           </View>
