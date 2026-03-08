@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
-import { Pressable, ScrollView, Text, View, TextInput, ActivityIndicator } from "react-native";
+import { Pressable, ScrollView, Text, View, TextInput, ActivityIndicator, Alert } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { styles } from "../../styles";
-import { LAB_TESTS, LAB_CENTERS, type LabTest } from "../../data/labTests";
+import { LAB_CENTERS } from "../../data/labTests";
+import * as labTestApi from "../../api/labTestApi";
+import type { LabTest } from "../../api/labTestApi";
 
 type LabTestBookingScreenProps = {
   readonly onBack: () => void;
@@ -9,6 +12,7 @@ type LabTestBookingScreenProps = {
 
 export default function LabTestBookingScreen({ onBack }: Readonly<LabTestBookingScreenProps>) {
   const [loading, setLoading] = useState<boolean>(true);
+  const [labTests, setLabTests] = useState<LabTest[]>([]);
   const [selectedTest, setSelectedTest] = useState<LabTest | null>(null);
   const [selectedCenter, setSelectedCenter] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<string>("");
@@ -19,17 +23,29 @@ export default function LabTestBookingScreen({ onBack }: Readonly<LabTestBooking
   const [homeCollection, setHomeCollection] = useState<boolean>(false);
   const [address, setAddress] = useState<string>("");
   const [showBookingForm, setShowBookingForm] = useState<boolean>(false);
+  const [submitting, setSubmitting] = useState<boolean>(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 2500);
-    return () => clearTimeout(timer);
+    fetchLabTests();
   }, []);
+
+  const fetchLabTests = async () => {
+    try {
+      setLoading(true);
+      const tests = await labTestApi.getLabTests();
+      setLabTests(tests);
+    } catch (error) {
+      console.error("Failed to load lab tests:", error);
+      Alert.alert("Error", "Failed to load lab tests. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Filter lab tests based on search query
-  const filteredTests = LAB_TESTS.filter((test) => {
+  const filteredTests = labTests.filter((test) => {
     const query = searchQuery.toLowerCase();
     return (
       test.name.toLowerCase().includes(query) ||
@@ -52,26 +68,77 @@ export default function LabTestBookingScreen({ onBack }: Readonly<LabTestBooking
     setShowBookingForm(false);
   };
 
-  const handleBookTest = () => {
-    if (selectedTest && patientName && patientAge && patientPhone) {
-      if (homeCollection && address) {
-        alert(`Lab test booked!\n${selectedTest.name}\nHome Collection: ${address}\nDate: ${selectedDate}\nTime: ${selectedTime}\nPatient: ${patientName}`);
-      } else if (!homeCollection && selectedCenter) {
-        const center = LAB_CENTERS.find(c => c.id === selectedCenter);
-        alert(`Lab test booked!\n${selectedTest.name}\nCenter: ${center?.name}\nDate: ${selectedDate}\nTime: ${selectedTime}\nPatient: ${patientName}`);
+  const handleBookTest = async () => {
+    if (!selectedTest || !patientName || !patientAge || !patientPhone) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      // Get auth token
+      const token = await AsyncStorage.getItem('access_token');
+      if (!token) {
+        Alert.alert("Authentication Required", "Please log in to book a lab test.");
+        return;
       }
-      
-      // Reset form
-      setSelectedTest(null);
-      setSelectedCenter("");
-      setSelectedDate("");
-      setSelectedTime("");
-      setPatientName("");
-      setPatientAge("");
-      setPatientPhone("");
-      setHomeCollection(false);
-      setAddress("");
-      setShowBookingForm(false);
+
+      // Get center name if not home collection
+      let centerName: string | undefined;
+      if (!homeCollection && selectedCenter) {
+        const center = LAB_CENTERS.find(c => c.id === selectedCenter);
+        centerName = center?.name;
+      }
+
+      // Create booking
+      const bookingData: labTestApi.LabBookingCreate = {
+        lab_test_id: selectedTest.id,
+        patient_name: patientName,
+        patient_age: parseInt(patientAge),
+        patient_phone: patientPhone,
+        collection_date: selectedDate,
+        collection_time: selectedTime,
+        home_collection: homeCollection,
+        address: homeCollection ? address : undefined,
+        center_name: !homeCollection ? centerName : undefined,
+      };
+
+      await labTestApi.createLabBooking(bookingData, token);
+
+      Alert.alert(
+        "Success!",
+        `Lab test booked successfully!\n\nTest: ${selectedTest.name}\n${
+          homeCollection
+            ? `Home Collection at ${address}`
+            : `Lab Visit at ${centerName}`
+        }\nDate: ${selectedDate}\nTime: ${selectedTime}`,
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              // Reset form
+              setSelectedTest(null);
+              setSelectedCenter("");
+              setSelectedDate("");
+              setSelectedTime("");
+              setPatientName("");
+              setPatientAge("");
+              setPatientPhone("");
+              setHomeCollection(false);
+              setAddress("");
+              setShowBookingForm(false);
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      console.error("Failed to book lab test:", error);
+      Alert.alert(
+        "Booking Failed",
+        error.message || "Failed to book lab test. Please try again."
+      );
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -235,10 +302,10 @@ export default function LabTestBookingScreen({ onBack }: Readonly<LabTestBooking
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                         <Text style={{ fontSize: 16 }}>⏱️</Text>
                         <Text style={{ fontSize: 13, color: "#0f172a", fontWeight: "500" }}>
-                          {test.reportTime}
+                          {test.report_time}
                         </Text>
                       </View>
-                      {test.fastingRequired && (
+                      {test.fasting_required && (
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                           <Text style={{ fontSize: 16 }}>🍽️</Text>
                           <Text style={{ fontSize: 13, color: "#dc2626", fontWeight: "600" }}>
@@ -310,10 +377,10 @@ export default function LabTestBookingScreen({ onBack }: Readonly<LabTestBooking
                     ₹{selectedTest.price}
                   </Text>
                   <Text style={{ fontSize: 12, color: "#64748b" }}>
-                    Report in {selectedTest.reportTime}
+                    Report in {selectedTest.report_time}
                   </Text>
                 </View>
-                {selectedTest.fastingRequired && (
+                {selectedTest.fasting_required && (
                   <View style={{
                     backgroundColor: "#fef2f2",
                     borderRadius: 8,
@@ -535,27 +602,31 @@ export default function LabTestBookingScreen({ onBack }: Readonly<LabTestBooking
                   {/* Book Button */}
                   <Pressable
                     onPress={handleBookTest}
-                    disabled={!isFormValid()}
+                    disabled={!isFormValid() || submitting}
                     style={{
-                      backgroundColor: isFormValid() ? "#FF6B35" : "#e2e8f0",
+                      backgroundColor: (isFormValid() && !submitting) ? "#FF6B35" : "#e2e8f0",
                       paddingVertical: 16,
                       borderRadius: 12,
                       marginTop: 24,
-                      shadowColor: isFormValid() ? "#FF6B35" : "transparent",
+                      shadowColor: (isFormValid() && !submitting) ? "#FF6B35" : "transparent",
                       shadowOffset: { width: 0, height: 4 },
                       shadowOpacity: 0.3,
                       shadowRadius: 8,
                       elevation: 4
                     }}
                   >
-                    <Text style={{
-                      fontSize: 16,
-                      fontWeight: "700",
-                      color: isFormValid() ? "#ffffff" : "#94a3b8",
-                      textAlign: "center"
-                    }}>
-                      Book Lab Test - ₹{selectedTest.price}
-                    </Text>
+                    {submitting ? (
+                      <ActivityIndicator color="#ffffff" />
+                    ) : (
+                      <Text style={{
+                        fontSize: 16,
+                        fontWeight: "700",
+                        color: (isFormValid() && !submitting) ? "#ffffff" : "#94a3b8",
+                        textAlign: "center"
+                      }}>
+                        Book Lab Test - ₹{selectedTest.price}
+                      </Text>
+                    )}
                   </Pressable>
                 </View>
               )}

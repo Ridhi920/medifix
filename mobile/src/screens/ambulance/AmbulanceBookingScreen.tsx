@@ -1,7 +1,14 @@
 import { useState, useEffect } from "react";
 import { Pressable, ScrollView, Text, View, TextInput, Linking, ActivityIndicator } from "react-native";
 import { styles } from "../../styles";
-import { AMBULANCE_TYPES, EMERGENCY_CONTACTS, type AmbulanceType } from "../../data/ambulances";
+import { ambulanceAPI, type Ambulance } from "../../api/ambulanceApi";
+
+const EMERGENCY_CONTACTS = [
+  { name: "Emergency", number: "108" },
+  { name: "Police", number: "100" },
+  { name: "Fire", number: "101" },
+  { name: "NDRF", number: "011-24363260" }
+];
 
 type AmbulanceBookingScreenProps = {
   readonly onBack: () => void;
@@ -11,26 +18,37 @@ type BookingMode = "now" | "schedule";
 
 export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBookingScreenProps>) {
   const [loading, setLoading] = useState<boolean>(true);
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [ambulances, setAmbulances] = useState<Ambulance[]>([]);
   const [bookingMode, setBookingMode] = useState<BookingMode>("now");
-  const [selectedAmbulance, setSelectedAmbulance] = useState<AmbulanceType | null>(null);
+  const [selectedAmbulance, setSelectedAmbulance] = useState<Ambulance | null>(null);
   const [patientName, setPatientName] = useState<string>("");
   const [contactNumber, setContactNumber] = useState<string>("");
   const [pickupAddress, setPickupAddress] = useState<string>("");
   const [dropoffAddress, setDropoffAddress] = useState<string>("");
   const [medicalCondition, setMedicalCondition] = useState<string>("");
   const [scheduledDate, setScheduledDate] = useState<string>("");
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 2500);
-    return () => clearTimeout(timer);
-  }, []);
   const [scheduledTime, setScheduledTime] = useState<string>("");
   const [showBookingForm, setShowBookingForm] = useState<boolean>(false);
 
-  const handleAmbulanceSelect = (ambulance: AmbulanceType) => {
-    if (!ambulance.available) return;
+  useEffect(() => {
+    fetchAmbulances();
+  }, []);
+
+  const fetchAmbulances = async () => {
+    try {
+      setLoading(true);
+      const data = await ambulanceAPI.getAmbulances();
+      setAmbulances(data);
+    } catch (error: any) {
+      console.error('Failed to fetch ambulances:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAmbulanceSelect = (ambulance: Ambulance) => {
+    if (!ambulance.is_active) return;
     setSelectedAmbulance(ambulance);
     setShowBookingForm(true);
   };
@@ -39,24 +57,49 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
     Linking.openURL(`tel:${number}`);
   };
 
-  const handleBookAmbulance = () => {
-    if (selectedAmbulance && patientName && contactNumber && pickupAddress) {
-      const bookingType = bookingMode === "now" ? "immediate" : "scheduled";
-      const scheduleInfo = bookingMode === "schedule" 
-        ? `\nDate: ${scheduledDate}\nTime: ${scheduledTime}` 
-        : "";
+  const handleBookAmbulance = async () => {
+    if (!selectedAmbulance || !patientName || !contactNumber || !pickupAddress) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
       
+      // Format the scheduled date for API if booking type is scheduled
+      let formattedDate = null;
+      if (bookingMode === "schedule" && scheduledDate) {
+        // Convert DD/MM/YYYY to YYYY-MM-DD
+        const [day, month, year] = scheduledDate.split('/');
+        if (day && month && year) {
+          formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
+      }
+
+      const bookingData = {
+        ambulance_id: selectedAmbulance.id,
+        patient_name: patientName,
+        contact_number: contactNumber,
+        pickup_address: pickupAddress,
+        dropoff_address: dropoffAddress || pickupAddress,
+        medical_condition: medicalCondition || undefined,
+        booking_type: bookingMode === "now" ? "immediate" : "scheduled" as "immediate" | "scheduled",
+        scheduled_date: formattedDate || undefined,
+        scheduled_time: scheduledTime || undefined,
+      };
+
+      const booking = await ambulanceAPI.createAmbulanceBooking(bookingData);
+
       alert(
-        `Ambulance Booking Confirmed!\n\n` +
-        `Type: ${selectedAmbulance.name}\n` +
-        `Booking: ${bookingType}\n` +
+        `Ambulance Booking Confirmed! ✅\n\n` +
+        `Booking ID: #${booking.id}\n` +
+        `Ambulance: ${selectedAmbulance.name}\n` +
+        `Type: ${booking.booking_type}\n` +
         `Patient: ${patientName}\n` +
-        `Contact: ${contactNumber}\n` +
-        `Pickup: ${pickupAddress}` +
-        scheduleInfo +
-        `\n\nEstimated Cost: ₹${selectedAmbulance.basePrice}`
+        `Status: ${booking.status}\n` +
+        `Price: ₹${booking.ambulance_price}\n\n` +
+        `We will contact you shortly.`
       );
-      
+
       // Reset form
       setSelectedAmbulance(null);
       setPatientName("");
@@ -67,6 +110,15 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
       setScheduledDate("");
       setScheduledTime("");
       setShowBookingForm(false);
+      setBookingMode("now");
+    } catch (error: any) {
+      console.error('Failed to book ambulance:', error);
+      alert(
+        `Booking Failed ❌\n\n` +
+        `${error.response?.data?.detail || 'Unable to create booking. Please try again.'}`
+      );
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -226,19 +278,34 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
 
               {/* Ambulance Types */}
               <Text style={[styles.sectionTitle, { marginBottom: 16 }]}>Select Ambulance Type</Text>
-              {AMBULANCE_TYPES.map((ambulance) => (
+              {ambulances.length === 0 ? (
+                <View style={{
+                  backgroundColor: "#f8fafc",
+                  borderRadius: 16,
+                  padding: 32,
+                  alignItems: "center",
+                  borderWidth: 2,
+                  borderColor: "#e2e8f0"
+                }}>
+                  <Text style={{ fontSize: 48, marginBottom: 8 }}>🚑</Text>
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: "#64748b", textAlign: "center" }}>
+                    No ambulances available at the moment
+                  </Text>
+                </View>
+              ) : (
+                ambulances.map((ambulance) => (
                 <Pressable
                   key={ambulance.id}
                   onPress={() => handleAmbulanceSelect(ambulance)}
-                  disabled={!ambulance.available}
+                  disabled={!ambulance.is_active}
                   style={{
-                    backgroundColor: ambulance.available ? "#f8fafc" : "#f1f5f9",
+                    backgroundColor: ambulance.is_active ? "#f8fafc" : "#f1f5f9",
                     borderRadius: 16,
                     padding: 16,
                     marginBottom: 12,
                     borderWidth: 2,
-                    borderColor: ambulance.available ? "#e2e8f0" : "#cbd5e1",
-                    opacity: ambulance.available ? 1 : 0.6
+                    borderColor: ambulance.is_active ? "#e2e8f0" : "#cbd5e1",
+                    opacity: ambulance.is_active ? 1 : 0.6
                   }}
                 >
                   <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
@@ -248,7 +315,7 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
                         <Text style={{ fontSize: 16, fontWeight: "700", color: "#0f172a" }}>
                           {ambulance.name}
                         </Text>
-                        {!ambulance.available && (
+                        {!ambulance.is_active && (
                           <View style={{
                             backgroundColor: "#64748b",
                             paddingHorizontal: 8,
@@ -266,8 +333,8 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
                       </Text>
                       
                       <View style={{ marginBottom: 8 }}>
-                        {ambulance.features.map((feature) => (
-                          <Text key={feature} style={{ fontSize: 11, color: "#475569", marginBottom: 2 }}>
+                        {ambulance.features.map((feature, idx) => (
+                          <Text key={idx} style={{ fontSize: 11, color: "#475569", marginBottom: 2 }}>
                             • {feature}
                           </Text>
                         ))}
@@ -281,17 +348,17 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
                           borderRadius: 8
                         }}>
                           <Text style={{ fontSize: 14, fontWeight: "700", color: "#1e3a8a" }}>
-                            ₹{ambulance.basePrice}
+                            ₹{ambulance.base_price}
                           </Text>
                         </View>
                         <Text style={{ fontSize: 12, color: "#64748b" }}>
-                          ⏱️ {ambulance.estimatedTime}
+                          ⏱️ {ambulance.estimated_time}
                         </Text>
                       </View>
                     </View>
                   </View>
                 </Pressable>
-              ))}
+              )))}
             </>
           )}
 
@@ -520,7 +587,7 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
                   Type: {bookingMode === "now" ? "Immediate Pickup" : "Scheduled"}
                 </Text>
                 <Text style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>
-                  Estimated Time: {selectedAmbulance.estimatedTime}
+                  Estimated Time: {selectedAmbulance.estimated_time}
                 </Text>
                 {Boolean(bookingMode === "schedule" && scheduledDate && scheduledTime) && (
                   <Text style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>
@@ -528,7 +595,7 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
                   </Text>
                 )}
                 <Text style={{ fontSize: 14, fontWeight: "700", color: "#ef4444", marginTop: 8 }}>
-                  Base Cost: ₹{selectedAmbulance.basePrice}
+                  Base Cost: ₹{selectedAmbulance.base_price}
                 </Text>
                 <Text style={{ fontSize: 10, color: "#64748b", marginTop: 4 }}>
                   *Final cost may vary based on distance and additional services
@@ -538,22 +605,26 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
               {/* Confirm Button */}
               <Pressable
                 onPress={handleBookAmbulance}
-                disabled={!isFormValid()}
+                disabled={!isFormValid() || submitting}
                 style={{
-                  backgroundColor: isFormValid() ? "#ef4444" : "#cbd5e1",
+                  backgroundColor: (isFormValid() && !submitting) ? "#ef4444" : "#cbd5e1",
                   borderRadius: 14,
                   paddingVertical: 14,
                   alignItems: "center",
                   justifyContent: "center"
                 }}
               >
-                <Text style={{
-                  fontSize: 16,
-                  fontWeight: "700",
-                  color: "#ffffff"
-                }}>
-                  {bookingMode === "now" ? "Book Ambulance Now" : "Schedule Ambulance"}
-                </Text>
+                {submitting ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text style={{
+                    fontSize: 16,
+                    fontWeight: "700",
+                    color: "#ffffff"
+                  }}>
+                    {bookingMode === "now" ? "Book Ambulance Now" : "Schedule Ambulance"}
+                  </Text>
+                )}
               </Pressable>
             </View>
           )}

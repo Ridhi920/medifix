@@ -11,6 +11,10 @@ import {
 import {
   MedicalServices as DoctorsIcon,
   CalendarMonth as AppointmentsIcon,
+  Science as LabIcon,
+  Biotech as LabTestIcon,
+  AirportShuttle as AmbulanceIcon,
+  LocalShipping as AmbulanceBookingIcon,
   TrendingUp as TrendingUpIcon
 } from '@mui/icons-material';
 import axios from 'axios';
@@ -20,6 +24,12 @@ interface Stats {
   totalAppointments: number;
   pendingAppointments: number;
   confirmedAppointments: number;
+  totalLabTests: number;
+  totalLabBookings: number;
+  pendingLabBookings: number;
+  totalAmbulances: number;
+  totalAmbulanceBookings: number;
+  pendingAmbulanceBookings: number;
 }
 
 export default function DashboardHomePage() {
@@ -27,7 +37,13 @@ export default function DashboardHomePage() {
     totalDoctors: 0,
     totalAppointments: 0,
     pendingAppointments: 0,
-    confirmedAppointments: 0
+    confirmedAppointments: 0,
+    totalLabTests: 0,
+    totalLabBookings: 0,
+    pendingLabBookings: 0,
+    totalAmbulances: 0,
+    totalAmbulanceBookings: 0,
+    pendingAmbulanceBookings: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -40,20 +56,36 @@ export default function DashboardHomePage() {
       const token = localStorage.getItem('adminToken');
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [doctorsRes, appointmentsRes] = await Promise.all([
+      const [doctorsRes, appointmentsRes, labTestsRes, labBookingsRes, ambulancesRes, ambulanceBookingsRes] = await Promise.all([
         axios.get('http://localhost:8000/doctors', { headers }),
-        axios.get('http://localhost:8000/doctors/appointments/all', { headers })
+        axios.get('http://localhost:8000/doctors/appointments/all', { headers }),
+        axios.get('http://localhost:8000/lab-tests?include_inactive=true', { headers }),
+        axios.get('http://localhost:8000/lab-tests/bookings/all', { headers }),
+        axios.get('http://localhost:8000/ambulances?include_inactive=true', { headers }),
+        axios.get('http://localhost:8000/ambulances/bookings/all', { headers })
       ]);
 
       const appointments = appointmentsRes.data;
       const pendingAppts = appointments.filter((appt: any) => appt.status === 'pending').length;
       const confirmedAppts = appointments.filter((appt: any) => appt.status === 'confirmed').length;
 
+      const labBookings = labBookingsRes.data;
+      const pendingLabBookings = labBookings.filter((booking: any) => booking.status === 'pending').length;
+
+      const ambulanceBookings = ambulanceBookingsRes.data;
+      const pendingAmbulanceBookings = ambulanceBookings.filter((booking: any) => booking.status === 'pending').length;
+
       setStats({
         totalDoctors: doctorsRes.data.length,
         totalAppointments: appointments.length,
         pendingAppointments: pendingAppts,
-        confirmedAppointments: confirmedAppts
+        confirmedAppointments: confirmedAppts,
+        totalLabTests: labTestsRes.data.length,
+        totalLabBookings: labBookings.length,
+        pendingLabBookings: pendingLabBookings,
+        totalAmbulances: ambulancesRes.data.length,
+        totalAmbulanceBookings: ambulanceBookings.length,
+        pendingAmbulanceBookings: pendingAmbulanceBookings
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -71,6 +103,20 @@ export default function DashboardHomePage() {
       bgColor: '#e8f5e9'
     },
     {
+      title: 'Total Lab Tests',
+      value: stats.totalLabTests,
+      icon: <LabTestIcon sx={{ fontSize: 40 }} />,
+      color: '#7b1fa2',
+      bgColor: '#f3e5f5'
+    },
+    {
+      title: 'Total Ambulances',
+      value: stats.totalAmbulances,
+      icon: <AmbulanceIcon sx={{ fontSize: 40 }} />,
+      color: '#d32f2f',
+      bgColor: '#ffebee'
+    },
+    {
       title: 'Total Appointments',
       value: stats.totalAppointments,
       icon: <AppointmentsIcon sx={{ fontSize: 40 }} />,
@@ -85,11 +131,32 @@ export default function DashboardHomePage() {
       bgColor: '#fff3e0'
     },
     {
-      title: 'Confirmed Appointments',
-      value: stats.confirmedAppointments,
+      title: 'Total Lab Bookings',
+      value: stats.totalLabBookings,
+      icon: <LabIcon sx={{ fontSize: 40 }} />,
+      color: '#0288d1',
+      bgColor: '#e1f5fe'
+    },
+    {
+      title: 'Pending Lab Bookings',
+      value: stats.pendingLabBookings,
       icon: <TrendingUpIcon sx={{ fontSize: 40 }} />,
-      color: '#1976d2',
-      bgColor: '#e3f2fd'
+      color: '#f57c00',
+      bgColor: '#fff3e0'
+    },
+    {
+      title: 'Total Ambulance Bookings',
+      value: stats.totalAmbulanceBookings,
+      icon: <AmbulanceBookingIcon sx={{ fontSize: 40 }} />,
+      color: '#d84315',
+      bgColor: '#fbe9e7'
+    },
+    {
+      title: 'Pending Ambulance Bookings',
+      value: stats.pendingAmbulanceBookings,
+      icon: <TrendingUpIcon sx={{ fontSize: 40 }} />,
+      color: '#f57c00',
+      bgColor: '#fff3e0'
     }
   ];
 

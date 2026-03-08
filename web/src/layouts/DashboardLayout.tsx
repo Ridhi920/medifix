@@ -19,9 +19,13 @@ import {
 } from '@mui/material';
 import {
   Menu as MenuIcon,
-  Dashboard as DashboardIcon,
+  People as UsersIcon,
   MedicalServices as DoctorsIcon,
   CalendarMonth as AppointmentsIcon,
+  Science as LabIcon,
+  Biotech as LabTestIcon,
+  AirportShuttle as AmbulanceIcon,
+  LocalShipping as AmbulanceBookingIcon,
   Logout as LogoutIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
@@ -29,9 +33,13 @@ import { useAuth } from '../context/AuthContext';
 const drawerWidth = 240;
 
 const menuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/admin' },
+  { text: 'Users', icon: <UsersIcon />, path: '/admin/users' },
   { text: 'Doctors', icon: <DoctorsIcon />, path: '/admin/doctors' },
-  { text: 'Appointments', icon: <AppointmentsIcon />, path: '/admin/appointments' }
+  { text: 'Appointments', icon: <AppointmentsIcon />, path: '/admin/appointments' },
+  { text: 'Lab Tests', icon: <LabTestIcon />, path: '/admin/lab-tests' },
+  { text: 'Lab Bookings', icon: <LabIcon />, path: '/admin/lab-bookings' },
+  { text: 'Ambulances', icon: <AmbulanceIcon />, path: '/admin/ambulances' },
+  { text: 'Ambulance Bookings', icon: <AmbulanceBookingIcon />, path: '/admin/ambulance-bookings' }
 ];
 
 export default function DashboardLayout() {

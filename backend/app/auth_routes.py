@@ -38,6 +38,7 @@ def signup(user_data: UserSignup, session: Session = Depends(get_session)) -> Us
             full_name=user_data.full_name,
             phone=user_data.phone,
             hashed_password=hashed_password,
+            role=user_data.role or "user",  # Default to 'user' if not specified
         )
 
         session.add(new_user)
@@ -68,6 +69,36 @@ def login(user_data: UserLogin, session: Session = Depends(get_session)) -> Toke
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.email}, expires_delta=access_token_expires
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": UserResponse.model_validate(user, from_attributes=True)
+    }
+
+
+@router.post("/admin/login", response_model=Token)
+def admin_login(user_data: UserLogin, session: Session = Depends(get_session)) -> Token:
+    """Admin login - only allows users with admin role."""
+    user = authenticate_user(session, user_data.email, user_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Check if user has admin role
+    if user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
         )
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)

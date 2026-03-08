@@ -38,12 +38,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await axios.post('http://localhost:8000/auth/login', {
+      const response = await axios.post('http://localhost:8000/auth/admin/login', {
         email,
         password
       });
       
       const { access_token, user: userData } = response.data;
+      
+      // Verify user is admin
+      if (userData.role !== 'admin') {
+        throw new Error('Admin access required');
+      }
+      
       setToken(access_token);
       setUser(userData);
       localStorage.setItem('adminToken', access_token);
