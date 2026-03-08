@@ -10,7 +10,7 @@ import { Platform } from 'react-native';
 
 // For development, set your computer's IP address here
 // Find it by running: ifconfig (macOS/Linux) or ipconfig (Windows)
-const DEV_SERVER_IP = '10.175.59.188';
+const DEV_SERVER_IP = '192.168.1.21';
 const DEV_SERVER_PORT = '8000';
 
 // For production, set your production server URL
@@ -25,20 +25,8 @@ export const getApiBaseUrl = (): string => {
     return PROD_SERVER_URL;
   }
 
-  // Development environment
-  if (Platform.OS === 'android') {
-    // For Android emulator, use special alias for host machine
-    // For physical Android device, use actual IP
-    // Using IP works for both Android emulator and physical device
-    return `http://${DEV_SERVER_IP}:${DEV_SERVER_PORT}`;
-  } else if (Platform.OS === 'ios') {
-    // For iOS simulator, use localhost (runs on same machine)
-    // For physical iOS device, change to: http://${DEV_SERVER_IP}:${DEV_SERVER_PORT}
-    return `http://localhost:${DEV_SERVER_PORT}`;
-  } else {
-    // Web or other platforms
-    return `http://localhost:${DEV_SERVER_PORT}`;
-  }
+  // Development environment - Use IP address for both physical devices and emulators
+  return `http://${DEV_SERVER_IP}:${DEV_SERVER_PORT}`;
 };
 
 export const API_BASE_URL = getApiBaseUrl();

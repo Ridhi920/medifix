@@ -1,6 +1,5 @@
 import os
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 
 from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
@@ -43,7 +42,7 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """Create a JWT access token."""
     to_encode = data.copy()
     if expires_delta:
@@ -55,7 +54,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return encoded_jwt
 
 
-def authenticate_user(session: Session, email: str, password: str) -> Optional[User]:
+def authenticate_user(session: Session, email: str, password: str) -> User | None:
     """Authenticate a user by email and password."""
     statement = select(User).where(User.email == email)
     user = session.exec(statement).first()

@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Optional, List
+from typing import List
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -8,8 +10,8 @@ class UserSignup(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=6, max_length=72)
     full_name: str = Field(..., min_length=2)
-    phone: Optional[str] = None
-    role: Optional[str] = Field(default="user")  # 'user' or 'admin'
+    phone: str | None = None
+    role: str | None = Field(default="user")  # 'user' or 'admin'
 
 
 class UserLogin(BaseModel):
@@ -21,7 +23,7 @@ class UserResponse(BaseModel):
     id: int
     email: str
     full_name: str
-    phone: Optional[str] = None
+    phone: str | None = None
     role: str
     is_active: bool
     created_at: datetime
@@ -33,7 +35,7 @@ class Token(BaseModel):
 
 
 class TokenData(BaseModel):
-    email: Optional[str] = None
+    email: str | None = None
 
 
 # Doctor Schemas
@@ -66,17 +68,17 @@ class DoctorCreate(BaseModel):
 
 
 class DoctorUpdate(BaseModel):
-    name: Optional[str] = None
-    specialty: Optional[str] = None
-    qualification: Optional[str] = None
-    experience: Optional[int] = None
-    rating: Optional[float] = None
-    consultation_fee: Optional[int] = None
-    available_days: Optional[List[str]] = None
-    available_slots: Optional[List[str]] = None
-    image: Optional[str] = None
-    address: Optional[str] = None
-    is_active: Optional[bool] = None
+    name: str | None = None
+    specialty: str | None = None
+    qualification: str | None = None
+    experience: int | None = None
+    rating: float | None = None
+    consultation_fee: int | None = None
+    available_days: List[str] | None = None
+    available_slots: List[str] | None = None
+    image: str | None = None
+    address: str | None = None
+    is_active: bool | None = None
 
 
 # Appointment Schemas
@@ -84,10 +86,10 @@ class AppointmentCreate(BaseModel):
     doctor_id: int
     patient_name: str = Field(..., min_length=2)
     patient_age: int = Field(..., gt=0, lt=150)
-    symptoms: Optional[str] = None
+    symptoms: str | None = None
     appointment_day: str
     appointment_slot: str
-    appointment_date: Optional[datetime] = None
+    appointment_date: datetime | None = None
 
 
 class AppointmentResponse(BaseModel):
@@ -96,10 +98,10 @@ class AppointmentResponse(BaseModel):
     doctor_id: int
     patient_name: str
     patient_age: int
-    symptoms: Optional[str]
+    symptoms: str | None
     appointment_day: str
     appointment_slot: str
-    appointment_date: Optional[datetime]
+    appointment_date: datetime | None
     consultation_fee: int
     status: str
     created_at: datetime
@@ -137,15 +139,15 @@ class LabTestCreate(BaseModel):
 
 
 class LabTestUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    parameters: Optional[List[str]] = None
-    price: Optional[int] = None
-    report_time: Optional[str] = None
-    fasting_required: Optional[bool] = None
-    category: Optional[str] = None
-    popular: Optional[bool] = None
-    is_active: Optional[bool] = None
+    name: str | None = None
+    description: str | None = None
+    parameters: List[str] | None = None
+    price: int | None = None
+    report_time: str | None = None
+    fasting_required: bool | None = None
+    category: str | None = None
+    popular: bool | None = None
+    is_active: bool | None = None
 
 
 # Lab Booking Schemas
@@ -157,8 +159,8 @@ class LabBookingCreate(BaseModel):
     collection_date: str
     collection_time: str
     home_collection: bool = False
-    address: Optional[str] = None
-    center_name: Optional[str] = None
+    address: str | None = None
+    center_name: str | None = None
 
 
 class LabBookingResponse(BaseModel):
@@ -171,8 +173,8 @@ class LabBookingResponse(BaseModel):
     collection_date: str
     collection_time: str
     home_collection: bool
-    address: Optional[str]
-    center_name: Optional[str]
+    address: str | None
+    center_name: str | None
     test_price: int
     status: str
     created_at: datetime
@@ -208,14 +210,14 @@ class AmbulanceCreate(BaseModel):
 
 
 class AmbulanceUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    features: Optional[List[str]] = None
-    estimated_time: Optional[str] = None
-    base_price: Optional[int] = None
-    image: Optional[str] = None
-    ambulance_type: Optional[str] = None
-    is_active: Optional[bool] = None
+    name: str | None = None
+    description: str | None = None
+    features: List[str] | None = None
+    estimated_time: str | None = None
+    base_price: int | None = None
+    image: str | None = None
+    ambulance_type: str | None = None
+    is_active: bool | None = None
 
 
 # Ambulance Booking Schemas
@@ -224,11 +226,11 @@ class AmbulanceBookingCreate(BaseModel):
     patient_name: str = Field(..., min_length=2)
     contact_number: str = Field(..., min_length=10)
     pickup_address: str = Field(..., min_length=5)
-    dropoff_address: Optional[str] = None
-    medical_condition: Optional[str] = None
+    dropoff_address: str | None = None
+    medical_condition: str | None = None
     booking_type: str = "immediate"  # immediate or scheduled
-    scheduled_date: Optional[str] = None
-    scheduled_time: Optional[str] = None
+    scheduled_date: str | None = None
+    scheduled_time: str | None = None
 
 
 class AmbulanceBookingResponse(BaseModel):
@@ -238,11 +240,11 @@ class AmbulanceBookingResponse(BaseModel):
     patient_name: str
     contact_number: str
     pickup_address: str
-    dropoff_address: Optional[str]
-    medical_condition: Optional[str]
+    dropoff_address: str | None
+    medical_condition: str | None
     booking_type: str
-    scheduled_date: Optional[str]
-    scheduled_time: Optional[str]
+    scheduled_date: str | None
+    scheduled_time: str | None
     ambulance_price: int
     status: str
     created_at: datetime

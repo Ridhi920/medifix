@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from datetime import datetime, timezone
-from typing import Optional
 
 from sqlmodel import Field, SQLModel
 
@@ -7,10 +8,10 @@ from sqlmodel import Field, SQLModel
 class User(SQLModel, table=True):
     __tablename__ = "users"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     email: str = Field(unique=True, index=True)
     full_name: str
-    phone: Optional[str] = None
+    phone: str | None = None
     hashed_password: str
     role: str = Field(default="user")  # 'user' or 'admin'
     is_active: bool = Field(default=True)
@@ -21,7 +22,7 @@ class User(SQLModel, table=True):
 class Doctor(SQLModel, table=True):
     __tablename__ = "doctors"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     name: str = Field(index=True)
     specialty: str = Field(index=True)
     qualification: str
@@ -40,15 +41,15 @@ class Doctor(SQLModel, table=True):
 class Appointment(SQLModel, table=True):
     __tablename__ = "doctor_appointments"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True)
     doctor_id: int = Field(foreign_key="doctors.id", index=True)
     patient_name: str
     patient_age: int
-    symptoms: Optional[str] = None
+    symptoms: str | None = None
     appointment_day: str  # e.g., "Monday"
     appointment_slot: str  # e.g., "09:00 AM"
-    appointment_date: Optional[datetime] = None  # actual date of appointment
+    appointment_date: datetime | None = None  # actual date of appointment
     consultation_fee: int  # fee at time of booking
     status: str = Field(default="scheduled")  # scheduled, completed, cancelled
     created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
@@ -58,7 +59,7 @@ class Appointment(SQLModel, table=True):
 class LabTest(SQLModel, table=True):
     __tablename__ = "lab_tests"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     name: str = Field(index=True)
     description: str
     parameters: str  # JSON string of array: ["Hemoglobin", "RBC Count"]
@@ -75,7 +76,7 @@ class LabTest(SQLModel, table=True):
 class LabBooking(SQLModel, table=True):
     __tablename__ = "lab_bookings"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True)
     lab_test_id: int = Field(foreign_key="lab_tests.id", index=True)
     patient_name: str
@@ -84,8 +85,8 @@ class LabBooking(SQLModel, table=True):
     collection_date: str  # e.g., "Tomorrow", "2024-03-15"
     collection_time: str  # e.g., "08:00 AM"
     home_collection: bool = Field(default=False)
-    address: Optional[str] = None
-    center_name: Optional[str] = None  # if not home collection
+    address: str | None = None
+    center_name: str | None = None  # if not home collection
     test_price: int  # price at time of booking
     status: str = Field(default="pending")  # pending, confirmed, sample_collected, completed, cancelled
     created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
@@ -95,7 +96,7 @@ class LabBooking(SQLModel, table=True):
 class Ambulance(SQLModel, table=True):
     __tablename__ = "ambulances"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     name: str = Field(index=True)
     description: str
     features: str  # JSON string of array: ["Oxygen supply", "First aid kit"]
@@ -111,17 +112,17 @@ class Ambulance(SQLModel, table=True):
 class AmbulanceBooking(SQLModel, table=True):
     __tablename__ = "ambulance_bookings"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True)
     ambulance_id: int = Field(foreign_key="ambulances.id", index=True)
     patient_name: str
     contact_number: str
     pickup_address: str
-    dropoff_address: Optional[str] = None
-    medical_condition: Optional[str] = None
+    dropoff_address: str | None = None
+    medical_condition: str | None = None
     booking_type: str = Field(default="immediate")  # immediate or scheduled
-    scheduled_date: Optional[str] = None
-    scheduled_time: Optional[str] = None
+    scheduled_date: str | None = None
+    scheduled_time: str | None = None
     ambulance_price: int  # price at time of booking
     status: str = Field(default="pending")  # pending, confirmed, dispatched, completed, cancelled
     created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))

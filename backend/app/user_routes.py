@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
@@ -14,10 +14,10 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 class UserUpdate:
     """Schema for updating user information."""
-    full_name: Optional[str] = None
-    phone: Optional[str] = None
-    role: Optional[str] = None
-    is_active: Optional[bool] = None
+    full_name: str | None = None
+    phone: str | None = None
+    role: str | None = None
+    is_active: bool | None = None
 
 
 @router.get("", response_model=List[UserResponse])
@@ -57,10 +57,10 @@ async def get_user(
 @router.patch("/{user_id}", response_model=UserResponse)
 async def update_user(
     user_id: int,
-    full_name: Optional[str] = None,
-    phone: Optional[str] = None,
-    role: Optional[str] = None,
-    is_active: Optional[bool] = None,
+    full_name: str | None = None,
+    phone: str | None = None,
+    role: str | None = None,
+    is_active: bool | None = None,
     session: Session = Depends(get_session),
     current_admin: User = Depends(get_current_admin_user),
 ) -> UserResponse:

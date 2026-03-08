@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://medifix:medifix@localhost:5432/medifix")
+DATABASE_URL = os.getenv("DATABASE_URL","postgresql://nannie:123456789@localhost:5432/medefix")
 
 engine = create_engine(DATABASE_URL, echo=True)
 
