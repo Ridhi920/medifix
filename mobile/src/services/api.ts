@@ -105,6 +105,12 @@ export const authAPI = {
 
   // Logout
   logout: async (): Promise<void> => {
+    try {
+      await api.post('/auth/logout');
+    } catch (error) {
+      // Continue with logout even if API call fails
+      console.log('Logout API call failed, clearing local token anyway');
+    }
     await AsyncStorage.removeItem('access_token');
   },
 };

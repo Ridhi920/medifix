@@ -31,19 +31,32 @@ def signup(user_data: UserSignup, session: Session = Depends(get_session)) -> Us
         )
 
     # Create new user
-    hashed_password = get_password_hash(user_data.password)
-    new_user = User(
-        email=user_data.email,
-        full_name=user_data.full_name,
-        phone=user_data.phone,
-        hashed_password=hashed_password,
-    )
+    try:
+        hashed_password = get_password_hash(user_data.password)
+        new_user = User(
+            email=user_data.email,
+            full_name=user_data.full_name,
+            phone=user_data.phone,
+            hashed_password=hashed_password,
+        )
 
-    session.add(new_user)
-    session.commit()
-    session.refresh(new_user)
+        session.add(new_user)
+        session.commit()
+        session.refresh(new_user)
 
-    return UserResponse.model_validate(new_user, from_attributes=True)
+        return UserResponse.model_validate(new_user, from_attributes=True)
+    except Exception as e:
+        session.rollback()
+        # Handle unique constraint violation
+        if "unique constraint" in str(e).lower() or "duplicate key" in str(e).lower():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create user",
+        )
 
 
 @router.post("/login", response_model=Token)
@@ -93,3 +106,9 @@ async def get_current_user_info(
 ) -> UserResponse:
     """Get current user information."""
     return UserResponse.model_validate(current_user, from_attributes=True)
+
+
+@router.post("/logout")
+async def logout() -> dict:
+    """Logout endpoint (client should delete token)."""
+    return {"message": "Successfully logged out"}
