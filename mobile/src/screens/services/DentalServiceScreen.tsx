@@ -15,7 +15,7 @@ export default function DentalServiceScreen({ onBack }: Readonly<DentalServiceSc
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 2000);
+    }, 1000);
     return () => clearTimeout(timer);
   }, []);
 

@@ -28,17 +28,17 @@ import {
   Edit,
   Delete,
 } from '@mui/icons-material';
-import { doctorAPI, Doctor, DoctorCreate } from '../../api/doctorApi';
+import { dentistAPI, Dentist, DentistCreate } from '../../api/dentistApi';
 
 const SPECIALTIES = [
-  'Cardiologist',
-  'Dentist',
-  'Pediatrician',
-  'General Physician',
-  'Dermatologist',
-  'Orthopedic',
-  'Neurologist',
-  'Gynecologist',
+  'General Dentist',
+  'Orthodontist',
+  'Endodontist',
+  'Periodontist',
+  'Prosthodontist',
+  'Pediatric Dentist',
+  'Oral Surgeon',
+  'Cosmetic Dentist',
 ];
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -47,13 +47,13 @@ const TIME_SLOTS = [
   '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM'
 ];
 
-export default function DoctorsManagementPage() {
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
+export default function DentistsManagementPage() {
+  const [dentists, setDentists] = useState<Dentist[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
+  const [editingDentist, setEditingDentist] = useState<Dentist | null>(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   
-  const [formData, setFormData] = useState<DoctorCreate>({
+  const [formData, setFormData] = useState<DentistCreate>({
     name: '',
     specialty: '',
     qualification: '',
@@ -65,19 +65,20 @@ export default function DoctorsManagementPage() {
     image: '',
     address: '',
   });
-  const [imageFile, setImageFile] = useState<File | null>(null);
+
+  const [_imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
 
   useEffect(() => {
-    fetchDoctors();
+    fetchDentists();
   }, []);
 
-  const fetchDoctors = async () => {
+  const fetchDentists = async () => {
     try {
-      const data = await doctorAPI.getDoctors(undefined, true); // Include inactive doctors for admin
-      setDoctors(data);
+      const data = await dentistAPI.getDentists(undefined, true); // Include inactive dentists for admin
+      setDentists(data);
     } catch (error: any) {
-      showSnackbar('Failed to load doctors', 'error');
+      showSnackbar('Failed to load dentists', 'error');
     }
   };
 
@@ -85,25 +86,25 @@ export default function DoctorsManagementPage() {
     setSnackbar({ open: true, message, severity });
   };
 
-  const handleOpenDialog = (doctor?: Doctor) => {
-    if (doctor) {
-      setEditingDoctor(doctor);
+  const handleOpenDialog = (dentist?: Dentist) => {
+    if (dentist) {
+      setEditingDentist(dentist);
       setFormData({
-        name: doctor.name,
-        specialty: doctor.specialty,
-        qualification: doctor.qualification,
-        experience: doctor.experience,
-        rating: doctor.rating,
-        consultation_fee: doctor.consultation_fee,
-        available_days: doctor.available_days,
-        available_slots: doctor.available_slots,
-        image: doctor.image,
-        address: doctor.address,
+        name: dentist.name,
+        specialty: dentist.specialty,
+        qualification: dentist.qualification,
+        experience: dentist.experience,
+        rating: dentist.rating,
+        consultation_fee: dentist.consultation_fee,
+        available_days: dentist.available_days,
+        available_slots: dentist.available_slots,
+        image: dentist.image,
+        address: dentist.address,
       });
-      setImagePreview(doctor.image);
+      setImagePreview(dentist.image);
       setImageFile(null);
     } else {
-      setEditingDoctor(null);
+      setEditingDentist(null);
       setFormData({
         name: '',
         specialty: '',
@@ -124,6 +125,7 @@ export default function DoctorsManagementPage() {
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
+    setEditingDentist(null);
     setImageFile(null);
     setImagePreview('');
   };
@@ -144,37 +146,37 @@ export default function DoctorsManagementPage() {
 
   const handleSubmit = async () => {
     try {
-      if (editingDoctor) {
-        await doctorAPI.updateDoctor(editingDoctor.id, formData);
-        showSnackbar('Doctor updated successfully', 'success');
+      if (editingDentist) {
+        await dentistAPI.updateDentist(editingDentist.id, formData);
+        showSnackbar('Dentist updated successfully', 'success');
       } else {
-        await doctorAPI.createDoctor(formData);
-        showSnackbar('Doctor created successfully', 'success');
+        await dentistAPI.createDentist(formData);
+        showSnackbar('Dentist created successfully', 'success');
       }
       handleCloseDialog();
-      fetchDoctors();
+      fetchDentists();
     } catch (error: any) {
       showSnackbar(error.response?.data?.detail || 'Operation failed', 'error');
     }
   };
 
-  const handleDelete = async (doctorId: number) => {
-    if (window.confirm('Are you sure you want to delete this doctor?')) {
+  const handleDelete = async (dentistId: number) => {
+    if (window.confirm('Are you sure you want to delete this dentist?')) {
       try {
-        await doctorAPI.deleteDoctor(doctorId);
-        showSnackbar('Doctor deleted successfully', 'success');
-        fetchDoctors();
+        await dentistAPI.deleteDentist(dentistId);
+        showSnackbar('Dentist deleted successfully', 'success');
+        fetchDentists();
       } catch (error: any) {
-        showSnackbar('Failed to delete doctor', 'error');
+        showSnackbar('Failed to delete dentist', 'error');
       }
     }
   };
 
-  const handleToggleStatus = async (doctor: Doctor) => {
+  const handleToggleStatus = async (dentist: Dentist) => {
     try {
-      await doctorAPI.toggleDoctorStatus(doctor.id, !doctor.is_active);
-      showSnackbar(`Doctor ${!doctor.is_active ? 'activated' : 'deactivated'}`, 'success');
-      fetchDoctors();
+      await dentistAPI.toggleDentistStatus(dentist.id, !dentist.is_active);
+      showSnackbar(`Dentist ${!dentist.is_active ? 'activated' : 'deactivated'}`, 'success');
+      fetchDentists();
     } catch (error: any) {
       showSnackbar('Failed to update status', 'error');
     }
@@ -203,18 +205,18 @@ export default function DoctorsManagementPage() {
       {/* Action Bar */}
       <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">
-          Doctors Management ({doctors.length})
+          Dentists Management ({dentists.length})
         </Typography>
         <Button
           variant="contained"
           startIcon={<Add />}
           onClick={() => handleOpenDialog()}
         >
-          Add Doctor
+          Add Dentist
         </Button>
       </Stack>
 
-      {/* Doctors Table */}
+      {/* Dentists Table */}
       <TableContainer component={Paper} sx={{ overflow: 'auto' }}>
         <Table sx={{ minWidth: 800 }}>
           <TableHead>
@@ -230,49 +232,49 @@ export default function DoctorsManagementPage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {doctors.map((doctor) => (
-              <TableRow key={doctor.id} hover>
+            {dentists.map((dentist) => (
+              <TableRow key={dentist.id} hover>
                 <TableCell>
-                  {doctor.image && (doctor.image.startsWith('data:') || doctor.image.startsWith('http')) ? (
+                  {dentist.image && (dentist.image.startsWith('data:') || dentist.image.startsWith('http')) ? (
                     <img 
-                      src={doctor.image} 
-                      alt={doctor.name}
+                      src={dentist.image} 
+                      alt={dentist.name}
                       style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }}
                     />
                   ) : (
-                    <Typography fontSize={32}>{doctor.image || '👨‍⚕️'}</Typography>
+                    <Typography fontSize={32}>{dentist.image || '🦷'}</Typography>
                   )}
                 </TableCell>
                 <TableCell>
-                  <Typography fontWeight={600}>{doctor.name}</Typography>
+                  <Typography fontWeight={600}>{dentist.name}</Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {doctor.qualification}
+                    {dentist.qualification}
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Chip label={doctor.specialty} size="small" color="primary" variant="outlined" />
+                  <Chip label={dentist.specialty} size="small" color="primary" variant="outlined" />
                 </TableCell>
-                <TableCell>{doctor.experience} years</TableCell>
-                <TableCell>⭐ {doctor.rating}</TableCell>
-                <TableCell>₹{doctor.consultation_fee}</TableCell>
+                <TableCell>{dentist.experience} years</TableCell>
+                <TableCell>⭐ {dentist.rating}</TableCell>
+                <TableCell>₹{dentist.consultation_fee}</TableCell>
                 <TableCell>
                   <Switch
-                    checked={doctor.is_active}
-                    onChange={() => handleToggleStatus(doctor)}
+                    checked={dentist.is_active}
+                    onChange={() => handleToggleStatus(dentist)}
                     color="success"
                   />
                 </TableCell>
                 <TableCell align="right">
                   <IconButton
                     size="small"
-                    onClick={() => handleOpenDialog(doctor)}
+                    onClick={() => handleOpenDialog(dentist)}
                     color="primary"
                   >
                     <Edit fontSize="small" />
                   </IconButton>
                   <IconButton
                     size="small"
-                    onClick={() => handleDelete(doctor.id)}
+                    onClick={() => handleDelete(dentist.id)}
                     color="error"
                   >
                     <Delete fontSize="small" />
@@ -287,7 +289,7 @@ export default function DoctorsManagementPage() {
       {/* Add/Edit Dialog */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>
-          {editingDoctor ? 'Edit Doctor' : 'Add New Doctor'}
+          {editingDentist ? 'Edit Dentist' : 'Add New Dentist'}
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -326,38 +328,47 @@ export default function DoctorsManagementPage() {
               <TextField
                 fullWidth
                 label="Image (Emoji or leave empty to upload)"
-                value={formData.image.startsWith('data:') ? '' : formData.image}
+                value={formData.image}
                 onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                helperText="Optional: Enter emoji or leave empty to upload image"
+                helperText="Enter emoji or use the upload button below (optional)"
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <input
-                accept="image/*"
-                style={{ display: 'none' }}
-                id="doctor-image-upload"
-                type="file"
-                onChange={handleImageChange}
-              />
-              <label htmlFor="doctor-image-upload">
-                <Button
-                  variant="outlined"
-                  component="span"
-                  fullWidth
-                  sx={{ height: '56px' }}
-                >
-                  Upload Photo (Optional)
-                </Button>
-              </label>
-              {imagePreview && (
-                <Box sx={{ mt: 1, textAlign: 'center' }}>
-                  <img 
-                    src={imagePreview} 
-                    alt="Preview" 
-                    style={{ maxWidth: '100px', maxHeight: '100px', borderRadius: '8px' }}
-                  />
-                </Box>
-              )}
+            <Grid item xs={12}>
+              <Box>
+                <input
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  id="dentist-image-upload"
+                  type="file"
+                  onChange={handleImageChange}
+                />
+                <label htmlFor="dentist-image-upload">
+                  <Button
+                    variant="outlined"
+                    component="span"
+                    startIcon={<Add />}
+                  >
+                    Upload Photo (Optional)
+                  </Button>
+                </label>
+                {imagePreview && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="caption" display="block" gutterBottom>
+                      Preview:
+                    </Typography>
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      style={{
+                        maxWidth: '100px',
+                        maxHeight: '100px',
+                        objectFit: 'cover',
+                        borderRadius: '8px'
+                      }}
+                    />
+                  </Box>
+                )}
+              </Box>
             </Grid>
             <Grid item xs={12} sm={4}>
               <TextField
@@ -436,7 +447,7 @@ export default function DoctorsManagementPage() {
             onClick={handleSubmit}
             variant="contained"
           >
-            {editingDoctor ? 'Update' : 'Create'}
+            {editingDentist ? 'Update' : 'Create'}
           </Button>
         </DialogActions>
       </Dialog>

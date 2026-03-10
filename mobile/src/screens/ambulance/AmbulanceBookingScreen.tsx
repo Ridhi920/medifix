@@ -39,6 +39,12 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
   const [loading, setLoading] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [ambulances, setAmbulances] = useState<Ambulance[]>([]);
+  const [filteredAmbulances, setFilteredAmbulances] = useState<Ambulance[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedType, setSelectedType] = useState<string>("All");
+  const [sortBy, setSortBy] = useState<string>("price");
+  const [showTypeDropdown, setShowTypeDropdown] = useState<boolean>(false);
+  const [showSortDropdown, setShowSortDropdown] = useState<boolean>(false);
   const [bookingMode, setBookingMode] = useState<BookingMode>("now");
   const [selectedAmbulance, setSelectedAmbulance] = useState<Ambulance | null>(null);
   const [patientName, setPatientName] = useState<string>("");
@@ -61,20 +67,56 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
     fetchAmbulances();
   }, []);
 
+  useEffect(() => {
+    filterAndSortAmbulances();
+  }, [ambulances, searchQuery, selectedType, sortBy]);
+
   const fetchAmbulances = async () => {
     try {
       setLoading(true);
       const [data] = await Promise.all([
         ambulanceAPI.getAmbulances(),
-        new Promise(resolve => setTimeout(resolve, 2000))
+        new Promise(resolve => setTimeout(resolve, 1000))
       ]);
       setAmbulances(data);
+      setFilteredAmbulances(data);
     } catch (error: any) {
       console.error('Failed to fetch ambulances:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  const filterAndSortAmbulances = () => {
+    let filtered = [...ambulances];
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(a => 
+        a.name.toLowerCase().includes(query) ||
+        a.description.toLowerCase().includes(query) ||
+        a.ambulance_type.toLowerCase().includes(query) ||
+        a.features.some(f => f.toLowerCase().includes(query))
+      );
+    }
+
+    // Type filter
+    if (selectedType !== "All") {
+      filtered = filtered.filter(a => a.ambulance_type === selectedType);
+    }
+
+    // Sort
+    if (sortBy === "price") {
+      filtered.sort((a, b) => a.base_price - b.base_price);
+    } else if (sortBy === "name") {
+      filtered.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    setFilteredAmbulances(filtered);
+  };
+
+  const types = ["All", ...Array.from(new Set(ambulances.map(a => a.ambulance_type)))];
 
   const handleAmbulanceSelect = (ambulance: Ambulance) => {
     if (!ambulance.is_active) return;
@@ -298,6 +340,160 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
           {/* Booking Mode Selection */}
           {!selectedAmbulance && (
             <>
+              {/* Search and Filters */}
+              <View style={{ marginBottom: 16 }}>
+                {/* Search Bar */}
+                <TextInput
+                  style={{
+                    backgroundColor: "#f1f5f9",
+                    borderRadius: 12,
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                    fontSize: 14,
+                    color: "#0f172a",
+                    borderWidth: 1,
+                    borderColor: "#e2e8f0",
+                    marginBottom: 12
+                  }}
+                  placeholder="Search ambulances by name, type, features..."
+                  placeholderTextColor="#94a3b8"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+
+                {/* Filter Dropdowns */}
+                <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
+                  {/* Type Dropdown */}
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 11, fontWeight: "600", color: "#64748b", marginBottom: 6 }}>Type</Text>
+                    <Pressable
+                      onPress={() => setShowTypeDropdown(!showTypeDropdown)}
+                      style={{
+                        backgroundColor: "#ffffff",
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: "#e2e8f0",
+                        paddingHorizontal: 12,
+                        paddingVertical: 10,
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "center"
+                      }}
+                    >
+                      <Text style={{ fontSize: 13, color: "#0f172a", fontWeight: "500" }}>{selectedType}</Text>
+                      <Text style={{ fontSize: 10, color: "#64748b" }}>▼</Text>
+                    </Pressable>
+                    {showTypeDropdown && (
+                      <View style={{
+                        position: "absolute",
+                        top: 56,
+                        left: 0,
+                        right: 0,
+                        backgroundColor: "#ffffff",
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: "#e2e8f0",
+                        maxHeight: 200,
+                        zIndex: 1000,
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 4,
+                        elevation: 3
+                      }}>
+                        <ScrollView>
+                          {types.map((type) => (
+                            <Pressable
+                              key={type}
+                              onPress={() => {
+                                setSelectedType(type);
+                                setShowTypeDropdown(false);
+                              }}
+                              style={{
+                                paddingHorizontal: 12,
+                                paddingVertical: 10,
+                                borderBottomWidth: 1,
+                                borderBottomColor: "#f1f5f9",
+                                backgroundColor: selectedType === type ? "#fef2f2" : "transparent"
+                              }}
+                            >
+                              <Text style={{ fontSize: 13, color: "#0f172a" }}>{type}</Text>
+                            </Pressable>
+                          ))}
+                        </ScrollView>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Sort Dropdown */}
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 11, fontWeight: "600", color: "#64748b", marginBottom: 6 }}>Sort By</Text>
+                    <Pressable
+                      onPress={() => setShowSortDropdown(!showSortDropdown)}
+                      style={{
+                        backgroundColor: "#ffffff",
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: "#e2e8f0",
+                        paddingHorizontal: 12,
+                        paddingVertical: 10,
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "center"
+                      }}
+                    >
+                      <Text style={{ fontSize: 13, color: "#0f172a", fontWeight: "500" }}>
+                        {sortBy === "price" ? "Price" : "Name"}
+                      </Text>
+                      <Text style={{ fontSize: 10, color: "#64748b" }}>▼</Text>
+                    </Pressable>
+                    {showSortDropdown && (
+                      <View style={{
+                        position: "absolute",
+                        top: 56,
+                        left: 0,
+                        right: 0,
+                        backgroundColor: "#ffffff",
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: "#e2e8f0",
+                        zIndex: 1000,
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 4,
+                        elevation: 3
+                      }}>
+                        {[{id: "price", label: "Price (Low to High)"}, {id: "name", label: "Name (A-Z)"}].map((option) => (
+                          <Pressable
+                            key={option.id}
+                            onPress={() => {
+                              setSortBy(option.id);
+                              setShowSortDropdown(false);
+                            }}
+                            style={{
+                              paddingHorizontal: 12,
+                              paddingVertical: 10,
+                              borderBottomWidth: 1,
+                              borderBottomColor: "#f1f5f9",
+                              backgroundColor: sortBy === option.id ? "#dcfce7" : "transparent"
+                            }}
+                          >
+                            <Text style={{ fontSize: 13, color: "#0f172a" }}>{option.label}</Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                </View>
+
+                {/* Results Count */}
+                <Text style={{ fontSize: 12, color: "#64748b", marginTop: 12 }}>
+                  {filteredAmbulances.length} ambulance{filteredAmbulances.length !== 1 ? 's' : ''} available
+                </Text>
+              </View>
+
+              {/* Booking Mode Tabs */}
               <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Select Booking Type</Text>
               <View style={{ flexDirection: "row", gap: 12, marginBottom: 24 }}>
                 <Pressable
@@ -362,8 +558,8 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
               </View>
 
               {/* Ambulance Types */}
-              <Text style={[styles.sectionTitle, { marginBottom: 16 }]}>Select Ambulance Type</Text>
-              {ambulances.length === 0 ? (
+              <Text style={[styles.sectionTitle, { marginBottom: 16 }]}>Available Ambulances</Text>
+              {filteredAmbulances.length === 0 ? (
                 <View style={{
                   backgroundColor: "#f8fafc",
                   borderRadius: 16,
@@ -374,11 +570,11 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
                 }}>
                   <Text style={{ fontSize: 48, marginBottom: 8 }}>🚑</Text>
                   <Text style={{ fontSize: 14, fontWeight: "600", color: "#64748b", textAlign: "center" }}>
-                    No ambulances available at the moment
+                    {searchQuery || selectedType !== "All" ? "No ambulances match your filters" : "No ambulances available at the moment"}
                   </Text>
                 </View>
               ) : (
-                ambulances.map((ambulance) => (
+                filteredAmbulances.map((ambulance) => (
                 <Pressable
                   key={ambulance.id}
                   onPress={() => handleAmbulanceSelect(ambulance)}

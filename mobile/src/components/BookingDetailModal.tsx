@@ -5,7 +5,7 @@ type BookingDetailModalProps = {
   readonly onClose: () => void;
   readonly booking: {
     id: number;
-    type: "doctor" | "lab" | "ambulance";
+    type: "doctor" | "lab" | "ambulance" | "nurse" | "physiotherapist";
     service_name: string;
     date: string;
     time?: string;
@@ -26,6 +26,7 @@ export default function BookingDetailModal({ visible, onClose, booking }: Readon
     const statusLower = status.toLowerCase();
     if (statusLower === "pending") return "#FF6B35";
     if (statusLower === "confirmed" || statusLower === "scheduled") return "#10b981";
+    if (statusLower === "in_progress") return "#8b5cf6";
     if (statusLower === "completed") return "#3b82f6";
     if (statusLower === "cancelled") return "#ef4444";
     if (statusLower === "dispatched") return "#8b5cf6";
@@ -36,6 +37,8 @@ export default function BookingDetailModal({ visible, onClose, booking }: Readon
     if (type === "doctor") return "👨‍⚕️";
     if (type === "lab") return "🔬";
     if (type === "ambulance") return "🚑";
+    if (type === "nurse") return "👩‍⚕️";
+    if (type === "physiotherapist") return "🧘";
     return "📋";
   };
 
@@ -43,6 +46,8 @@ export default function BookingDetailModal({ visible, onClose, booking }: Readon
     if (type === "doctor") return "Doctor Appointment";
     if (type === "lab") return "Lab Test";
     if (type === "ambulance") return "Ambulance Booking";
+    if (type === "nurse") return "Home Nurse Booking";
+    if (type === "physiotherapist") return "Physiotherapy Booking";
     return "Booking";
   };
 

@@ -102,10 +102,64 @@ export interface AmbulanceBooking {
   ambulance_image: string;
 }
 
+export interface NurseBooking {
+  id: number;
+  user_id: number;
+  nurse_id: number;
+  patient_name: string;
+  patient_age: number;
+  patient_gender: string;
+  contact_number: string;
+  address: string;
+  medical_condition: string | null;
+  required_services: string[];
+  booking_type: 'hourly' | 'daily' | 'weekly';
+  duration: number;
+  shift_preference: string;
+  start_date: string;
+  start_time: string | null;
+  total_price: number;
+  special_instructions: string | null;
+  status: string;
+  created_at: string;
+  nurse_name?: string;
+  nurse_qualification?: string;
+  nurse_specialization?: string;
+  nurse_image?: string;
+}
+
+export interface PhysiotherapistBooking {
+  id: number;
+  user_id: number;
+  physiotherapist_id: number;
+  patient_name: string;
+  patient_age: number;
+  patient_gender: string;
+  contact_number: string;
+  address: string;
+  medical_condition: string | null;
+  required_services: string[];
+  booking_type: 'session' | 'daily' | 'weekly';
+  duration: number;
+  shift_preference: string;
+  start_date: string;
+  start_time: string | null;
+  total_price: number;
+  special_instructions: string | null;
+  status: string;
+  created_at: string;
+  physiotherapist_name?: string;
+  physiotherapist_qualification?: string;
+  physiotherapist_specialization?: string;
+  physiotherapist_image?: string;
+}
+
 export interface AllBookings {
   appointments: DoctorAppointment[];
   labBookings: LabBooking[];
   ambulanceBookings: AmbulanceBooking[];
+  nurseBookings: NurseBooking[];
+  physiotherapistBookings: PhysiotherapistBooking[];
 }
 
 // Profile API
@@ -133,15 +187,19 @@ export const userAPI = {
     try {
       console.log('Fetching all bookings...');
       
-      const [appointmentsRes, labBookingsRes, ambulanceBookingsRes] = await Promise.allSettled([
+      const [appointmentsRes, labBookingsRes, ambulanceBookingsRes, nurseBookingsRes, physiotherapistBookingsRes] = await Promise.allSettled([
         api.get<DoctorAppointment[]>('/doctors/appointments/my'),
         api.get<LabBooking[]>('/lab-tests/bookings/my'),
         api.get<AmbulanceBooking[]>('/ambulances/bookings/my'),
+        api.get<NurseBooking[]>('/nurses/bookings/my'),
+        api.get<PhysiotherapistBooking[]>('/physiotherapists/bookings/my'),
       ]);
 
       const appointments = appointmentsRes.status === 'fulfilled' ? appointmentsRes.value.data : [];
       const labBookings = labBookingsRes.status === 'fulfilled' ? labBookingsRes.value.data : [];
       const ambulanceBookings = ambulanceBookingsRes.status === 'fulfilled' ? ambulanceBookingsRes.value.data : [];
+      const nurseBookings = nurseBookingsRes.status === 'fulfilled' ? nurseBookingsRes.value.data : [];
+      const physiotherapistBookings = physiotherapistBookingsRes.status === 'fulfilled' ? physiotherapistBookingsRes.value.data : [];
 
       if (appointmentsRes.status === 'rejected') {
         console.error('Error fetching appointments:', appointmentsRes.reason);
@@ -154,15 +212,25 @@ export const userAPI = {
       if (ambulanceBookingsRes.status === 'rejected') {
         console.error('Error fetching ambulance bookings:', ambulanceBookingsRes.reason);
       }
+      if (nurseBookingsRes.status === 'rejected') {
+        console.error('Error fetching nurse bookings:', nurseBookingsRes.reason);
+      }
+      if (physiotherapistBookingsRes.status === 'rejected') {
+        console.error('Error fetching physiotherapist bookings:', physiotherapistBookingsRes.reason);
+      }
 
       console.log('Appointments fetched:', appointments.length);
       console.log('Lab bookings fetched:', labBookings.length);
       console.log('Ambulance bookings fetched:', ambulanceBookings.length);
+      console.log('Nurse bookings fetched:', nurseBookings.length);
+      console.log('Physiotherapist bookings fetched:', physiotherapistBookings.length);
 
       return {
         appointments,
         labBookings,
         ambulanceBookings,
+        nurseBookings,
+        physiotherapistBookings,
       };
     } catch (error) {
       console.error('Error fetching bookings:', error);
@@ -170,6 +238,8 @@ export const userAPI = {
         appointments: [],
         labBookings: [],
         ambulanceBookings: [],
+        nurseBookings: [],
+        physiotherapistBookings: [],
       };
     }
   },

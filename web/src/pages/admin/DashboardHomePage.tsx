@@ -1,235 +1,158 @@
-import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Grid,
-  Paper,
-  Typography,
   Card,
   CardContent,
-  CircularProgress
+  Typography,
+  CardActionArea,
+  Container,
+  Stack,
+  IconButton,
+  Tooltip
 } from '@mui/material';
+import medEfixLogo from '../../assets/medEfix.png';
 import {
   MedicalServices as DoctorsIcon,
   CalendarMonth as AppointmentsIcon,
   Science as LabIcon,
   Biotech as LabTestIcon,
   AirportShuttle as AmbulanceIcon,
-  LocalShipping as AmbulanceBookingIcon,
-  TrendingUp as TrendingUpIcon
+  HealthAndSafety as NurseIcon,
+  FitnessCenter as PhysiotherapistIcon,
+  LocalPharmacy as PharmacyIcon,
+  AddCircleOutline as AddIcon,
+  BookmarkBorder as ManageIcon,
+  People as UsersIcon,
+  Logout as LogoutIcon
 } from '@mui/icons-material';
-import axios from 'axios';
-
-interface Stats {
-  totalDoctors: number;
-  totalAppointments: number;
-  pendingAppointments: number;
-  confirmedAppointments: number;
-  totalLabTests: number;
-  totalLabBookings: number;
-  pendingLabBookings: number;
-  totalAmbulances: number;
-  totalAmbulanceBookings: number;
-  pendingAmbulanceBookings: number;
-}
+import { useAuth } from '../../context/AuthContext';
 
 export default function DashboardHomePage() {
-  const [stats, setStats] = useState<Stats>({
-    totalDoctors: 0,
-    totalAppointments: 0,
-    pendingAppointments: 0,
-    confirmedAppointments: 0,
-    totalLabTests: 0,
-    totalLabBookings: 0,
-    pendingLabBookings: 0,
-    totalAmbulances: 0,
-    totalAmbulanceBookings: 0,
-    pendingAmbulanceBookings: 0
-  });
-  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { logout } = useAuth();
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
-    try {
-      const token = localStorage.getItem('adminToken');
-      const headers = { Authorization: `Bearer ${token}` };
-
-      const [doctorsRes, appointmentsRes, labTestsRes, labBookingsRes, ambulancesRes, ambulanceBookingsRes] = await Promise.all([
-        axios.get('http://localhost:8000/doctors', { headers }),
-        axios.get('http://localhost:8000/doctors/appointments/all', { headers }),
-        axios.get('http://localhost:8000/lab-tests?include_inactive=true', { headers }),
-        axios.get('http://localhost:8000/lab-tests/bookings/all', { headers }),
-        axios.get('http://localhost:8000/ambulances?include_inactive=true', { headers }),
-        axios.get('http://localhost:8000/ambulances/bookings/all', { headers })
-      ]);
-
-      const appointments = appointmentsRes.data;
-      const pendingAppts = appointments.filter((appt: any) => appt.status === 'pending').length;
-      const confirmedAppts = appointments.filter((appt: any) => appt.status === 'confirmed').length;
-
-      const labBookings = labBookingsRes.data;
-      const pendingLabBookings = labBookings.filter((booking: any) => booking.status === 'pending').length;
-
-      const ambulanceBookings = ambulanceBookingsRes.data;
-      const pendingAmbulanceBookings = ambulanceBookings.filter((booking: any) => booking.status === 'pending').length;
-
-      setStats({
-        totalDoctors: doctorsRes.data.length,
-        totalAppointments: appointments.length,
-        pendingAppointments: pendingAppts,
-        confirmedAppointments: confirmedAppts,
-        totalLabTests: labTestsRes.data.length,
-        totalLabBookings: labBookings.length,
-        pendingLabBookings: pendingLabBookings,
-        totalAmbulances: ambulancesRes.data.length,
-        totalAmbulanceBookings: ambulanceBookings.length,
-        pendingAmbulanceBookings: pendingAmbulanceBookings
-      });
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    } finally {
-      setLoading(false);
-    }
+  const handleLogout = () => {
+    logout();
+    navigate('/admin/login');
   };
 
-  const statCards = [
-    {
-      title: 'Total Doctors',
-      value: stats.totalDoctors,
-      icon: <DoctorsIcon sx={{ fontSize: 40 }} />,
-      color: '#2e7d32',
-      bgColor: '#e8f5e9'
-    },
-    {
-      title: 'Total Lab Tests',
-      value: stats.totalLabTests,
-      icon: <LabTestIcon sx={{ fontSize: 40 }} />,
-      color: '#7b1fa2',
-      bgColor: '#f3e5f5'
-    },
-    {
-      title: 'Total Ambulances',
-      value: stats.totalAmbulances,
-      icon: <AmbulanceIcon sx={{ fontSize: 40 }} />,
-      color: '#d32f2f',
-      bgColor: '#ffebee'
-    },
-    {
-      title: 'Total Appointments',
-      value: stats.totalAppointments,
-      icon: <AppointmentsIcon sx={{ fontSize: 40 }} />,
-      color: '#ed6c02',
-      bgColor: '#fff3e0'
-    },
-    {
-      title: 'Pending Appointments',
-      value: stats.pendingAppointments,
-      icon: <TrendingUpIcon sx={{ fontSize: 40 }} />,
-      color: '#f57c00',
-      bgColor: '#fff3e0'
-    },
-    {
-      title: 'Total Lab Bookings',
-      value: stats.totalLabBookings,
-      icon: <LabIcon sx={{ fontSize: 40 }} />,
-      color: '#0288d1',
-      bgColor: '#e1f5fe'
-    },
-    {
-      title: 'Pending Lab Bookings',
-      value: stats.pendingLabBookings,
-      icon: <TrendingUpIcon sx={{ fontSize: 40 }} />,
-      color: '#f57c00',
-      bgColor: '#fff3e0'
-    },
-    {
-      title: 'Total Ambulance Bookings',
-      value: stats.totalAmbulanceBookings,
-      icon: <AmbulanceBookingIcon sx={{ fontSize: 40 }} />,
-      color: '#d84315',
-      bgColor: '#fbe9e7'
-    },
-    {
-      title: 'Pending Ambulance Bookings',
-      value: stats.pendingAmbulanceBookings,
-      icon: <TrendingUpIcon sx={{ fontSize: 40 }} />,
-      color: '#f57c00',
-      bgColor: '#fff3e0'
-    }
-  ];
-
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
-        Dashboard Overview
-      </Typography>
+    <Box sx={{ 
+      minHeight: '100vh', 
+      background: 'linear-gradient(135deg, #FFA07A 0%, #FFE4B5 100%)',
+      py: 6
+    }}>
+      {/* Logout Button */}
+      <Box sx={{ position: 'absolute', top: 20, right: 20 }}>
+        <Tooltip title="Logout">
+          <IconButton 
+            onClick={handleLogout}
+            sx={{
+              bgcolor: 'white',
+              boxShadow: 3,
+              '&:hover': {
+                bgcolor: 'rgba(255,255,255,0.9)',
+                boxShadow: 4
+              }
+            }}
+          >
+            <LogoutIcon sx={{ color: '#FFA07A' }} />
+          </IconButton>
+        </Tooltip>
+      </Box>
 
-      <Grid container spacing={3}>
-        {statCards.map((card, index) => (
-          <Grid item xs={12} sm={6} md={4} key={index}>
-            <Card elevation={2}>
-              <CardContent>
-                <Box display="flex" justifyContent="space-between" alignItems="center">
-                  <Box>
-                    <Typography color="textSecondary" variant="body2" gutterBottom>
-                      {card.title}
-                    </Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                      {card.value}
-                    </Typography>
-                  </Box>
-                  <Box
-                    sx={{
-                      backgroundColor: card.bgColor,
-                      borderRadius: 2,
-                      p: 1.5,
-                      display: 'flex',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <Box sx={{ color: card.color }}>
-                      {card.icon}
-                    </Box>
-                  </Box>
-                </Box>
-              </CardContent>
+      <Container maxWidth="lg">
+        {/* Logo */}
+        <Box sx={{ textAlign: 'center', mb: 6 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 3 }}>
+            {/* <img 
+              src={medEfixLogo} 
+              alt="Medifix Logo" 
+              style={{ height: '140px', width: 'auto' }}
+            /> */}
+          </Box>
+          <Typography 
+            variant="h3" 
+            sx={{ 
+              fontWeight: 800,
+              color: '#fff',
+              textShadow: '2px 2px 4px rgba(0,0,0,0.2)'
+            }}
+          >
+            Admin Dashboard
+          </Typography>
+        </Box>
+
+        {/* Main Navigation Cards */}
+        <Grid container spacing={4} justifyContent="center">
+          {/* Add/Manage Services Card */}
+          <Grid item xs={12} md={5}>
+            <Card 
+              elevation={3}
+              sx={{ 
+                height: '300px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                cursor: 'pointer',
+                transition: 'transform 0.3s ease-in-out',
+                '&:hover': {
+                  transform: 'translateY(-8px)',
+                  boxShadow: 6
+                }
+              }}
+            >
+              <CardActionArea 
+                onClick={() => navigate('/admin/users')}
+                sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <CardContent sx={{ p: 4, textAlign: 'center' }}>
+                  <AddIcon sx={{ fontSize: 100, mb: 2 }} />
+                  <Typography variant="h4" fontWeight="bold" gutterBottom>
+                    Manage Services
+                  </Typography>
+                  <Typography variant="body1" sx={{ opacity: 0.9, fontSize: '1.1rem' }}>
+                    Add and manage healthcare providers and services
+                  </Typography>
+                </CardContent>
+              </CardActionArea>
             </Card>
           </Grid>
-        ))}
-      </Grid>
 
-      <Grid container spacing={3} sx={{ mt: 2 }}>
-        <Grid item xs={12} md={6}>
-          <Paper elevation={2} sx={{ p: 3, height: '100%' }}>
-            <Typography variant="h6" gutterBottom>
-              Recent Activity
-            </Typography>
-            <Typography color="textSecondary">
-              No recent activity to display
-            </Typography>
-          </Paper>
+          {/* Manage Bookings Card */}
+          <Grid item xs={12} md={5}>
+            <Card 
+              elevation={3}
+              sx={{ 
+                height: '300px',
+                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                color: 'white',
+                cursor: 'pointer',
+                transition: 'transform 0.3s ease-in-out',
+                '&:hover': {
+                  transform: 'translateY(-8px)',
+                  boxShadow: 6
+                }
+              }}
+            >
+              <CardActionArea 
+                onClick={() => navigate('/admin/appointments')}
+                sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <CardContent sx={{ p: 4, textAlign: 'center' }}>
+                  <ManageIcon sx={{ fontSize: 100, mb: 2 }} />
+                  <Typography variant="h4" fontWeight="bold" gutterBottom>
+                    Manage Bookings
+                  </Typography>
+                  <Typography variant="body1" sx={{ opacity: 0.9, fontSize: '1.1rem' }}>
+                    View and manage all service bookings and appointments
+                  </Typography>
+                </CardContent>
+              </CardActionArea>
+            </Card>
+          </Grid>
         </Grid>
-        <Grid item xs={12} md={6}>
-          <Paper elevation={2} sx={{ p: 3, height: '100%' }}>
-            <Typography variant="h6" gutterBottom>
-              Quick Actions
-            </Typography>
-            <Typography color="textSecondary">
-              Use the sidebar to navigate to different management sections
-            </Typography>
-          </Paper>
-        </Grid>
-      </Grid>
+      </Container>
     </Box>
   );
 }

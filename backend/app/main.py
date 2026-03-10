@@ -5,8 +5,12 @@ from .db import init_db
 from .routes import router
 from .auth_routes import router as auth_router
 from .doctor_routes import router as doctor_router
+from .dentist_routes import router as dentist_router
 from .lab_routes import router as lab_router
 from .ambulance_routes import router as ambulance_router
+from .nurse_routes import router as nurse_router
+from .physiotherapist_routes import router as physiotherapist_router
+from .pharmacy_routes import router as pharmacy_router
 from .user_routes import router as user_router
 
 app = FastAPI(title="Medifix API", version="0.1.0")
@@ -22,8 +26,12 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(doctor_router)
+app.include_router(dentist_router)
 app.include_router(lab_router)
 app.include_router(ambulance_router)
+app.include_router(nurse_router)
+app.include_router(physiotherapist_router)
+app.include_router(pharmacy_router)
 app.include_router(router)
 
 

@@ -13,7 +13,7 @@ type CompletedBookingsScreenProps = {
 
 type Booking = {
   id: number;
-  type: "doctor" | "lab" | "ambulance";
+  type: "doctor" | "lab" | "ambulance" | "nurse" | "physiotherapist";
   service_name: string;
   date: string;
   time?: string;
@@ -56,7 +56,7 @@ export default function CompletedBookingsScreen({ onBack }: Readonly<CompletedBo
       setLoading(true);
       const [allBookings] = await Promise.all([
         userAPI.getAllBookings(),
-        new Promise(resolve => setTimeout(resolve, 2000))
+        new Promise(resolve => setTimeout(resolve, 1000))
       ]);
       
       // Transform bookings into a unified format
@@ -113,6 +113,42 @@ export default function CompletedBookingsScreen({ onBack }: Readonly<CompletedBo
         });
       });
 
+      // Add nurse bookings
+      allBookings.nurseBookings.forEach((nurse) => {
+        transformedBookings.push({
+          id: nurse.id,
+          type: "nurse",
+          service_name: nurse.nurse_name || "Home Nurse",
+          date: nurse.start_date,
+          time: nurse.start_time || undefined,
+          status: nurse.status,
+          patient_name: nurse.patient_name,
+          patient_age: nurse.patient_age,
+          patient_phone: nurse.contact_number,
+          patient_address: nurse.address,
+          notes: nurse.medical_condition || undefined,
+          created_at: nurse.created_at,
+        });
+      });
+
+      // Add physiotherapist bookings
+      allBookings.physiotherapistBookings.forEach((physio) => {
+        transformedBookings.push({
+          id: physio.id,
+          type: "physiotherapist",
+          service_name: physio.physiotherapist_name || "Physiotherapist",
+          date: physio.start_date,
+          time: physio.start_time || undefined,
+          status: physio.status,
+          patient_name: physio.patient_name,
+          patient_age: physio.patient_age,
+          patient_phone: physio.contact_number,
+          patient_address: physio.address,
+          notes: physio.medical_condition || undefined,
+          created_at: physio.created_at,
+        });
+      });
+
       // Filter completed and cancelled bookings
       const completed = transformedBookings.filter((booking) => {
         const status = booking.status.toLowerCase();
@@ -150,6 +186,8 @@ export default function CompletedBookingsScreen({ onBack }: Readonly<CompletedBo
     if (type === "doctor") return "👨‍⚕️";
     if (type === "lab") return "🔬";
     if (type === "ambulance") return "🚑";
+    if (type === "nurse") return "👩‍⚕️";
+    if (type === "physiotherapist") return "🧘";
     return "📋";
   };
 
@@ -252,9 +290,54 @@ export default function CompletedBookingsScreen({ onBack }: Readonly<CompletedBo
             <Text style={{ fontSize: 14, color: "#64748b", marginBottom: 16 }}>
               {bookings.length} {bookings.length === 1 ? "booking" : "bookings"} in history
             </Text>
-            {bookings.map((booking) => (
-              <BookingCard key={`${booking.type}-${booking.id}`} booking={booking} />
-            ))}
+
+            {/* Doctor Appointments */}
+            {bookings.filter(b => b.type === "doctor").length > 0 && (
+              <View style={{ marginBottom: 20 }}>
+                <Text style={{ fontSize: 16, fontWeight: "700", color: "#0f172a", marginBottom: 12 }}>
+                  👨‍⚕️ Doctor Appointments ({bookings.filter(b => b.type === "doctor").length})
+                </Text>
+                {bookings.filter(b => b.type === "doctor").map((booking) => (
+                  <BookingCard key={`${booking.type}-${booking.id}`} booking={booking} />
+                ))}
+              </View>
+            )}
+
+            {/* Lab Tests */}
+            {bookings.filter(b => b.type === "lab").length > 0 && (
+              <View style={{ marginBottom: 20 }}>
+                <Text style={{ fontSize: 16, fontWeight: "700", color: "#0f172a", marginBottom: 12 }}>
+                  🔬 Lab Tests ({bookings.filter(b => b.type === "lab").length})
+                </Text>
+                {bookings.filter(b => b.type === "lab").map((booking) => (
+                  <BookingCard key={`${booking.type}-${booking.id}`} booking={booking} />
+                ))}
+              </View>
+            )}
+
+            {/* Ambulance Bookings */}
+            {bookings.filter(b => b.type === "ambulance").length > 0 && (
+              <View style={{ marginBottom: 20 }}>
+                <Text style={{ fontSize: 16, fontWeight: "700", color: "#0f172a", marginBottom: 12 }}>
+                  🚑 Ambulance Services ({bookings.filter(b => b.type === "ambulance").length})
+                </Text>
+                {bookings.filter(b => b.type === "ambulance").map((booking) => (
+                  <BookingCard key={`${booking.type}-${booking.id}`} booking={booking} />
+                ))}
+              </View>
+            )}
+
+            {/* Nurse Bookings */}
+            {bookings.filter(b => b.type === "nurse").length > 0 && (
+              <View style={{ marginBottom: 20 }}>
+                <Text style={{ fontSize: 16, fontWeight: "700", color: "#0f172a", marginBottom: 12 }}>
+                  👩‍⚕️ Home Nursing ({bookings.filter(b => b.type === "nurse").length})
+                </Text>
+                {bookings.filter(b => b.type === "nurse").map((booking) => (
+                  <BookingCard key={`${booking.type}-${booking.id}`} booking={booking} />
+                ))}
+              </View>
+            )}
           </View>
         )}
       </View>

@@ -9,11 +9,14 @@ type ServicesListScreenProps = {
 };
 
 const serviceIcons: Record<ServiceKey, any> = {
-  dental: require("../../../assets/doctor.png"),
+  doctor: require("../../../assets/doctor.png"),
+  dental: require("../../../assets/dental-checkup.png"),
   cardiology: require("../../../assets/doctor.png"),
   pediatrics: require("../../../assets/doctor.png"),
   ambulance: require("../../../assets/ambulance.png"),
   lab: require("../../../assets/Lab.png"),
+  nurse: require("../../../assets/nurse.png"),
+  physiotherapist: require("../../../assets/physiotherapy.png"),
   pharmacy: require("../../../assets/pharmacy.png")
 };
 

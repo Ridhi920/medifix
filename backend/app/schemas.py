@@ -125,6 +125,81 @@ class AppointmentWithDoctor(AppointmentResponse):
     doctor_image: str
 
 
+# Dentist Schemas
+class DentistResponse(BaseModel):
+    id: int
+    name: str
+    specialty: str
+    qualification: str
+    experience: int
+    rating: float
+    consultation_fee: int
+    available_days: List[str]
+    available_slots: List[str]
+    image: str
+    address: str
+    is_active: bool
+
+
+class DentistCreate(BaseModel):
+    name: str
+    specialty: str
+    qualification: str
+    experience: int
+    rating: float = 0.0
+    consultation_fee: int
+    available_days: List[str]
+    available_slots: List[str]
+    image: str
+    address: str
+
+
+class DentistUpdate(BaseModel):
+    name: str | None = None
+    specialty: str | None = None
+    qualification: str | None = None
+    experience: int | None = None
+    rating: float | None = None
+    consultation_fee: int | None = None
+    available_days: List[str] | None = None
+    available_slots: List[str] | None = None
+    image: str | None = None
+    address: str | None = None
+    is_active: bool | None = None
+
+
+# Dentist Appointment Schemas
+class DentistAppointmentCreate(BaseModel):
+    dentist_id: int
+    patient_name: str = Field(..., min_length=2)
+    patient_age: int = Field(..., gt=0, lt=150)
+    symptoms: str | None = None
+    appointment_day: str
+    appointment_slot: str
+    appointment_date: datetime | None = None
+
+
+class DentistAppointmentResponse(BaseModel):
+    id: int
+    user_id: int
+    dentist_id: int
+    patient_name: str
+    patient_age: int
+    symptoms: str | None
+    appointment_day: str
+    appointment_slot: str
+    appointment_date: datetime | None
+    consultation_fee: int
+    status: str
+    created_at: datetime
+
+
+class DentistAppointmentWithDentist(DentistAppointmentResponse):
+    dentist_name: str
+    dentist_specialty: str
+    dentist_image: str
+
+
 # Lab Test Schemas
 class LabTestResponse(BaseModel):
     id: int
@@ -266,3 +341,284 @@ class AmbulanceBookingWithAmbulance(AmbulanceBookingResponse):
     ambulance_name: str
     ambulance_type: str
     ambulance_image: str
+
+
+# Nurse Schemas
+class NurseResponse(BaseModel):
+    id: int
+    name: str
+    qualification: str
+    specialization: str
+    experience: int
+    rating: float
+    services: List[str]
+    hourly_rate: int
+    daily_rate: int
+    available_shifts: List[str]
+    languages: List[str]
+    image: str
+    gender: str
+    is_active: bool
+
+
+class NurseCreate(BaseModel):
+    name: str
+    qualification: str
+    specialization: str
+    experience: int
+    rating: float = 0.0
+    services: List[str]
+    hourly_rate: int
+    daily_rate: int
+    available_shifts: List[str]
+    languages: List[str]
+    image: str
+    gender: str
+
+
+class NurseUpdate(BaseModel):
+    name: str | None = None
+    qualification: str | None = None
+    specialization: str | None = None
+    experience: int | None = None
+    rating: float | None = None
+    services: List[str] | None = None
+    hourly_rate: int | None = None
+    daily_rate: int | None = None
+    available_shifts: List[str] | None = None
+    languages: List[str] | None = None
+    image: str | None = None
+    gender: str | None = None
+    is_active: bool | None = None
+
+
+# Nurse Booking Schemas
+class NurseBookingCreate(BaseModel):
+    nurse_id: int
+    patient_name: str = Field(..., min_length=2)
+    patient_age: int = Field(..., gt=0, lt=150)
+    patient_gender: str
+    contact_number: str = Field(..., min_length=10)
+    address: str = Field(..., min_length=5)
+    medical_condition: str | None = None
+    required_services: List[str]
+    booking_type: str = "hourly"  # hourly, daily, weekly
+    duration: int = Field(..., gt=0)
+    shift_preference: str
+    start_date: str
+    start_time: str | None = None
+    special_instructions: str | None = None
+
+
+class NurseBookingResponse(BaseModel):
+    id: int
+    user_id: int
+    nurse_id: int
+    patient_name: str
+    patient_age: int
+    patient_gender: str
+    contact_number: str
+    address: str
+    medical_condition: str | None
+    required_services: List[str]
+    booking_type: str
+    duration: int
+    shift_preference: str
+    start_date: str
+    start_time: str | None
+    total_price: int
+    special_instructions: str | None
+    status: str
+    created_at: datetime
+
+
+class NurseBookingWithNurse(NurseBookingResponse):
+    nurse_name: str
+    nurse_qualification: str
+    nurse_specialization: str
+    nurse_image: str
+
+
+class NurseBookingStatusUpdate(BaseModel):
+    status: str = Field(..., pattern="^(pending|confirmed|in_progress|completed|cancelled)$")
+
+
+# Physiotherapist Schemas
+class PhysiotherapistResponse(BaseModel):
+    id: int
+    name: str
+    qualification: str
+    specialization: str
+    experience: int
+    rating: float
+    services: List[str]
+    hourly_rate: int
+    daily_rate: int
+    available_shifts: List[str]
+    languages: List[str]
+    image: str
+    gender: str
+    is_active: bool
+
+
+class PhysiotherapistCreate(BaseModel):
+    name: str
+    qualification: str
+    specialization: str
+    experience: int
+    rating: float = 0.0
+    services: List[str]
+    hourly_rate: int
+    daily_rate: int
+    available_shifts: List[str]
+    languages: List[str]
+    image: str
+    gender: str
+
+
+class PhysiotherapistUpdate(BaseModel):
+    name: str | None = None
+    qualification: str | None = None
+    specialization: str | None = None
+    experience: int | None = None
+    rating: float | None = None
+    services: List[str] | None = None
+    hourly_rate: int | None = None
+    daily_rate: int | None = None
+    available_shifts: List[str] | None = None
+    languages: List[str] | None = None
+    image: str | None = None
+    gender: str | None = None
+    is_active: bool | None = None
+
+
+# Physiotherapist Booking Schemas
+class PhysiotherapistBookingCreate(BaseModel):
+    physiotherapist_id: int
+    patient_name: str = Field(..., min_length=2)
+    patient_age: int = Field(..., gt=0, lt=150)
+    patient_gender: str
+    contact_number: str = Field(..., min_length=10)
+    address: str = Field(..., min_length=5)
+    medical_condition: str | None = None
+    required_services: List[str]
+    booking_type: str = "session"  # session, daily, weekly
+    duration: int = Field(..., gt=0)
+    shift_preference: str
+    start_date: str
+    start_time: str | None = None
+    special_instructions: str | None = None
+
+
+class PhysiotherapistBookingResponse(BaseModel):
+    id: int
+    user_id: int
+    physiotherapist_id: int
+    patient_name: str
+    patient_age: int
+    patient_gender: str
+    contact_number: str
+    address: str
+    medical_condition: str | None
+    required_services: List[str]
+    booking_type: str
+    duration: int
+    shift_preference: str
+    start_date: str
+    start_time: str | None
+    total_price: int
+    special_instructions: str | None
+    status: str
+    created_at: datetime
+
+
+class PhysiotherapistBookingWithPhysiotherapist(PhysiotherapistBookingResponse):
+    physiotherapist_name: str
+    physiotherapist_qualification: str
+    physiotherapist_specialization: str
+    physiotherapist_image: str
+
+
+class PhysiotherapistBookingStatusUpdate(BaseModel):
+    status: str = Field(..., pattern="^(pending|confirmed|in_progress|completed|cancelled)$")
+
+
+# ========== Pharmacy Schemas ==========
+
+class MedicineResponse(BaseModel):
+    id: int
+    name: str
+    generic_name: str
+    manufacturer: str
+    category: str
+    price: int
+    stock: int
+    requires_prescription: bool
+    description: str | None
+    dosage_form: str | None
+    strength: str | None
+    image: str | None
+    is_active: bool
+    created_at: datetime
+
+
+class MedicineCreate(BaseModel):
+    name: str
+    generic_name: str
+    manufacturer: str
+    category: str
+    price: int = Field(..., gt=0)
+    stock: int = Field(default=0, ge=0)
+    requires_prescription: bool = Field(default=False)
+    description: str | None = None
+    dosage_form: str | None = None
+    strength: str | None = None
+    image: str | None = None
+
+
+class MedicineUpdate(BaseModel):
+    name: str | None = None
+    generic_name: str | None = None
+    manufacturer: str | None = None
+    category: str | None = None
+    price: int | None = Field(default=None, gt=0)
+    stock: int | None = Field(default=None, ge=0)
+    requires_prescription: bool | None = None
+    description: str | None = None
+    dosage_form: str | None = None
+    strength: str | None = None
+    image: str | None = None
+
+
+class MedicineOrderItem(BaseModel):
+    medicine_id: int
+    medicine_name: str
+    quantity: int = Field(..., gt=0)
+    price: int = Field(..., gt=0)
+
+
+class MedicineOrderCreate(BaseModel):
+    patient_name: str
+    patient_phone: str
+    delivery_address: str
+    items: list[MedicineOrderItem]
+    prescription_image: str | None = None
+    notes: str | None = None
+
+
+class MedicineOrderResponse(BaseModel):
+    id: int
+    user_id: int
+    patient_name: str
+    patient_phone: str
+    delivery_address: str
+    items: list[MedicineOrderItem]
+    total_amount: int
+    prescription_image: str | None
+    notes: str | None
+    status: str
+    created_at: datetime
+
+
+class MedicineOrderStatusUpdate(BaseModel):
+    status: str = Field(..., pattern="^(pending|confirmed|preparing|out_for_delivery|delivered|cancelled)$")

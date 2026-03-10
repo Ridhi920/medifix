@@ -3,6 +3,7 @@ import { Pressable, ScrollView, Text, View, TextInput, Image, ActivityIndicator 
 import * as ImagePicker from "expo-image-picker";
 import { styles } from "../../styles";
 import { MEDICINES, MEDICINE_CATEGORIES, type Medicine } from "../../data/medicines";
+import LoadingScreen from "../../components/LoadingScreen";
 
 type PharmacyScreenProps = {
   readonly onBack: () => void;
@@ -25,115 +26,97 @@ function PrescriptionUpload({ prescriptionUploaded, prescriptionImage, onUploadF
     return (
       <View style={{
         backgroundColor: "#f0fdf4",
-        borderRadius: 16,
-        padding: 16,
-        marginTop: 24,
+        borderRadius: 12,
+        padding: 12,
+        marginTop: 16,
         borderWidth: 1,
-        borderColor: "#bbf7d0"
+        borderColor: "#bbf7d0",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between"
       }}>
         {prescriptionImage ? (
           <Image
             source={{ uri: prescriptionImage }}
             style={{
-              width: "100%",
-              height: 200,
-              borderRadius: 12,
-              marginBottom: 12
+              width: 50,
+              height: 50,
+              borderRadius: 8,
+              marginRight: 12
             }}
-            resizeMode="contain"
+            resizeMode="cover"
           />
-        ) : null}
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <Text style={{ fontSize: 32 }}>✅</Text>
-            <View>
-              <Text style={{ fontSize: 15, fontWeight: "700", color: "#16a34a" }}>
-                Prescription Uploaded
-              </Text>
-              <Text style={{ fontSize: 12, color: "#64748b" }}>
-                You can now order medicines
-              </Text>
-            </View>
-          </View>
-          <Pressable
-            onPress={onUploadFromGallery}
-            style={{
-              backgroundColor: "#ffffff",
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 8
-            }}
-          >
-            <Text style={{ fontSize: 12, fontWeight: "600", color: "#16a34a" }}>
-              Change
-            </Text>
-          </Pressable>
+        ) : (
+          <Text style={{ fontSize: 32, marginRight: 12 }}>✅</Text>
+        )}
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 14, fontWeight: "700", color: "#16a34a" }}>
+            Prescription Uploaded
+          </Text>
+          <Text style={{ fontSize: 11, color: "#64748b" }}>
+            Required for Rx medicines
+          </Text>
         </View>
+        <Pressable
+          onPress={onUploadFromGallery}
+          style={{
+            backgroundColor: "#ffffff",
+            paddingHorizontal: 10,
+            paddingVertical: 5,
+            borderRadius: 6
+          }}
+        >
+          <Text style={{ fontSize: 11, fontWeight: "600", color: "#16a34a" }}>
+            Change
+          </Text>
+        </Pressable>
       </View>
     );
   }
 
   return (
     <View style={{
-      backgroundColor: "#eff6ff",
-      borderRadius: 16,
-      padding: 20,
-      marginTop: 24,
-      borderWidth: 2,
-      borderColor: "#bfdbfe",
-      borderStyle: "dashed"
+      backgroundColor: "#fffbeb",
+      borderRadius: 12,
+      padding: 12,
+      marginTop: 16,
+      borderWidth: 1,
+      borderColor: "#fde68a",
+      flexDirection: "row",
+      alignItems: "center"
     }}>
-      <View style={{ alignItems: "center" }}>
-        <Text style={{ fontSize: 48, marginBottom: 12 }}>📋</Text>
-        <Text style={{ fontSize: 16, fontWeight: "700", color: "#0f172a", marginBottom: 6 }}>
-          Upload Prescription
+      <Text style={{ fontSize: 24, marginRight: 12 }}>📋</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: "#0f172a", marginBottom: 2 }}>
+          Upload Prescription (Optional)
         </Text>
-        <Text style={{ fontSize: 13, color: "#64748b", textAlign: "center", marginBottom: 16 }}>
-          Upload a valid prescription to order medicines that require doctor's approval
+        <Text style={{ fontSize: 11, color: "#64748b" }}>
+          Required for prescription medicines only
         </Text>
-        <View style={{ flexDirection: "row", gap: 12, marginBottom: 12 }}>
-          <Pressable
-            onPress={onTakePhoto}
-            style={{
-              backgroundColor: "#FF6B35",
-              paddingVertical: 12,
-              paddingHorizontal: 20,
-              borderRadius: 10,
-              shadowColor: "#FF6B35",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 8,
-              elevation: 4,
-              flex: 1
-            }}
-          >
-            <Text style={{ fontSize: 14, fontWeight: "700", color: "#ffffff", textAlign: "center" }}>
-              📸 Camera
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={onUploadFromGallery}
-            style={{
-              backgroundColor: "#FF6B35",
-              paddingVertical: 12,
-              paddingHorizontal: 20,
-              borderRadius: 10,
-              shadowColor: "#FF6B35",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 8,
-              elevation: 4,
-              flex: 1
-            }}
-          >
-            <Text style={{ fontSize: 14, fontWeight: "700", color: "#ffffff", textAlign: "center" }}>
-              🖼️ Gallery
-            </Text>
-          </Pressable>
-        </View>
-        <Text style={{ fontSize: 11, color: "#94a3b8", textAlign: "center" }}>
-          Supported formats: JPG, PNG
-        </Text>
+      </View>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <Pressable
+          onPress={onTakePhoto}
+          style={{
+            backgroundColor: "#FF6B35",
+            paddingVertical: 8,
+            paddingHorizontal: 12,
+            borderRadius: 8
+          }}
+        >
+          <Text style={{ fontSize: 18 }}>📸</Text>
+        </Pressable>
+        <Pressable
+          onPress={onUploadFromGallery}
+          style={{
+            backgroundColor: "#FF6B35",
+            paddingVertical: 8,
+            paddingHorizontal: 12,
+            borderRadius: 8
+          }}
+        >
+          <Text style={{ fontSize: 18 }}>🖼️</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -400,7 +383,7 @@ export default function PharmacyScreen({ onBack }: Readonly<PharmacyScreenProps>
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 2000);
+    }, 1000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -458,6 +441,11 @@ export default function PharmacyScreen({ onBack }: Readonly<PharmacyScreenProps>
       setPrescriptionUploaded(true);
       alert("Prescription uploaded successfully!");
     }
+  };
+
+  const getItemQuantity = (medicineId: string): number => {
+    const item = cart.find(item => item.medicine.id === medicineId);
+    return item ? item.quantity : 0;
   };
 
   const addToCart = (medicine: Medicine) => {
@@ -587,9 +575,7 @@ export default function PharmacyScreen({ onBack }: Readonly<PharmacyScreenProps>
             onTakePhoto={handleTakePhoto}
           />
 
-          {prescriptionUploaded && (
-            <>
-              {/* Search Bar */}
+          {/* Search Bar */}
               <View style={{
                 backgroundColor: "#f1f5f9",
                 borderRadius: 16,
@@ -746,30 +732,75 @@ export default function PharmacyScreen({ onBack }: Readonly<PharmacyScreenProps>
                       <Text style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>
                         {medicine.description}
                       </Text>
-                      <Pressable
-                        onPress={() => addToCart(medicine)}
-                        style={{
-                          backgroundColor: "#FF6B35",
-                          paddingVertical: 10,
+                      {getItemQuantity(medicine.id) === 0 ? (
+                        <Pressable
+                          onPress={() => addToCart(medicine)}
+                          style={{
+                            backgroundColor: "#FF6B35",
+                            paddingVertical: 10,
+                            borderRadius: 8,
+                            alignItems: "center"
+                          }}
+                        >
+                          <Text style={{ fontSize: 14, fontWeight: "700", color: "#ffffff" }}>
+                            Add to Cart
+                          </Text>
+                        </Pressable>
+                      ) : (
+                        <View style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          backgroundColor: "#f8fafc",
                           borderRadius: 8,
-                          alignItems: "center"
-                        }}
-                      >
-                        <Text style={{ fontSize: 14, fontWeight: "700", color: "#ffffff" }}>
-                          Add to Cart
-                        </Text>
-                      </Pressable>
+                          borderWidth: 1,
+                          borderColor: "#FF6B35",
+                          overflow: "hidden"
+                        }}>
+                          <Pressable
+                            onPress={() => updateQuantity(medicine.id, getItemQuantity(medicine.id) - 1)}
+                            style={{
+                              backgroundColor: "#FF6B35",
+                              paddingHorizontal: 20,
+                              paddingVertical: 10,
+                              alignItems: "center",
+                              justifyContent: "center"
+                            }}
+                          >
+                            <Text style={{ fontSize: 20, fontWeight: "700", color: "#ffffff" }}>
+                              -
+                            </Text>
+                          </Pressable>
+                          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                            <Text style={{ fontSize: 16, fontWeight: "700", color: "#0f172a" }}>
+                              {getItemQuantity(medicine.id)}
+                            </Text>
+                          </View>
+                          <Pressable
+                            onPress={() => addToCart(medicine)}
+                            style={{
+                              backgroundColor: "#FF6B35",
+                              paddingHorizontal: 20,
+                              paddingVertical: 10,
+                              alignItems: "center",
+                              justifyContent: "center"
+                            }}
+                          >
+                            <Text style={{ fontSize: 20, fontWeight: "700", color: "#ffffff" }}>
+                              +
+                            </Text>
+                          </Pressable>
+                        </View>
+                      )}
                     </View>
                   ))
                 )}
               </View>
-            </>
-          )}
         </View>
       </ScrollView>
 
       {/* Floating Cart Button */}
-      {cart.length > 0 && !showCart && prescriptionUploaded && (
+      {cart.length > 0 && !showCart && (
         <Pressable
           onPress={() => setShowCart(true)}
           style={{

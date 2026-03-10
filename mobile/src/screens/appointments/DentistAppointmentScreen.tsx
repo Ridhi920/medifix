@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { Pressable, ScrollView, Text, View, TextInput, ActivityIndicator, Image } from "react-native";
 import { styles } from "../../styles";
-import { doctorAPI, type Doctor } from "../../services/api";
+import { dentistAPI, type Dentist } from "../../services/api";
 import { parseBackendErrors, validators } from "../../utils/errorHandler";
 import CustomAlert from "../../components/CustomAlert";
 import LoadingScreen from "../../components/LoadingScreen";
 
-type DoctorAppointmentScreenProps = {
+type DentistAppointmentScreenProps = {
   readonly onBack: () => void;
 };
 
@@ -24,7 +24,7 @@ const isImageUrl = (imageString: string): boolean => {
 };
 
 // Component to render image or emoji
-const DoctorImage = ({ image, size = 40 }: { image: string; size?: number }) => {
+const DentistImage = ({ image, size = 40 }: { image: string; size?: number }) => {
   if (isImageUrl(image)) {
     return (
       <Image
@@ -39,14 +39,14 @@ const DoctorImage = ({ image, size = 40 }: { image: string; size?: number }) => 
       />
     );
   }
-  return <Text style={{ fontSize: size }}>{image || '👨‍⚕️'}</Text>;
+  return <Text style={{ fontSize: size }}>{image || '🦷'}</Text>;
 };
 
-export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppointmentScreenProps>) {
+export default function DentistAppointmentScreen({ onBack }: Readonly<DentistAppointmentScreenProps>) {
   const [loading, setLoading] = useState<boolean>(true);
   const [booking, setBooking] = useState<boolean>(false);
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>([]);
+  const [dentists, setDentists] = useState<Dentist[]>([]);
+  const [filteredDentists, setFilteredDentists] = useState<Dentist[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedSpecialty, setSelectedSpecialty] = useState<string>("All");
   const [selectedExperience, setSelectedExperience] = useState<string>("All");
@@ -54,7 +54,7 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
   const [showSpecialtyDropdown, setShowSpecialtyDropdown] = useState<boolean>(false);
   const [showExperienceDropdown, setShowExperienceDropdown] = useState<boolean>(false);
   const [showSortDropdown, setShowSortDropdown] = useState<boolean>(false);
-  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+  const [selectedDentist, setSelectedDentist] = useState<Dentist | null>(null);
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [selectedSlot, setSelectedSlot] = useState<string>("");
   const [patientName, setPatientName] = useState<string>("");
@@ -72,33 +72,33 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
   });
 
   useEffect(() => {
-    fetchDoctors();
+    fetchDentists();
   }, []);
 
   useEffect(() => {
-    filterAndSortDoctors();
-  }, [doctors, searchQuery, selectedSpecialty, selectedExperience, sortBy]);
+    filterAndSortDentists();
+  }, [dentists, searchQuery, selectedSpecialty, selectedExperience, sortBy]);
 
-  const fetchDoctors = async () => {
+  const fetchDentists = async () => {
     try {
       setLoading(true);
       setError("");
       const [data] = await Promise.all([
-        doctorAPI.getDoctors(),
+        dentistAPI.getDentists(),
         new Promise(resolve => setTimeout(resolve, 1000))
       ]);
-      setDoctors(data);
-      setFilteredDoctors(data);
+      setDentists(data);
+      setFilteredDentists(data);
     } catch (err: any) {
-      console.error("Error fetching doctors:", err);
-      setError(err.response?.data?.detail || "Failed to load doctors");
+      console.error("Error fetching dentists:", err);
+      setError(err.response?.data?.detail || "Failed to load dentists");
     } finally {
       setLoading(false);
     }
   };
 
-  const filterAndSortDoctors = () => {
-    let filtered = [...doctors];
+  const filterAndSortDentists = () => {
+    let filtered = [...dentists];
 
     // Search filter
     if (searchQuery) {
@@ -139,16 +139,16 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
       filtered.sort((a, b) => b.consultation_fee - a.consultation_fee);
     }
 
-    setFilteredDoctors(filtered);
+    setFilteredDentists(filtered);
   };
 
-  const specialties = ["All", ...Array.from(new Set(doctors.map(d => d.specialty)))];
+  const specialties = ["All", ...Array.from(new Set(dentists.map(d => d.specialty)))];
   const experienceRanges = ["All", "0-5", "5-10", "10-20", "20+"];
 
-  const fetchBookedSlots = async (doctorId: number, day: string) => {
+  const fetchBookedSlots = async (dentistId: number, day: string) => {
     try {
       setLoadingSlots(true);
-      const slots = await doctorAPI.getBookedSlots(doctorId, day);
+      const slots = await dentistAPI.getBookedSlots(dentistId, day);
       setBookedSlots(slots);
     } catch (err: any) {
       console.error("Error fetching booked slots:", err);
@@ -163,26 +163,26 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
     setSelectedSlot("");
     setShowBookingForm(false);
     
-    if (selectedDoctor) {
-      await fetchBookedSlots(selectedDoctor.id, day);
+    if (selectedDentist) {
+      await fetchBookedSlots(selectedDentist.id, day);
     }
   };
 
   if (loading) {
-    return <LoadingScreen message="Dr. Meddy is looking for the best doctors for you" />;
+    return <LoadingScreen message="Dr. Meddy is looking for the best dentists for you" />;
   }
 
-  if (error && doctors.length === 0) {
+  if (error && dentists.length === 0) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#ffffff", padding: 24 }}>
         <Text style={{ fontSize: 18, fontWeight: "600", color: "#ef4444", marginBottom: 12 }}>
-          Error Loading Doctors
+          Error Loading Dentists
         </Text>
         <Text style={{ fontSize: 14, color: "#64748b", textAlign: "center", marginBottom: 24 }}>
           {error}
         </Text>
         <Pressable
-          onPress={fetchDoctors}
+          onPress={fetchDentists}
           style={{
             backgroundColor: "#FF6B35",
             borderRadius: 12,
@@ -198,8 +198,8 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
     );
   }
 
-  const handleDoctorSelect = (doctor: Doctor) => {
-    setSelectedDoctor(doctor);
+  const handleDentistSelect = (dentist: Dentist) => {
+    setSelectedDentist(dentist);
     setSelectedDay("");
     setSelectedSlot("");
     setShowBookingForm(false);
@@ -207,12 +207,12 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
   };
 
   const handleBookAppointment = async () => {
-    if (!selectedDoctor || !selectedDay || !selectedSlot) {
+    if (!selectedDentist || !selectedDay || !selectedSlot) {
       setAlert({
         visible: true,
         type: "warning",
         title: "Missing Information",
-        message: "Please select doctor, day, and time slot"
+        message: "Please select dentist, day, and time slot"
       });
       return;
     }
@@ -245,8 +245,8 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
 
     try {
       setBooking(true);
-      await doctorAPI.bookAppointment({
-        doctor_id: selectedDoctor.id,
+      await dentistAPI.bookAppointment({
+        dentist_id: selectedDentist.id,
         patient_name: patientName.trim(),
         patient_age: age,
         symptoms: symptoms.trim() || undefined,
@@ -258,14 +258,14 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
         visible: true,
         type: "success",
         title: "Appointment Booked! ✅",
-        message: `Appointment booked with ${selectedDoctor.name}\n\n` +
+        message: `Appointment booked with ${selectedDentist.name}\n\n` +
           `Patient: ${patientName}\n` +
           `Day: ${selectedDay}\n` +
           `Time: ${selectedSlot}\n\n` +
           `You will receive a confirmation shortly.`,
         onConfirm: () => {
           // Reset form
-          setSelectedDoctor(null);
+          setSelectedDentist(null);
           setSelectedDay("");
           setSelectedSlot("");
           setPatientName("");
@@ -303,13 +303,13 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
         </View>
 
         {/* Description */}
-        <Text style={styles.serviceTitle}>Find Your Doctor</Text>
+        <Text style={styles.serviceTitle}>Find Your Dentist</Text>
         <Text style={styles.serviceDescription}>
-          Browse through our expert doctors and book an appointment that suits you best.
+          Browse through our expert dentists and book an appointment that suits you best.
         </Text>
 
         {/* Filters */}
-        {!selectedDoctor && (
+        {!selectedDentist && (
           <View style={{ marginTop: 24 }}>
             {/* Search Bar */}
             <TextInput
@@ -324,7 +324,7 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
                 borderColor: "#e2e8f0",
                 marginBottom: 12
               }}
-              placeholder="Search doctors by name, specialty..."
+              placeholder="Search dentists by name, specialty..."
               placeholderTextColor="#94a3b8"
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -531,18 +531,18 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
 
             {/* Results Count */}
             <Text style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>
-              {filteredDoctors.length} doctor{filteredDoctors.length !== 1 ? 's' : ''} found
+              {filteredDentists.length} dentist{filteredDentists.length !== 1 ? 's' : ''} found
             </Text>
           </View>
         )}
 
-        {/* Doctors List */}
-        {!selectedDoctor && (
+        {/* Dentists List */}
+        {!selectedDentist && (
           <View>
-            {filteredDoctors.map((doctor) => (
+            {filteredDentists.map((dentist) => (
               <Pressable
-                key={doctor.id}
-                onPress={() => handleDoctorSelect(doctor)}
+                key={dentist.id}
+                onPress={() => handleDentistSelect(dentist)}
                 style={{
                   backgroundColor: "#f8fafc",
                   borderRadius: 16,
@@ -553,27 +553,27 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
                 }}
               >
                 <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
-                  <DoctorImage image={doctor.image} size={40} />
+                  <DentistImage image={dentist.image} size={40} />
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 16, fontWeight: "700", color: "#0f172a" }}>
-                      {doctor.name}
+                      {dentist.name}
                     </Text>
                     <Text style={{ fontSize: 14, color: "#FF6B35", marginTop: 2 }}>
-                      {doctor.specialty}
+                      {dentist.specialty}
                     </Text>
                     <Text style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
-                      {doctor.qualification}
+                      {dentist.qualification}
                     </Text>
                     <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8, gap: 12 }}>
                       <Text style={{ fontSize: 12, color: "#0f172a" }}>
-                        ⭐ {doctor.rating}
+                        ⭐ {dentist.rating}
                       </Text>
                       <Text style={{ fontSize: 12, color: "#64748b" }}>
-                        {doctor.experience} years exp.
+                        {dentist.experience} years exp.
                       </Text>
                     </View>
                     <Text style={{ fontSize: 12, color: "#64748b", marginTop: 6 }}>
-                      📍 {doctor.address}
+                      📍 {dentist.address}
                     </Text>
                     <View style={{ 
                       marginTop: 8,
@@ -584,7 +584,7 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
                       alignSelf: "flex-start"
                     }}>
                       <Text style={{ fontSize: 14, fontWeight: "600", color: "#1e3a8a" }}>
-                        ₹{doctor.consultation_fee}
+                        ₹{dentist.consultation_fee}
                       </Text>
                     </View>
                   </View>
@@ -594,10 +594,10 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
           </View>
         )}
 
-        {/* Selected Doctor & Booking */}
-        {selectedDoctor && (
+        {/* Selected Dentist & Booking */}
+        {selectedDentist && (
           <View style={{ marginTop: 24 }}>
-            {/* Selected Doctor Card */}
+            {/* Selected Dentist Card */}
             <View style={{
               backgroundColor: "#eef2ff",
               borderRadius: 16,
@@ -608,18 +608,18 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
             }}>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flex: 1 }}>
-                  <DoctorImage image={selectedDoctor.image} size={36} />
+                  <DentistImage image={selectedDentist.image} size={36} />
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 16, fontWeight: "700", color: "#0f172a" }}>
-                      {selectedDoctor.name}
+                      {selectedDentist.name}
                     </Text>
                     <Text style={{ fontSize: 14, color: "#FF6B35" }}>
-                      {selectedDoctor.specialty}
+                      {selectedDentist.specialty}
                     </Text>
                   </View>
                 </View>
                 <Pressable
-                  onPress={() => setSelectedDoctor(null)}
+                  onPress={() => setSelectedDentist(null)}
                   style={{
                     width: 28,
                     height: 28,
@@ -637,7 +637,7 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
             {/* Select Day */}
             <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Select Day</Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
-              {selectedDoctor.available_days.map((day) => (
+              {selectedDentist.available_days.map((day) => (
                 <Pressable
                   key={day}
                   onPress={() => handleDaySelect(day)}
@@ -673,7 +673,7 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
                 )}
                 {!loadingSlots && (
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
-                    {selectedDoctor.available_slots.map((slot) => {
+                    {selectedDentist.available_slots.map((slot) => {
                       const isBooked = bookedSlots.includes(slot);
                       const isSelected = selectedSlot === slot;
                       return (
@@ -797,7 +797,7 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
                     Appointment Summary
                   </Text>
                   <Text style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>
-                    Doctor: {selectedDoctor.name}
+                    Dentist: {selectedDentist.name}
                   </Text>
                   <Text style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>
                     Day: {selectedDay}
@@ -806,7 +806,7 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
                     Time: {selectedSlot}
                   </Text>
                   <Text style={{ fontSize: 14, fontWeight: "700", color: "#1e3a8a", marginTop: 8 }}>
-                    Consultation Fee: ₹{selectedDoctor.consultation_fee}
+                    Consultation Fee: ₹{selectedDentist.consultation_fee}
                   </Text>
                 </View>
 

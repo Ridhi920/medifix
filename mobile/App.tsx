@@ -14,8 +14,11 @@ import DentalServiceScreen from "./src/screens/services/DentalServiceScreen";
 import CardiologyServiceScreen from "./src/screens/services/CardiologyServiceScreen";
 import PediatricsServiceScreen from "./src/screens/services/PediatricsServiceScreen";
 import DoctorAppointmentScreen from "./src/screens/appointments/DoctorAppointmentScreen";
+import DentistAppointmentScreen from "./src/screens/appointments/DentistAppointmentScreen";
 import AmbulanceBookingScreen from "./src/screens/ambulance/AmbulanceBookingScreen";
 import LabTestBookingScreen from "./src/screens/lab/LabTestBookingScreen";
+import NurseBookingScreen from "./src/screens/nurse/NurseBookingScreen";
+import PhysiotherapistBookingScreen from "./src/screens/physiotherapist/PhysiotherapistBookingScreen";
 import PharmacyScreen from "./src/screens/pharmacy/PharmacyScreen";
 import ProfileMenuScreen from "./src/screens/profile/ProfileMenuScreen";
 import EditProfileScreen from "./src/screens/profile/EditProfileScreen";
@@ -32,8 +35,11 @@ type Screen =
   | "service-cardiology"
   | "service-pediatrics"
   | "appointments"
+  | "dentist-appointments"
   | "ambulance"
   | "lab"
+  | "nurse"
+  | "physiotherapist"
   | "pharmacy"
   | "profile"
   | "edit-profile"
@@ -41,11 +47,14 @@ type Screen =
   | "completed-bookings";
 
 const serviceScreenMap: Record<ServiceKey, Screen> = {
-  dental: "appointments",
+  doctor: "appointments",
+  dental: "dentist-appointments",
   cardiology: "service-cardiology",
   pediatrics: "service-pediatrics",
   ambulance: "ambulance",
   lab: "lab",
+  nurse: "nurse",
+  physiotherapist: "physiotherapist",
   pharmacy: "pharmacy"
 };
 
@@ -90,7 +99,9 @@ function renderScreen(
           onOpenAmbulance={() => setScreen("ambulance")}
           onOpenPharmacy={() => setScreen("pharmacy")}
           onOpenLab={() => setScreen("lab")}
-          onOpenDental={() => setScreen("service-dental")}
+          onOpenNurse={() => setScreen("nurse")}
+          onOpenPhysiotherapist={() => setScreen("physiotherapist")}
+          onOpenDental={() => setScreen("dentist-appointments")}
           onOpenCardiology={() => setScreen("service-cardiology")}
           onOpenPediatrics={() => setScreen("service-pediatrics")}
           onOpenProfile={() => setScreen("profile")}
@@ -99,6 +110,8 @@ function renderScreen(
       );
     case "appointments":
       return <DoctorAppointmentScreen onBack={() => setScreen("services")} />;
+    case "dentist-appointments":
+      return <DentistAppointmentScreen onBack={() => setScreen("services")} />;
     case "ambulance":
       return <AmbulanceBookingScreen onBack={() => setScreen("services")} />;
     case "services":
@@ -117,6 +130,10 @@ function renderScreen(
       return <PediatricsServiceScreen onBack={() => setScreen("services")} />;
     case "lab":
       return <LabTestBookingScreen onBack={() => setScreen("services")} />;
+    case "nurse":
+      return <NurseBookingScreen onBack={() => setScreen("services")} />;
+    case "physiotherapist":
+      return <PhysiotherapistBookingScreen onBack={() => setScreen("services")} />;
     case "pharmacy":
       return <PharmacyScreen onBack={() => setScreen("services")} />;
     case "profile":

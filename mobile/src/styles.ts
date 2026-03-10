@@ -6,8 +6,8 @@ export const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    alignItems: "stretch",
-    justifyContent: "flex-start",
+    alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: 20,
     paddingTop: 32,
     paddingBottom: 24
@@ -22,7 +22,8 @@ export const styles = StyleSheet.create({
     shadowColor: "#0f172a",
     shadowOpacity: 0.1,
     shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 }
+    shadowOffset: { width: 0, height: 10 },
+    alignSelf: "center",
   },
   homeCard: {
     width: "100%",

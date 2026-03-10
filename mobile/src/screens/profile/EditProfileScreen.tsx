@@ -51,7 +51,7 @@ export default function EditProfileScreen({ onBack }: Readonly<EditProfileScreen
       setLoading(true);
       const [userData] = await Promise.all([
         userAPI.getProfile(),
-        new Promise(resolve => setTimeout(resolve, 2000))
+        new Promise(resolve => setTimeout(resolve, 1000))
       ]);
       setUser(userData);
       setFullName(userData.full_name);

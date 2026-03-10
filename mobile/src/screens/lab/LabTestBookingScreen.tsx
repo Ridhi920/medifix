@@ -7,6 +7,7 @@ import * as labTestApi from "../../api/labTestApi";
 import type { LabTest } from "../../api/labTestApi";
 import { parseBackendErrors, validators } from "../../utils/errorHandler";
 import CustomAlert from "../../components/CustomAlert";
+import LoadingScreen from "../../components/LoadingScreen";
 
 type LabTestBookingScreenProps = {
   readonly onBack: () => void;
@@ -50,7 +51,7 @@ export default function LabTestBookingScreen({ onBack }: Readonly<LabTestBooking
       setLoading(true);
       const [tests] = await Promise.all([
         labTestApi.getLabTests(),
-        new Promise(resolve => setTimeout(resolve, 2000))
+        new Promise(resolve => setTimeout(resolve, 1000))
       ]);
       setLabTests(tests);
     } catch (error) {
@@ -67,16 +68,54 @@ export default function LabTestBookingScreen({ onBack }: Readonly<LabTestBooking
   };
 
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [selectedPriceRange, setSelectedPriceRange] = useState<string>("All");
+  const [sortBy, setSortBy] = useState<string>("popular");
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState<boolean>(false);
+  const [showPriceDropdown, setShowPriceDropdown] = useState<boolean>(false);
+  const [showSortDropdown, setShowSortDropdown] = useState<boolean>(false);
 
-  // Filter lab tests based on search query
-  const filteredTests = labTests.filter((test) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      test.name.toLowerCase().includes(query) ||
-      test.category.toLowerCase().includes(query) ||
-      test.description.toLowerCase().includes(query)
-    );
-  });
+  // Filter lab tests based on search query, category, price range, and sort
+  const filteredTests = (() => {
+    let filtered = labTests.filter((test) => {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch = 
+        test.name.toLowerCase().includes(query) ||
+        test.category.toLowerCase().includes(query) ||
+        test.description.toLowerCase().includes(query);
+      
+      const matchesCategory = selectedCategory === "All" || test.category === selectedCategory;
+      
+      let matchesPrice = true;
+      if (selectedPriceRange === "0-500") {
+        matchesPrice = test.price >= 0 && test.price <= 500;
+      } else if (selectedPriceRange === "500-1000") {
+        matchesPrice = test.price > 500 && test.price <= 1000;
+      } else if (selectedPriceRange === "1000-2000") {
+        matchesPrice = test.price > 1000 && test.price <= 2000;
+      } else if (selectedPriceRange === "2000+") {
+        matchesPrice = test.price > 2000;
+      }
+      
+      return matchesSearch && matchesCategory && matchesPrice;
+    });
+
+    // Sort
+    if (sortBy === "popular") {
+      filtered.sort((a, b) => (b.popular ? 1 : 0) - (a.popular ? 1 : 0));
+    } else if (sortBy === "price_low") {
+      filtered.sort((a, b) => a.price - b.price);
+    } else if (sortBy === "price_high") {
+      filtered.sort((a, b) => b.price - a.price);
+    } else if (sortBy === "name") {
+      filtered.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    return filtered;
+  })();
+
+  const categories = ["All", ...Array.from(new Set(labTests.map(t => t.category)))];
+  const priceRanges = ["All", "0-500", "500-1000", "1000-2000", "2000+"];
 
   // Available dates (next 7 days)
   const availableDates = ["Tomorrow", "Day After", "3 Days", "4 Days", "5 Days", "6 Days", "7 Days"];
@@ -297,35 +336,244 @@ export default function LabTestBookingScreen({ onBack }: Readonly<LabTestBooking
 
           {/* Search Bar */}
           {!selectedTest && (
-            <View style={{
-              backgroundColor: "#f1f5f9",
-              borderRadius: 16,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              flexDirection: "row",
-              alignItems: "center",
-              marginTop: 16,
-              borderWidth: 1,
-              borderColor: "#e2e8f0"
-            }}>
-              <Text style={{ fontSize: 16, color: "#94a3b8", marginRight: 8 }}>🔍</Text>
-              <TextInput
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder="Search tests or packages"
-                placeholderTextColor="#94a3b8"
-                style={{
-                  flex: 1,
-                  fontSize: 14,
-                  color: "#0f172a",
-                  paddingVertical: 0
-                }}
-              />
-              {searchQuery ? (
-                <Pressable onPress={() => setSearchQuery("")}>
-                  <Text style={{ fontSize: 16, color: "#64748b", fontWeight: "700" }}>✕</Text>
-                </Pressable>
-              ) : null}
+            <View>
+              <View style={{
+                backgroundColor: "#f1f5f9",
+                borderRadius: 16,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                flexDirection: "row",
+                alignItems: "center",
+                marginTop: 16,
+                borderWidth: 1,
+                borderColor: "#e2e8f0"
+              }}>
+                <Text style={{ fontSize: 16, color: "#94a3b8", marginRight: 8 }}>🔍</Text>
+                <TextInput
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder="Search tests or packages"
+                  placeholderTextColor="#94a3b8"
+                  style={{
+                    flex: 1,
+                    fontSize: 14,
+                    color: "#0f172a",
+                    paddingVertical: 0
+                  }}
+                />
+                {searchQuery ? (
+                  <Pressable onPress={() => setSearchQuery("")}>
+                    <Text style={{ fontSize: 16, color: "#64748b", fontWeight: "700" }}>✕</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+
+              {/* Filter Dropdowns */}
+              <View style={{ marginTop: 12 }}>
+                {/* Category Dropdown */}
+                <View style={{ marginBottom: 8 }}>
+                  <Text style={{ fontSize: 11, fontWeight: "600", color: "#64748b", marginBottom: 6 }}>Category</Text>
+                  <Pressable
+                    onPress={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                    style={{
+                      backgroundColor: "#ffffff",
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: "#e2e8f0",
+                      paddingHorizontal: 12,
+                      paddingVertical: 10,
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      alignItems: "center"
+                    }}
+                  >
+                    <Text style={{ fontSize: 13, color: "#0f172a", fontWeight: "500" }}>{selectedCategory}</Text>
+                    <Text style={{ fontSize: 10, color: "#64748b" }}>▼</Text>
+                  </Pressable>
+                  {showCategoryDropdown && (
+                    <View style={{
+                      position: "absolute",
+                      top: 56,
+                      left: 0,
+                      right: 0,
+                      backgroundColor: "#ffffff",
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: "#e2e8f0",
+                      maxHeight: 200,
+                      zIndex: 1000,
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 4,
+                      elevation: 3
+                    }}>
+                      <ScrollView>
+                        {categories.map((category) => (
+                          <Pressable
+                            key={category}
+                            onPress={() => {
+                              setSelectedCategory(category);
+                              setShowCategoryDropdown(false);
+                            }}
+                            style={{
+                              paddingHorizontal: 12,
+                              paddingVertical: 10,
+                              borderBottomWidth: 1,
+                              borderBottomColor: "#f1f5f9",
+                              backgroundColor: selectedCategory === category ? "#f0f9ff" : "transparent"
+                            }}
+                          >
+                            <Text style={{ fontSize: 13, color: "#0f172a" }}>{category}</Text>
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
+
+                {/* Price Range & Sort Row */}
+                <View style={{ flexDirection: "row", gap: 8, zIndex: -1 }}>
+                  {/* Price Range Dropdown */}
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 11, fontWeight: "600", color: "#64748b", marginBottom: 6 }}>Price Range</Text>
+                    <Pressable
+                      onPress={() => setShowPriceDropdown(!showPriceDropdown)}
+                      style={{
+                        backgroundColor: "#ffffff",
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: "#e2e8f0",
+                        paddingHorizontal: 12,
+                        paddingVertical: 10,
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "center"
+                      }}
+                    >
+                      <Text style={{ fontSize: 13, color: "#0f172a", fontWeight: "500" }}>
+                        {selectedPriceRange === "All" ? "All" : `₹${selectedPriceRange}`}
+                      </Text>
+                      <Text style={{ fontSize: 10, color: "#64748b" }}>▼</Text>
+                    </Pressable>
+                    {showPriceDropdown && (
+                      <View style={{
+                        position: "absolute",
+                        top: 56,
+                        left: 0,
+                        right: 0,
+                        backgroundColor: "#ffffff",
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: "#e2e8f0",
+                        maxHeight: 150,
+                        zIndex: 1000,
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 4,
+                        elevation: 3
+                      }}>
+                        <ScrollView>
+                          {priceRanges.map((range) => (
+                            <Pressable
+                              key={range}
+                              onPress={() => {
+                                setSelectedPriceRange(range);
+                                setShowPriceDropdown(false);
+                              }}
+                              style={{
+                                paddingHorizontal: 12,
+                                paddingVertical: 10,
+                                borderBottomWidth: 1,
+                                borderBottomColor: "#f1f5f9",
+                                backgroundColor: selectedPriceRange === range ? "#fef3c7" : "transparent"
+                              }}
+                            >
+                              <Text style={{ fontSize: 13, color: "#0f172a" }}>
+                                {range === "All" ? "All Prices" : `₹${range}`}
+                              </Text>
+                            </Pressable>
+                          ))}
+                        </ScrollView>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Sort By Dropdown */}
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 11, fontWeight: "600", color: "#64748b", marginBottom: 6 }}>Sort By</Text>
+                    <Pressable
+                      onPress={() => setShowSortDropdown(!showSortDropdown)}
+                      style={{
+                        backgroundColor: "#ffffff",
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: "#e2e8f0",
+                        paddingHorizontal: 12,
+                        paddingVertical: 10,
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "center"
+                      }}
+                    >
+                      <Text style={{ fontSize: 13, color: "#0f172a", fontWeight: "500" }}>
+                        {sortBy === "popular" ? "Popular" : 
+                         sortBy === "price_low" ? "Price ↑" : 
+                         sortBy === "price_high" ? "Price ↓" : "Name"}
+                      </Text>
+                      <Text style={{ fontSize: 10, color: "#64748b" }}>▼</Text>
+                    </Pressable>
+                    {showSortDropdown && (
+                      <View style={{
+                        position: "absolute",
+                        top: 56,
+                        left: 0,
+                        right: 0,
+                        backgroundColor: "#ffffff",
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: "#e2e8f0",
+                        zIndex: 1000,
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 4,
+                        elevation: 3
+                      }}>
+                        {[
+                          {id: "popular", label: "Popular"},
+                          {id: "price_low", label: "Price (Low to High)"},
+                          {id: "price_high", label: "Price (High to Low)"},
+                          {id: "name", label: "Name (A-Z)"}
+                        ].map((option) => (
+                          <Pressable
+                            key={option.id}
+                            onPress={() => {
+                              setSortBy(option.id);
+                              setShowSortDropdown(false);
+                            }}
+                            style={{
+                              paddingHorizontal: 12,
+                              paddingVertical: 10,
+                              borderBottomWidth: 1,
+                              borderBottomColor: "#f1f5f9",
+                              backgroundColor: sortBy === option.id ? "#dcfce7" : "transparent"
+                            }}
+                          >
+                            <Text style={{ fontSize: 13, color: "#0f172a" }}>{option.label}</Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
+
+              {/* Results Count */}
+              <Text style={{ fontSize: 12, color: "#64748b", marginTop: 12 }}>
+                {filteredTests.length} test{filteredTests.length !== 1 ? 's' : ''} found
+              </Text>
             </View>
           )}
 

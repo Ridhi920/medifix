@@ -13,6 +13,8 @@ type HomeScreenProps = {
   readonly onOpenAmbulance: () => void;
   readonly onOpenPharmacy: () => void;
   readonly onOpenLab: () => void;
+  readonly onOpenNurse: () => void;
+  readonly onOpenPhysiotherapist: () => void;
   readonly onOpenDental: () => void;
   readonly onOpenCardiology: () => void;
   readonly onOpenPediatrics: () => void;
@@ -30,6 +32,8 @@ export default function HomeScreen({
   onOpenAmbulance,
   onOpenPharmacy,
   onOpenLab,
+  onOpenNurse,
+  onOpenPhysiotherapist,
   onOpenDental,
   onOpenCardiology,
   onOpenPediatrics,
@@ -149,6 +153,24 @@ export default function HomeScreen({
               resizeMode="contain"
             />
             <Text style={styles.serviceCardText}>Lab Tests</Text>
+          </Pressable>
+
+          <Pressable style={styles.serviceCard} onPress={onOpenNurse}>
+            <Image
+              source={require("../../../assets/doctor.png")}
+              style={styles.serviceCardIcon}
+              resizeMode="contain"
+            />
+            <Text style={styles.serviceCardText}>Home Nurse</Text>
+          </Pressable>
+
+          <Pressable style={styles.serviceCard} onPress={onOpenPhysiotherapist}>
+            <Image
+              source={require("../../../assets/doctor.png")}
+              style={styles.serviceCardIcon}
+              resizeMode="contain"
+            />
+            <Text style={styles.serviceCardText}>Physiotherapy</Text>
           </Pressable>
 
           <Pressable style={styles.serviceCard} onPress={onOpenDental}>

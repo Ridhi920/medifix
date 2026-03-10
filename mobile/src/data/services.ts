@@ -1,4 +1,5 @@
-export type ServiceKey = "dental" | "cardiology" | "pediatrics" | "ambulance" | "lab" | "pharmacy";
+// Service types and navigation data
+export type ServiceKey = "doctor" | "dental" | "cardiology" | "pediatrics" | "ambulance" | "lab" | "nurse" | "physiotherapist" | "pharmacy";
 
 export type ServiceItem = {
   key: ServiceKey;
@@ -9,45 +10,57 @@ export type ServiceItem = {
 
 export const SERVICES: ServiceItem[] = [
   {
+    key: "doctor",
+    title: "Doctor Consultation",
+    summary: "Consult with experienced doctors for various health concerns",
+    description: "Book appointments with qualified doctors for consultations, checkups, and medical advice."
+  },
+  {
     key: "dental",
-    title: "Doctor appointment booking",
-    summary: "Cleanings, fillings, and urgent dental care scheduling.",
-    description:
-      "Book dentist visits, hygiene checkups, and follow-ups with verified clinics."
+    title: "Dental Care",
+    summary: "Expert dental care services for your entire family",
+    description: "Book appointments with experienced dentists for routine checkups, treatments, and emergencies."
   },
   {
     key: "cardiology",
-    title: "Cardiology specialist care",
-    summary: "Consultations, diagnostics, and ongoing heart health plans.",
-    description:
-      "Access ECG, echo, and specialist consultations with tailored treatment plans."
+    title: "Cardiology",
+    summary: "Comprehensive heart care and cardiovascular services",
+    description: "Consult with cardiology specialists for heart health assessments and treatments."
   },
   {
     key: "pediatrics",
-    title: "Pediatrics wellness",
-    summary: "Vaccinations, growth tracking, and family care reminders.",
-    description:
-      "Schedule pediatric visits, immunizations, and routine checkups for kids."
+    title: "Pediatrics",
+    summary: "Specialized healthcare for children and adolescents",
+    description: "Expert pediatric care for your children's health and development."
   },
   {
     key: "ambulance",
-    title: "Ambulance booking",
-    summary: "Emergency ambulance services and scheduled medical transport.",
-    description:
-      "Book ambulances for emergencies or scheduled appointments with multiple vehicle types."
+    title: "Ambulance Service",
+    summary: "24/7 emergency ambulance service",
+    description: "Quick and reliable ambulance services for medical emergencies."
   },
   {
     key: "lab",
-    title: "Lab test booking",
-    summary: "Blood tests, diagnostics, and health screening packages.",
-    description:
-      "Schedule lab appointments for tests, diagnostics, and comprehensive health checkups."
+    title: "Lab Tests",
+    summary: "Diagnostic services and health checkups",
+    description: "Book lab tests with home collection or visit our centers."
+  },
+  {
+    key: "nurse",
+    title: "Home Nursing",
+    summary: "Professional nursing care at your home",
+    description: "Experienced nurses providing quality care in the comfort of your home."
+  },
+  {
+    key: "physiotherapist",
+    title: "Physiotherapy",
+    summary: "Professional physiotherapy services at home",
+    description: "Expert physiotherapists for rehabilitation and recovery at your doorstep."
   },
   {
     key: "pharmacy",
     title: "Pharmacy",
-    summary: "Upload prescription and get medicines delivered to your home.",
-    description:
-      "Order medicines online with prescription upload and convenient home delivery."
+    summary: "Order medicines with doorstep delivery",
+    description: "Upload prescription and order medicines for home delivery."
   }
 ];

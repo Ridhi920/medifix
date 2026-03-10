@@ -48,7 +48,7 @@ export default function ProfileMenuScreen({
       setLoading(true);
       const [userData] = await Promise.all([
         userAPI.getProfile(),
-        new Promise(resolve => setTimeout(resolve, 2000))
+        new Promise(resolve => setTimeout(resolve, 1000))
       ]);
       setUser(userData);
     } catch (error: any) {
