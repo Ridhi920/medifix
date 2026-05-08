@@ -1,7 +1,7 @@
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
-import { View } from "react-native";
+import { View, Image, StyleSheet } from "react-native";
 import { AuthProvider } from "./src/context/AuthContext";
 import { SERVICES, type ServiceKey } from "./src/data/services";
 import { styles } from "./src/styles";
@@ -11,8 +11,7 @@ import ForgotScreen from "./src/screens/auth/ForgotScreen";
 import HomeScreen from "./src/screens/home/HomeScreen";
 import ServicesListScreen from "./src/screens/services/ServicesListScreen";
 import DentalServiceScreen from "./src/screens/services/DentalServiceScreen";
-import CardiologyServiceScreen from "./src/screens/services/CardiologyServiceScreen";
-import PediatricsServiceScreen from "./src/screens/services/PediatricsServiceScreen";
+
 import DoctorAppointmentScreen from "./src/screens/appointments/DoctorAppointmentScreen";
 import DentistAppointmentScreen from "./src/screens/appointments/DentistAppointmentScreen";
 import AmbulanceBookingScreen from "./src/screens/ambulance/AmbulanceBookingScreen";
@@ -32,8 +31,6 @@ type Screen =
   | "home"
   | "services"
   | "service-dental"
-  | "service-cardiology"
-  | "service-pediatrics"
   | "appointments"
   | "dentist-appointments"
   | "ambulance"
@@ -49,8 +46,6 @@ type Screen =
 const serviceScreenMap: Record<ServiceKey, Screen> = {
   doctor: "appointments",
   dental: "dentist-appointments",
-  cardiology: "service-cardiology",
-  pediatrics: "service-pediatrics",
   ambulance: "ambulance",
   lab: "lab",
   nurse: "nurse",
@@ -102,8 +97,6 @@ function renderScreen(
           onOpenNurse={() => setScreen("nurse")}
           onOpenPhysiotherapist={() => setScreen("physiotherapist")}
           onOpenDental={() => setScreen("dentist-appointments")}
-          onOpenCardiology={() => setScreen("service-cardiology")}
-          onOpenPediatrics={() => setScreen("service-pediatrics")}
           onOpenProfile={() => setScreen("profile")}
           onLogout={() => setScreen("login")}
         />
@@ -124,10 +117,7 @@ function renderScreen(
       );
     case "service-dental":
       return <DentalServiceScreen onBack={() => setScreen("services")} />;
-    case "service-cardiology":
-      return <CardiologyServiceScreen onBack={() => setScreen("services")} />;
-    case "service-pediatrics":
-      return <PediatricsServiceScreen onBack={() => setScreen("services")} />;
+
     case "lab":
       return <LabTestBookingScreen onBack={() => setScreen("services")} />;
     case "nurse":
@@ -166,10 +156,19 @@ function AppContent() {
 
   return (
     <LinearGradient
-      colors={screen === "home" ? ["#f8fafc", "#ffffff", "#ffffff"] : ["#FFE8DD", "#FFF5F0", "#ffffff"]}
+      colors={["#F8F5F0", "#F8F5F0", "#F8F5F0"]}
       locations={[0, 0.45, 1]}
       style={styles.gradient}
     >
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <Image
+            source={require("./assets/medefix background.jpeg")}
+            style={{ width: 300, height: 300, opacity: 0.07 }}
+            resizeMode="contain"
+          />
+        </View>
+      </View>
       <View style={containerStyle}>
         <StatusBar style="dark" />
         {renderScreen(screen, menuOpen, setScreen, setMenuOpen)}

@@ -1,5 +1,5 @@
 // Service types and navigation data
-export type ServiceKey = "doctor" | "dental" | "cardiology" | "pediatrics" | "ambulance" | "lab" | "nurse" | "physiotherapist" | "pharmacy";
+export type ServiceKey = "doctor" | "dental" | "ambulance" | "lab" | "nurse" | "physiotherapist" | "pharmacy";
 
 export type ServiceItem = {
   key: ServiceKey;
@@ -21,18 +21,7 @@ export const SERVICES: ServiceItem[] = [
     summary: "Expert dental care services for your entire family",
     description: "Book appointments with experienced dentists for routine checkups, treatments, and emergencies."
   },
-  {
-    key: "cardiology",
-    title: "Cardiology",
-    summary: "Comprehensive heart care and cardiovascular services",
-    description: "Consult with cardiology specialists for heart health assessments and treatments."
-  },
-  {
-    key: "pediatrics",
-    title: "Pediatrics",
-    summary: "Specialized healthcare for children and adolescents",
-    description: "Expert pediatric care for your children's health and development."
-  },
+
   {
     key: "ambulance",
     title: "Ambulance Service",

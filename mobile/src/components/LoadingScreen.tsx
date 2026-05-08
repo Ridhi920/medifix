@@ -21,6 +21,17 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ message }) => {
 
   return (
     <View style={styles.container}>
+      {/* Watermark */}
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <Image
+            source={require("../../assets/medefix background.jpeg")}
+            style={{ width: 300, height: 300, opacity: 0.07 }}
+            resizeMode="contain"
+          />
+        </View>
+      </View>
+
       <Image
         source={require("../../assets/minion.png")}
         style={styles.image}
@@ -39,7 +50,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#ffffff",
+    backgroundColor: "#F8F5F0",
   },
   image: {
     width: 150,

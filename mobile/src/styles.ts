@@ -28,7 +28,7 @@ export const styles = StyleSheet.create({
   homeCard: {
     width: "100%",
     maxWidth: 520,
-    backgroundColor: "#ffffff",
+    backgroundColor: "transparent",
     borderRadius: 28,
     paddingHorizontal: 20,
     paddingVertical: 24,
@@ -45,7 +45,7 @@ export const styles = StyleSheet.create({
   serviceScreenCard: {
     width: "100%",
     maxWidth: 520,
-    backgroundColor: "#ffffff",
+    backgroundColor: "transparent",
     borderRadius: 28,
     paddingHorizontal: 20,
     paddingVertical: 24,
@@ -482,7 +482,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 32,
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "stretch",
     gap: 16
   },
   heroTitle: {
@@ -512,7 +512,6 @@ export const styles = StyleSheet.create({
   },
   heroImageContainer: {
     width: 140,
-    height: 140,
     alignItems: "center",
     justifyContent: "center"
   },
@@ -525,7 +524,7 @@ export const styles = StyleSheet.create({
     flexWrap: "wrap",
     padding: 20,
     gap: 16,
-    backgroundColor: "#f8fafc"
+    backgroundColor: "transparent"
   },
   serviceCard: {
     width: "47%",
@@ -619,7 +618,7 @@ export const styles = StyleSheet.create({
   testimonialSection: {
     paddingHorizontal: 20,
     paddingVertical: 24,
-    backgroundColor: "#f8fafc"
+    backgroundColor: "transparent"
   },
   testimonialTitle: {
     fontSize: 20,

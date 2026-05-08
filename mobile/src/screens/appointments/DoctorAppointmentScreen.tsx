@@ -51,7 +51,7 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
   const [selectedSpecialty, setSelectedSpecialty] = useState<string>("All");
   const [selectedExperience, setSelectedExperience] = useState<string>("All");
   const [sortBy, setSortBy] = useState<string>("rating");
-  const [showSpecialtyDropdown, setShowSpecialtyDropdown] = useState<boolean>(false);
+
   const [showExperienceDropdown, setShowExperienceDropdown] = useState<boolean>(false);
   const [showSortDropdown, setShowSortDropdown] = useState<boolean>(false);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
@@ -142,7 +142,12 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
     setFilteredDoctors(filtered);
   };
 
-  const specialties = ["All", ...Array.from(new Set(doctors.map(d => d.specialty)))];
+  const specialties = [
+    "All",
+    "Cardiology",
+    "Pediatrics",
+    ...Array.from(new Set(doctors.map(d => d.specialty).filter(s => s !== "Cardiology" && s !== "Pediatrics")))
+  ];
   const experienceRanges = ["All", "0-5", "5-10", "10-20", "20+"];
 
   const fetchBookedSlots = async (doctorId: number, day: string) => {
@@ -330,80 +335,51 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
               onChangeText={setSearchQuery}
             />
 
-            {/* Filter Dropdowns */}
-            <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
-              {/* Specialty Dropdown */}
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 11, fontWeight: "600", color: "#64748b", marginBottom: 6 }}>Specialty</Text>
-                <Pressable
-                  onPress={() => setShowSpecialtyDropdown(!showSpecialtyDropdown)}
-                  style={{
-                    backgroundColor: "#ffffff",
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    borderColor: "#e2e8f0",
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    alignItems: "center"
-                  }}
-                >
-                  <Text style={{ fontSize: 13, color: "#0f172a", fontWeight: "500" }}>{selectedSpecialty}</Text>
-                  <Text style={{ fontSize: 10, color: "#64748b" }}>▼</Text>
-                </Pressable>
-                {showSpecialtyDropdown && (
-                  <View style={{
-                    position: "absolute",
-                    top: 62,
-                    left: 0,
-                    right: 0,
-                    backgroundColor: "#ffffff",
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    borderColor: "#e2e8f0",
-                    maxHeight: 200,
-                    zIndex: 1000,
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.1,
-                    shadowRadius: 4,
-                    elevation: 3
-                  }}>
-                    <ScrollView>
-                      {specialties.map((specialty) => (
-                        <Pressable
-                          key={specialty}
-                          onPress={() => {
-                            setSelectedSpecialty(specialty);
-                            setShowSpecialtyDropdown(false);
-                          }}
-                          style={{
-                            paddingHorizontal: 12,
-                            paddingVertical: 10,
-                            borderBottomWidth: 1,
-                            borderBottomColor: "#f1f5f9",
-                            backgroundColor: selectedSpecialty === specialty ? "#f0f9ff" : "transparent"
-                          }}
-                        >
-                          <Text style={{ fontSize: 13, color: "#0f172a" }}>{specialty}</Text>
-                        </Pressable>
-                      ))}
-                    </ScrollView>
-                  </View>
-                )}
-              </View>
+            {/* Specialty Chips */}
+            <View style={{ marginBottom: 12 }}>
+              <Text style={{ fontSize: 11, fontWeight: "600", color: "#64748b", marginBottom: 8 }}>Specialty</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 8, paddingRight: 4 }}
+              >
+                {specialties.map((specialty) => (
+                  <Pressable
+                    key={specialty}
+                    onPress={() => setSelectedSpecialty(specialty)}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 8,
+                      borderRadius: 20,
+                      borderWidth: 1,
+                      borderColor: selectedSpecialty === specialty ? "#FF6B35" : "#e2e8f0",
+                      backgroundColor: selectedSpecialty === specialty ? "#FF6B35" : "#ffffff",
+                    }}
+                  >
+                    <Text style={{
+                      fontSize: 13,
+                      fontWeight: "600",
+                      color: selectedSpecialty === specialty ? "#ffffff" : "#64748b",
+                    }}>
+                      {specialty}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
 
-              {/* Experience Dropdown */}
-              <View style={{ flex: 1 }}>
+            {/* Experience & Sort Dropdowns */}
+            <View style={{ flexDirection: "row", gap: 8, marginBottom: 12, zIndex: 20 }}>
+              {/* Experience */}
+              <View style={{ flex: 1, zIndex: showExperienceDropdown ? 30 : 20 }}>
                 <Text style={{ fontSize: 11, fontWeight: "600", color: "#64748b", marginBottom: 6 }}>Experience</Text>
                 <Pressable
-                  onPress={() => setShowExperienceDropdown(!showExperienceDropdown)}
+                  onPress={() => { setShowExperienceDropdown(!showExperienceDropdown); setShowSortDropdown(false); }}
                   style={{
                     backgroundColor: "#ffffff",
                     borderRadius: 8,
                     borderWidth: 1,
-                    borderColor: "#e2e8f0",
+                    borderColor: showExperienceDropdown ? "#FF6B35" : "#e2e8f0",
                     paddingHorizontal: 12,
                     paddingVertical: 10,
                     flexDirection: "row",
@@ -414,7 +390,7 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
                   <Text style={{ fontSize: 13, color: "#0f172a", fontWeight: "500" }}>
                     {selectedExperience === "All" ? "All" : `${selectedExperience} yrs`}
                   </Text>
-                  <Text style={{ fontSize: 10, color: "#64748b" }}>▼</Text>
+                  <Text style={{ fontSize: 10, color: "#64748b" }}>{showExperienceDropdown ? "▲" : "▼"}</Text>
                 </Pressable>
                 {showExperienceDropdown && (
                   <View style={{
@@ -426,107 +402,100 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
                     borderRadius: 8,
                     borderWidth: 1,
                     borderColor: "#e2e8f0",
-                    maxHeight: 150,
-                    zIndex: 1000,
+                    zIndex: 100,
+                    elevation: 10,
                     shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.1,
-                    shadowRadius: 4,
-                    elevation: 3
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.12,
+                    shadowRadius: 8,
                   }}>
-                    <ScrollView>
-                      {experienceRanges.map((range) => (
-                        <Pressable
-                          key={range}
-                          onPress={() => {
-                            setSelectedExperience(range);
-                            setShowExperienceDropdown(false);
-                          }}
-                          style={{
-                            paddingHorizontal: 12,
-                            paddingVertical: 10,
-                            borderBottomWidth: 1,
-                            borderBottomColor: "#f1f5f9",
-                            backgroundColor: selectedExperience === range ? "#fef3c7" : "transparent"
-                          }}
-                        >
-                          <Text style={{ fontSize: 13, color: "#0f172a" }}>
-                            {range === "All" ? "All" : `${range} years`}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </ScrollView>
+                    {experienceRanges.map((range) => (
+                      <Pressable
+                        key={range}
+                        onPress={() => { setSelectedExperience(range); setShowExperienceDropdown(false); }}
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 10,
+                          borderBottomWidth: 1,
+                          borderBottomColor: "#f1f5f9",
+                          backgroundColor: selectedExperience === range ? "#fff4ef" : "#ffffff",
+                        }}
+                      >
+                        <Text style={{ fontSize: 13, color: selectedExperience === range ? "#FF6B35" : "#0f172a", fontWeight: selectedExperience === range ? "700" : "400" }}>
+                          {range === "All" ? "All" : `${range} years`}
+                        </Text>
+                      </Pressable>
+                    ))}
                   </View>
                 )}
               </View>
-            </View>
 
-            {/* Sort Dropdown */}
-            <View style={{ marginBottom: 12, zIndex: -1 }}>
-              <Text style={{ fontSize: 11, fontWeight: "600", color: "#64748b", marginBottom: 6 }}>Sort By</Text>
-              <Pressable
-                onPress={() => setShowSortDropdown(!showSortDropdown)}
-                style={{
-                  backgroundColor: "#ffffff",
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: "#e2e8f0",
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center"
-                }}
-              >
-                <Text style={{ fontSize: 13, color: "#0f172a", fontWeight: "500" }}>
-                  {sortBy === "rating" ? "Rating (High to Low)" : 
-                   sortBy === "experience" ? "Experience (High to Low)" : 
-                   sortBy === "fee_low" ? "Fee (Low to High)" : "Fee (High to Low)"}
-                </Text>
-                <Text style={{ fontSize: 10, color: "#64748b" }}>▼</Text>
-              </Pressable>
-              {showSortDropdown && (
-                <View style={{
-                  position: "absolute",
-                  top: 56,
-                  left: 0,
-                  right: 0,
-                  backgroundColor: "#ffffff",
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: "#e2e8f0",
-                  zIndex: 1000,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  elevation: 3
-                }}>
-                  {[
-                    {id: "rating", label: "Rating (High to Low)"},
-                    {id: "experience", label: "Experience (High to Low)"},
-                    {id: "fee_low", label: "Fee (Low to High)"},
-                    {id: "fee_high", label: "Fee (High to Low)"}
-                  ].map((option) => (
-                    <Pressable
-                      key={option.id}
-                      onPress={() => {
-                        setSortBy(option.id);
-                        setShowSortDropdown(false);
-                      }}
-                      style={{
-                        paddingHorizontal: 12,
-                        paddingVertical: 10,
-                        borderBottomWidth: 1,
-                        borderBottomColor: "#f1f5f9",
-                        backgroundColor: sortBy === option.id ? "#dcfce7" : "transparent"
-                      }}
-                    >
-                      <Text style={{ fontSize: 13, color: "#0f172a" }}>{option.label}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              )}
+              {/* Sort By */}
+              <View style={{ flex: 1, zIndex: showSortDropdown ? 30 : 20 }}>
+                <Text style={{ fontSize: 11, fontWeight: "600", color: "#64748b", marginBottom: 6 }}>Sort By</Text>
+                <Pressable
+                  onPress={() => { setShowSortDropdown(!showSortDropdown); setShowExperienceDropdown(false); }}
+                  style={{
+                    backgroundColor: "#ffffff",
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: showSortDropdown ? "#FF6B35" : "#e2e8f0",
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center"
+                  }}
+                >
+                  <Text style={{ fontSize: 13, color: "#0f172a", fontWeight: "500" }} numberOfLines={1}>
+                    {sortBy === "rating" ? "Top Rated" :
+                     sortBy === "experience" ? "Experience" :
+                     sortBy === "fee_low" ? "Fee ↑" : "Fee ↓"}
+                  </Text>
+                  <Text style={{ fontSize: 10, color: "#64748b" }}>{showSortDropdown ? "▲" : "▼"}</Text>
+                </Pressable>
+                {showSortDropdown && (
+                  <View style={{
+                    position: "absolute",
+                    top: 62,
+                    left: 0,
+                    right: 0,
+                    backgroundColor: "#ffffff",
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: "#e2e8f0",
+                    zIndex: 100,
+                    elevation: 10,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.12,
+                    shadowRadius: 8,
+                  }}>
+                    {[
+                      { id: "rating", label: "Top Rated" },
+                      { id: "experience", label: "Most Experienced" },
+                      { id: "fee_low", label: "Fee: Low to High" },
+                      { id: "fee_high", label: "Fee: High to Low" },
+                    ].map((option) => (
+                      <Pressable
+                        key={option.id}
+                        onPress={() => { setSortBy(option.id); setShowSortDropdown(false); }}
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 10,
+                          borderBottomWidth: 1,
+                          borderBottomColor: "#f1f5f9",
+                          backgroundColor: sortBy === option.id ? "#fff4ef" : "#ffffff",
+                        }}
+                      >
+                        <Text style={{ fontSize: 13, color: sortBy === option.id ? "#FF6B35" : "#0f172a", fontWeight: sortBy === option.id ? "700" : "400" }}>
+                          {option.label}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+              </View>
             </View>
 
             {/* Results Count */}

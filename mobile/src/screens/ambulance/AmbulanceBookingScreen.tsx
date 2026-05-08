@@ -269,7 +269,7 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#ffffff" }}>
+    <View style={{ flex: 1, backgroundColor: "transparent" }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.homeScroll}

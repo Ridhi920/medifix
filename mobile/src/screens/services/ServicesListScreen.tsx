@@ -26,7 +26,7 @@ export default function ServicesListScreen({
   onBack
 }: Readonly<ServicesListScreenProps>) {
   return (
-    <View style={{ flex: 1, backgroundColor: "#f8fafc" }}>
+    <View style={{ flex: 1, backgroundColor: "transparent" }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ flexGrow: 1 }}

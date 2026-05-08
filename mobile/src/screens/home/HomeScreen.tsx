@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View, Image } from "react-native";
 import { styles } from "../../styles";
 import { type ServiceItem, type ServiceKey } from "../../data/services";
@@ -16,8 +17,6 @@ type HomeScreenProps = {
   readonly onOpenNurse: () => void;
   readonly onOpenPhysiotherapist: () => void;
   readonly onOpenDental: () => void;
-  readonly onOpenCardiology: () => void;
-  readonly onOpenPediatrics: () => void;
   readonly onOpenProfile: () => void;
   readonly onLogout: () => void;
 };
@@ -35,12 +34,11 @@ export default function HomeScreen({
   onOpenNurse,
   onOpenPhysiotherapist,
   onOpenDental,
-  onOpenCardiology,
-  onOpenPediatrics,
   onOpenProfile,
   onLogout
 }: Readonly<HomeScreenProps>) {
   const { user, logout } = useAuth();
+  const [heroTextHeight, setHeroTextHeight] = useState(0);
 
   const handleLogout = () => {
     Alert.alert(
@@ -99,8 +97,11 @@ export default function HomeScreen({
 
         {/* Orange Hero Section */}
         <View style={styles.heroSection}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.heroTitle}>30 Minutes to Care</Text>
+          <View
+            style={{ flex: 1 }}
+            onLayout={(e) => setHeroTextHeight(e.nativeEvent.layout.height)}
+          >
+            <Text style={styles.heroTitle}>27 Minutes to Care</Text>
             <Text style={styles.heroSubtitle}>
               Connect to doctors, pharmacy{'\n'}& ambulance instantly
             </Text>
@@ -108,13 +109,11 @@ export default function HomeScreen({
               <Text style={styles.heroButtonText}>Book a Consultation</Text>
             </Pressable>
           </View>
-          <View style={styles.heroImageContainer}>
-            <Image
-              source={require("../../../assets/meddy.png")}
-              style={styles.heroImage}
-              resizeMode="contain"
-            />
-          </View>
+          <Image
+            source={require("../../../assets/meddy.png")}
+            style={{ width: 140, height: heroTextHeight || 140 }}
+            resizeMode="contain"
+          />
         </View>
 
         {/* Service Cards Grid */}
@@ -182,23 +181,6 @@ export default function HomeScreen({
             <Text style={styles.serviceCardText}>Dental Care</Text>
           </Pressable>
 
-          <Pressable style={styles.serviceCard} onPress={onOpenCardiology}>
-            <Image
-              source={require("../../../assets/doctor.png")}
-              style={styles.serviceCardIcon}
-              resizeMode="contain"
-            />
-            <Text style={styles.serviceCardText}>Cardiology</Text>
-          </Pressable>
-
-          <Pressable style={styles.serviceCard} onPress={onOpenPediatrics}>
-            <Image
-              source={require("../../../assets/doctor.png")}
-              style={styles.serviceCardIcon}
-              resizeMode="contain"
-            />
-            <Text style={styles.serviceCardText}>Pediatrics</Text>
-          </Pressable>
 
           <Pressable style={styles.serviceCard} onPress={onOpenServices}>
             <View style={[styles.serviceCardIcon, { backgroundColor: '#FF6B35', borderRadius: 50, justifyContent: 'center', alignItems: 'center' }]}>

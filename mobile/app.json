@@ -12,7 +12,7 @@
     "orientation": "portrait",
     "splash": {
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#F8F5F0"
     },
     "ios": {
       "bundleIdentifier": "com.ridhi26.medifix",
@@ -32,6 +32,7 @@
     },
     "android": {
       "package": "com.ridhi26.medifix",
+      "usesCleartextTraffic": true,
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",

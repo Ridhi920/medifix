@@ -150,7 +150,7 @@ function CartView({
   handlePlaceOrder 
 }: Readonly<CartViewProps>) {
   return (
-    <View style={{ flex: 1, backgroundColor: "#ffffff" }}>
+    <View style={{ flex: 1, backgroundColor: "transparent" }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.homeScroll}
@@ -528,7 +528,7 @@ export default function PharmacyScreen({ onBack }: Readonly<PharmacyScreenProps>
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#ffffff" }}>
+    <View style={{ flex: 1, backgroundColor: "transparent" }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.homeScroll}

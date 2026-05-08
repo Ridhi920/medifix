@@ -314,7 +314,7 @@ export default function LabTestBookingScreen({ onBack }: Readonly<LabTestBooking
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#ffffff" }}>
+    <View style={{ flex: 1, backgroundColor: "transparent" }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.homeScroll}
