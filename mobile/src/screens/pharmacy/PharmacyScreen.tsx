@@ -122,6 +122,13 @@ function PrescriptionUpload({ prescriptionUploaded, prescriptionImage, onUploadF
   );
 }
 
+const REFILL_OPTIONS = [
+  { label: "Weekly", value: "weekly" },
+  { label: "Monthly", value: "monthly" },
+  { label: "2 Months", value: "2months" },
+  { label: "3 Months", value: "3months" },
+];
+
 type CartViewProps = {
   readonly cart: CartItem[];
   readonly onBack: () => void;
@@ -133,21 +140,29 @@ type CartViewProps = {
   readonly setDeliveryAddress: (address: string) => void;
   readonly phoneNumber: string;
   readonly setPhoneNumber: (phone: string) => void;
+  readonly refillEnabled: boolean;
+  readonly setRefillEnabled: (v: boolean) => void;
+  readonly refillFrequency: string;
+  readonly setRefillFrequency: (v: string) => void;
   readonly handlePlaceOrder: () => void;
 };
 
-function CartView({ 
-  cart, 
-  onBack, 
-  removeFromCart, 
-  updateQuantity, 
-  getTotalAmount, 
-  getTotalSavings, 
-  deliveryAddress, 
-  setDeliveryAddress, 
-  phoneNumber, 
-  setPhoneNumber, 
-  handlePlaceOrder 
+function CartView({
+  cart,
+  onBack,
+  removeFromCart,
+  updateQuantity,
+  getTotalAmount,
+  getTotalSavings,
+  deliveryAddress,
+  setDeliveryAddress,
+  phoneNumber,
+  setPhoneNumber,
+  refillEnabled,
+  setRefillEnabled,
+  refillFrequency,
+  setRefillFrequency,
+  handlePlaceOrder
 }: Readonly<CartViewProps>) {
   return (
     <View style={{ flex: 1, backgroundColor: "transparent" }}>
@@ -336,6 +351,86 @@ function CartView({
                 />
               </View>
 
+              {/* Refill Schedule */}
+              <View style={{
+                backgroundColor: "#f8fafc",
+                borderRadius: 16,
+                padding: 16,
+                marginTop: 24,
+                borderWidth: 1,
+                borderColor: "#e2e8f0"
+              }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 15, fontWeight: "700", color: "#0f172a" }}>
+                      🔄 Auto Refill
+                    </Text>
+                    <Text style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
+                      Get medicines delivered automatically
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={() => setRefillEnabled(!refillEnabled)}
+                    style={{
+                      width: 48,
+                      height: 28,
+                      borderRadius: 14,
+                      backgroundColor: refillEnabled ? "#FF6B35" : "#cbd5e1",
+                      justifyContent: "center",
+                      paddingHorizontal: 2
+                    }}
+                  >
+                    <View style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      backgroundColor: "#ffffff",
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.2,
+                      shadowRadius: 2,
+                      elevation: 2,
+                      alignSelf: refillEnabled ? "flex-end" : "flex-start"
+                    }} />
+                  </Pressable>
+                </View>
+
+                {refillEnabled && (
+                  <View style={{ marginTop: 16 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: "#0f172a", marginBottom: 10 }}>
+                      Delivery Frequency
+                    </Text>
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+                      {REFILL_OPTIONS.map((opt) => (
+                        <Pressable
+                          key={opt.value}
+                          onPress={() => setRefillFrequency(opt.value)}
+                          style={{
+                            paddingVertical: 8,
+                            paddingHorizontal: 18,
+                            borderRadius: 20,
+                            borderWidth: 1.5,
+                            borderColor: refillFrequency === opt.value ? "#FF6B35" : "#e2e8f0",
+                            backgroundColor: refillFrequency === opt.value ? "#fff4f0" : "#ffffff"
+                          }}
+                        >
+                          <Text style={{
+                            fontSize: 13,
+                            fontWeight: "600",
+                            color: refillFrequency === opt.value ? "#FF6B35" : "#64748b"
+                          }}>
+                            {opt.label}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                    <Text style={{ fontSize: 11, color: "#64748b", marginTop: 10 }}>
+                      Your next order will be placed automatically every {REFILL_OPTIONS.find(o => o.value === refillFrequency)?.label.toLowerCase()}.
+                    </Text>
+                  </View>
+                )}
+              </View>
+
               {/* Place Order Button */}
               <Pressable
                 onPress={handlePlaceOrder}
@@ -379,6 +474,8 @@ export default function PharmacyScreen({ onBack }: Readonly<PharmacyScreenProps>
   const [showCart, setShowCart] = useState<boolean>(false);
   const [deliveryAddress, setDeliveryAddress] = useState<string>("");
   const [phoneNumber, setPhoneNumber] = useState<string>("");
+  const [refillEnabled, setRefillEnabled] = useState<boolean>(false);
+  const [refillFrequency, setRefillFrequency] = useState<string>("monthly");
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -495,11 +592,14 @@ export default function PharmacyScreen({ onBack }: Readonly<PharmacyScreenProps>
 
   const handlePlaceOrder = () => {
     if (cart.length > 0 && deliveryAddress && phoneNumber) {
-      alert(`Order placed successfully!\nTotal: ₹${getTotalAmount()}\nYou saved: ₹${getTotalSavings()}\nDelivery to: ${deliveryAddress}`);
-      // Reset
+      const refillLabel = REFILL_OPTIONS.find(o => o.value === refillFrequency)?.label;
+      const refillMsg = refillEnabled ? `\nAuto Refill: Every ${refillLabel}` : "";
+      alert(`Order placed successfully!\nTotal: ₹${getTotalAmount()}\nYou saved: ₹${getTotalSavings()}\nDelivery to: ${deliveryAddress}${refillMsg}`);
       setCart([]);
       setDeliveryAddress("");
       setPhoneNumber("");
+      setRefillEnabled(false);
+      setRefillFrequency("monthly");
       setShowCart(false);
       setPrescriptionUploaded(false);
     }
@@ -522,6 +622,10 @@ export default function PharmacyScreen({ onBack }: Readonly<PharmacyScreenProps>
         setDeliveryAddress={setDeliveryAddress}
         phoneNumber={phoneNumber}
         setPhoneNumber={setPhoneNumber}
+        refillEnabled={refillEnabled}
+        setRefillEnabled={setRefillEnabled}
+        refillFrequency={refillFrequency}
+        setRefillFrequency={setRefillFrequency}
         handlePlaceOrder={handlePlaceOrder}
       />
     );

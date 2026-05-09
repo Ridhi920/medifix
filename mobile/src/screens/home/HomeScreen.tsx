@@ -69,14 +69,15 @@ export default function HomeScreen({
       >
         {/* White Header */}
         <View style={styles.newHeader}>
-          <View>
+          <View style={{ alignItems: "flex-start" }}>
             <Image
               source={require("../../../assets/medEfix.png")}
-              style={{ width: 120, height: 40 }}
+              style={{ width: 150, height: 50, left: -25
+               }}
               resizeMode="contain"
             />
             {user && (
-              <Text style={{ fontSize: 10, color: "#666", marginTop: 2 }}>
+              <Text style={{ fontSize: 13, color: "#666", marginTop: 2, fontWeight: "700" }}>
                 Welcome, {user.full_name.split(' ')[0]}!
               </Text>
             )}
@@ -156,7 +157,7 @@ export default function HomeScreen({
 
           <Pressable style={styles.serviceCard} onPress={onOpenNurse}>
             <Image
-              source={require("../../../assets/doctor.png")}
+              source={require("../../../assets/home_nurse.png")}
               style={styles.serviceCardIcon}
               resizeMode="contain"
             />
@@ -180,6 +181,7 @@ export default function HomeScreen({
             />
             <Text style={styles.serviceCardText}>Dental Care</Text>
           </Pressable>
+
 
 
           <Pressable style={styles.serviceCard} onPress={onOpenServices}>
