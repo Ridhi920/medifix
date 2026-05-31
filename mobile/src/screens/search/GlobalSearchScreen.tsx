@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  ActivityIndicator, Pressable, SafeAreaView, FlatList,
+  ActivityIndicator, Pressable, FlatList, Platform, StatusBar,
 } from "react-native";
 import { doctorAPI, dentistAPI } from "../../services/api";
 import { nurseAPI, type Nurse } from "../../api/nurseApi";
@@ -214,8 +214,10 @@ export default function GlobalSearchScreen({
   const showEmpty = !loading && query.trim().length > 0 && filtered.length === 0;
   const showPrompt = !loading && query.trim().length === 0;
 
+  const topInset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 44;
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#f8fafc" }}>
+    <View style={{ flex: 1, backgroundColor: "#f8fafc", paddingTop: topInset }}>
       {/* Header */}
       <View style={{
         flexDirection: "row", alignItems: "center", gap: 12,
@@ -375,7 +377,7 @@ export default function GlobalSearchScreen({
           ))}
         </ScrollView>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
