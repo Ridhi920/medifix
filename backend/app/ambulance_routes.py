@@ -49,6 +49,8 @@ def get_ambulances(
             base_price=ambulance.base_price,
             image=ambulance.image,
             ambulance_type=ambulance.ambulance_type,
+            latitude=ambulance.latitude,
+            longitude=ambulance.longitude,
             is_active=ambulance.is_active,
         )
         for ambulance in ambulances
@@ -94,6 +96,8 @@ def create_ambulance(
         base_price=ambulance.base_price,
         image=ambulance.image,
         ambulance_type=ambulance.ambulance_type,
+        latitude=ambulance.latitude,
+        longitude=ambulance.longitude,
     )
     
     session.add(db_ambulance)
@@ -109,6 +113,8 @@ def create_ambulance(
         base_price=db_ambulance.base_price,
         image=db_ambulance.image,
         ambulance_type=db_ambulance.ambulance_type,
+        latitude=db_ambulance.latitude,
+        longitude=db_ambulance.longitude,
         is_active=db_ambulance.is_active,
     )
 
@@ -148,6 +154,8 @@ def update_ambulance(
         base_price=db_ambulance.base_price,
         image=db_ambulance.image,
         ambulance_type=db_ambulance.ambulance_type,
+        latitude=db_ambulance.latitude,
+        longitude=db_ambulance.longitude,
         is_active=db_ambulance.is_active,
     )
 

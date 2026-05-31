@@ -43,6 +43,8 @@ def get_dentists(
             available_slots=json.loads(dentist.available_slots),
             image=dentist.image,
             address=dentist.address,
+            latitude=dentist.latitude,
+            longitude=dentist.longitude,
             is_active=dentist.is_active,
         )
         for dentist in dentists
@@ -122,6 +124,8 @@ def create_dentist(
         available_slots=json.dumps(dentist_data.available_slots),
         image=dentist_data.image,
         address=dentist_data.address,
+        latitude=dentist_data.latitude,
+        longitude=dentist_data.longitude,
         is_active=True,
     )
     

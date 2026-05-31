@@ -43,6 +43,8 @@ def get_doctors(
             available_slots=json.loads(doctor.available_slots),
             image=doctor.image,
             address=doctor.address,
+            latitude=doctor.latitude,
+            longitude=doctor.longitude,
             is_active=doctor.is_active,
         )
         for doctor in doctors
@@ -74,6 +76,8 @@ def get_doctor(
         available_slots=json.loads(doctor.available_slots),
         image=doctor.image,
         address=doctor.address,
+        latitude=doctor.latitude,
+        longitude=doctor.longitude,
         is_active=doctor.is_active,
     )
 
@@ -125,6 +129,8 @@ def create_doctor(
         available_slots=json.dumps(doctor_data.available_slots),
         image=doctor_data.image,
         address=doctor_data.address,
+        latitude=doctor_data.latitude,
+        longitude=doctor_data.longitude,
         is_active=True,
     )
     
@@ -144,6 +150,8 @@ def create_doctor(
         available_slots=json.loads(doctor.available_slots),
         image=doctor.image,
         address=doctor.address,
+        latitude=doctor.latitude,
+        longitude=doctor.longitude,
         is_active=doctor.is_active,
     )
 
@@ -189,6 +197,8 @@ def update_doctor(
         available_slots=json.loads(doctor.available_slots),
         image=doctor.image,
         address=doctor.address,
+        latitude=doctor.latitude,
+        longitude=doctor.longitude,
         is_active=doctor.is_active,
     )
 

@@ -46,6 +46,8 @@ export interface Ambulance {
   base_price: number;
   image: string;
   ambulance_type: string;
+  latitude?: number | null;
+  longitude?: number | null;
   is_active: boolean;
 }
 
@@ -57,6 +59,8 @@ export interface AmbulanceCreate {
   base_price: number;
   image: string;
   ambulance_type: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface AmbulanceUpdate extends Partial<AmbulanceCreate> {

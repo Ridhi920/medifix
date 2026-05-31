@@ -364,15 +364,6 @@ export default function PharmacyManagementPage() {
               rows={2}
             />
 
-            <TextField
-              label="Image (Emoji or leave empty to upload)"
-              value={formData.image || ''}
-              onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-              fullWidth
-              placeholder="💊"
-              helperText="Enter emoji or use the upload button below (optional)"
-            />
-
             <Box>
               <input
                 accept="image/*"
@@ -385,15 +376,15 @@ export default function PharmacyManagementPage() {
                 <Button
                   variant="outlined"
                   component="span"
-                  startIcon={<Add />}
+                  fullWidth
                 >
-                  Upload Photo (Optional)
+                  📸 Add Photo
                 </Button>
               </label>
               {imagePreview && (
-                <Box sx={{ mt: 2 }}>
+                <Box sx={{ mt: 2, textAlign: 'center' }}>
                   <Typography variant="caption" display="block" gutterBottom>
-                    Preview:
+                    ✓ Photo selected
                   </Typography>
                   <img
                     src={imagePreview}

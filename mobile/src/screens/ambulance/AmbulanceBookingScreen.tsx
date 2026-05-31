@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
-import { Pressable, ScrollView, Text, View, TextInput, Linking, ActivityIndicator } from "react-native";
+import { Pressable, ScrollView, Text, View, TextInput, Linking, ActivityIndicator, Image } from "react-native";
 import { styles } from "../../styles";
 import { ambulanceAPI, type Ambulance } from "../../api/ambulanceApi";
 import { parseBackendErrors, validators } from "../../utils/errorHandler";
 import CustomAlert from "../../components/CustomAlert";
 import LoadingScreen from "../../components/LoadingScreen";
+import DatePickerModal from "../../components/DatePickerModal";
+import TimePickerDropdown from "../../components/TimePickerDropdown";
+import { useLocation } from "../../hooks/useLocation";
+import { haversineKm, formatDistance } from "../../utils/locationUtils";
 
 const EMERGENCY_CONTACTS = [
   { name: "Emergency", number: "108" },
@@ -35,7 +39,25 @@ type AlertState = {
   onConfirm?: () => void;
 };
 
+const isImageUrl = (imageString: string): boolean => {
+  return imageString.startsWith('data:') || imageString.startsWith('http://') || imageString.startsWith('https://');
+};
+
+const AmbulanceImage = ({ image, size = 40 }: { image: string; size?: number }) => {
+  if (isImageUrl(image)) {
+    return (
+      <Image
+        source={{ uri: image }}
+        style={{ width: size, height: size, borderRadius: 8, backgroundColor: '#f1f5f9' }}
+        resizeMode="cover"
+      />
+    );
+  }
+  return <Text style={{ fontSize: size }}>{image || '🚑'}</Text>;
+};
+
 export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBookingScreenProps>) {
+  const { location } = useLocation();
   const [loading, setLoading] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [ambulances, setAmbulances] = useState<Ambulance[]>([]);
@@ -54,6 +76,7 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
   const [medicalCondition, setMedicalCondition] = useState<string>("");
   const [scheduledDate, setScheduledDate] = useState<string>("");
   const [scheduledTime, setScheduledTime] = useState<string>("");
+  const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [showBookingForm, setShowBookingForm] = useState<boolean>(false);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [alert, setAlert] = useState<AlertState>({
@@ -69,7 +92,7 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
 
   useEffect(() => {
     filterAndSortAmbulances();
-  }, [ambulances, searchQuery, selectedType, sortBy]);
+  }, [ambulances, searchQuery, selectedType, sortBy, location]);
 
   const fetchAmbulances = async () => {
     try {
@@ -107,7 +130,17 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
     }
 
     // Sort
-    if (sortBy === "price") {
+    if (sortBy === "nearest" && location) {
+      filtered.sort((a, b) => {
+        const dA = a.latitude != null && a.longitude != null
+          ? haversineKm(location.latitude, location.longitude, a.latitude, a.longitude)
+          : Infinity;
+        const dB = b.latitude != null && b.longitude != null
+          ? haversineKm(location.latitude, location.longitude, b.latitude, b.longitude)
+          : Infinity;
+        return dA - dB;
+      });
+    } else if (sortBy === "price") {
       filtered.sort((a, b) => a.base_price - b.base_price);
     } else if (sortBy === "name") {
       filtered.sort((a, b) => a.name.localeCompare(b.name));
@@ -443,7 +476,7 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
                       }}
                     >
                       <Text style={{ fontSize: 13, color: "#0f172a", fontWeight: "500" }}>
-                        {sortBy === "price" ? "Price" : "Name"}
+                        {sortBy === "nearest" ? "📍 Nearest" : sortBy === "price" ? "Price" : "Name"}
                       </Text>
                       <Text style={{ fontSize: 10, color: "#64748b" }}>▼</Text>
                     </Pressable>
@@ -464,7 +497,7 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
                         shadowRadius: 4,
                         elevation: 3
                       }}>
-                        {[{id: "price", label: "Price (Low to High)"}, {id: "name", label: "Name (A-Z)"}].map((option) => (
+                        {[{id: "nearest", label: "📍 Nearest"}, {id: "price", label: "Price (Low to High)"}, {id: "name", label: "Name (A-Z)"}].map((option) => (
                           <Pressable
                             key={option.id}
                             onPress={() => {
@@ -590,7 +623,7 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
                   }}
                 >
                   <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
-                    <Text style={{ fontSize: 40 }}>{ambulance.image}</Text>
+                    <AmbulanceImage image={ambulance.image} size={40} />
                     <View style={{ flex: 1 }}>
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 }}>
                         <Text style={{ fontSize: 16, fontWeight: "700", color: "#0f172a" }}>
@@ -635,6 +668,11 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
                         <Text style={{ fontSize: 12, color: "#64748b" }}>
                           ⏱️ {ambulance.estimated_time}
                         </Text>
+                        {location && ambulance.latitude != null && ambulance.longitude != null && (
+                          <Text style={{ fontSize: 12, color: "#64748b" }}>
+                            📍 {formatDistance(haversineKm(location.latitude, location.longitude, ambulance.latitude, ambulance.longitude))}
+                          </Text>
+                        )}
                       </View>
                     </View>
                   </View>
@@ -657,7 +695,7 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
               }}>
                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flex: 1 }}>
-                    <Text style={{ fontSize: 36 }}>{selectedAmbulance.image}</Text>
+                    <AmbulanceImage image={selectedAmbulance.image} size={36} />
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 16, fontWeight: "700", color: "#0f172a" }}>
                         {selectedAmbulance.name}
@@ -818,15 +856,8 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
                   <Text style={{ fontSize: 13, fontWeight: "600", color: "#0f172a", marginBottom: 6 }}>
                     Scheduled Date*
                   </Text>
-                  <TextInput
-                    value={scheduledDate}
-                    onChangeText={(text) => {
-                      setScheduledDate(text);
-                      if (validationErrors.scheduledDate) {
-                        setValidationErrors({ ...validationErrors, scheduledDate: undefined });
-                      }
-                    }}
-                    placeholder="DD/MM/YYYY (e.g., 15/03/2026)"
+                  <Pressable
+                    onPress={() => setShowDatePicker(true)}
                     style={{
                       backgroundColor: "#ffffff",
                       borderRadius: 12,
@@ -835,10 +866,16 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
                       marginBottom: validationErrors.scheduledDate ? 4 : 16,
                       borderWidth: 1,
                       borderColor: validationErrors.scheduledDate ? "#ef4444" : "#e2e8f0",
-                      fontSize: 14,
-                      color: "#0f172a"
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      alignItems: "center"
                     }}
-                  />
+                  >
+                    <Text style={{ fontSize: 14, color: scheduledDate ? "#0f172a" : "#94a3b8" }}>
+                      {scheduledDate || "Select date"}
+                    </Text>
+                    <Text style={{ fontSize: 16 }}>📅</Text>
+                  </Pressable>
                   {validationErrors.scheduledDate && (
                     <Text style={{ fontSize: 12, color: "#ef4444", marginBottom: 12 }}>
                       {validationErrors.scheduledDate}
@@ -848,29 +885,18 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
                   <Text style={{ fontSize: 13, fontWeight: "600", color: "#0f172a", marginBottom: 6 }}>
                     Scheduled Time*
                   </Text>
-                  <TextInput
+                  <TimePickerDropdown
                     value={scheduledTime}
-                    onChangeText={(text) => {
-                      setScheduledTime(text);
+                    onChange={(time) => {
+                      setScheduledTime(time);
                       if (validationErrors.scheduledTime) {
                         setValidationErrors({ ...validationErrors, scheduledTime: undefined });
                       }
                     }}
-                    placeholder="HH:MM AM/PM (e.g., 10:30 AM)"
-                    style={{
-                      backgroundColor: "#ffffff",
-                      borderRadius: 12,
-                      paddingHorizontal: 14,
-                      paddingVertical: 12,
-                      marginBottom: validationErrors.scheduledTime ? 4 : 16,
-                      borderWidth: 1,
-                      borderColor: validationErrors.scheduledTime ? "#ef4444" : "#e2e8f0",
-                      fontSize: 14,
-                      color: "#0f172a"
-                    }}
+                    hasError={Boolean(validationErrors.scheduledTime)}
                   />
                   {validationErrors.scheduledTime && (
-                    <Text style={{ fontSize: 12, color: "#ef4444", marginBottom: 12 }}>
+                    <Text style={{ fontSize: 12, color: "#ef4444", marginBottom: 12, marginTop: -12 }}>
                       {validationErrors.scheduledTime}
                     </Text>
                   )}
@@ -975,6 +1001,18 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
             alert.onConfirm();
           }
         }}
+      />
+
+      <DatePickerModal
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        onSelect={(date) => {
+          setScheduledDate(date);
+          if (validationErrors.scheduledDate) {
+            setValidationErrors({ ...validationErrors, scheduledDate: undefined });
+          }
+        }}
+        selectedDate={scheduledDate}
       />
     </View>
   );

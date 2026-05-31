@@ -16,6 +16,8 @@ export interface Physiotherapist {
   languages: string[];
   image: string;
   gender: string;
+  latitude?: number | null;
+  longitude?: number | null;
   is_active: boolean;
 }
 
@@ -25,7 +27,8 @@ export interface PhysiotherapistBookingCreate {
   patient_age: number;
   patient_gender: string;
   contact_number: string;
-  address: string;
+  service_type?: 'home' | 'clinic';
+  address?: string;
   medical_condition?: string;
   required_services: string[];
   booking_type: 'session' | 'daily' | 'weekly';

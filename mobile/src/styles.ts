@@ -376,6 +376,17 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center"
   },
+  authLogo: {
+    width: 140,
+    height: 70,
+  },
+  logoTagline: {
+    fontSize: 12,
+    color: "#FF6B35",
+    fontStyle: "italic",
+    fontWeight: "500",
+    marginTop: 6,
+  },
   title: {
     fontSize: 24,
     fontWeight: "700",
@@ -548,6 +559,13 @@ export const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#0f172a",
     lineHeight: 18
+  },
+  serviceCardTagline: {
+    fontSize: 10,
+    color: "#FF6B35",
+    fontWeight: "500",
+    marginTop: 2,
+    lineHeight: 14,
   },
   emergencyBanner: {
     backgroundColor: "#FF6B35",

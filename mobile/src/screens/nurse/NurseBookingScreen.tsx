@@ -5,6 +5,10 @@ import { nurseAPI, type Nurse } from "../../api/nurseApi";
 import { parseBackendErrors, validators } from "../../utils/errorHandler";
 import CustomAlert from "../../components/CustomAlert";
 import LoadingScreen from "../../components/LoadingScreen";
+import DatePickerModal from "../../components/DatePickerModal";
+import TimePickerDropdown from "../../components/TimePickerDropdown";
+import { useLocation } from "../../hooks/useLocation";
+import { haversineKm, formatDistance } from "../../utils/locationUtils";
 
 type NurseBookingScreenProps = {
   readonly onBack: () => void;
@@ -55,6 +59,7 @@ const NurseImage = ({ image, size = 40 }: { image: string; size?: number }) => {
 };
 
 export default function NurseBookingScreen({ onBack }: Readonly<NurseBookingScreenProps>) {
+  const { location } = useLocation();
   const [loading, setLoading] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [nurses, setNurses] = useState<Nurse[]>([]);
@@ -83,7 +88,8 @@ export default function NurseBookingScreen({ onBack }: Readonly<NurseBookingScre
   const [duration, setDuration] = useState<string>("1");
   const [shiftPreference, setShiftPreference] = useState<string>("Day (8 AM - 8 PM)");
   const [startDate, setStartDate] = useState<string>("");
-  const [startTime, setStartTime] = useState<string>("09:00 AM");
+  const [startTime, setStartTime] = useState<string>("");
+  const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [specialInstructions, setSpecialInstructions] = useState<string>("");
   
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
@@ -100,7 +106,7 @@ export default function NurseBookingScreen({ onBack }: Readonly<NurseBookingScre
 
   useEffect(() => {
     filterNurses();
-  }, [selectedSpecialization, selectedExperience, selectedRating, sortBy, searchQuery, nurses]);
+  }, [selectedSpecialization, selectedExperience, selectedRating, sortBy, searchQuery, nurses, location]);
 
   const fetchNurses = async () => {
     try {
@@ -159,7 +165,17 @@ export default function NurseBookingScreen({ onBack }: Readonly<NurseBookingScre
     }
 
     // Sort
-    if (sortBy === "rating") {
+    if (sortBy === "nearest" && location) {
+      filtered.sort((a, b) => {
+        const dA = a.latitude != null && a.longitude != null
+          ? haversineKm(location.latitude, location.longitude, a.latitude, a.longitude)
+          : Infinity;
+        const dB = b.latitude != null && b.longitude != null
+          ? haversineKm(location.latitude, location.longitude, b.latitude, b.longitude)
+          : Infinity;
+        return dA - dB;
+      });
+    } else if (sortBy === "rating") {
       filtered.sort((a, b) => b.rating - a.rating);
     } else if (sortBy === "experience") {
       filtered.sort((a, b) => b.experience - a.experience);
@@ -548,21 +564,39 @@ export default function NurseBookingScreen({ onBack }: Readonly<NurseBookingScre
           </View>
 
           <Text style={{ fontSize: 14, fontWeight: '600', color: '#0f172a', marginBottom: 6 }}>Start Date *</Text>
-          <TextInput
-            style={[styles.input, validationErrors.startDate && { borderColor: '#ef4444', borderWidth: 1.5 }]}
-            value={startDate}
-            onChangeText={setStartDate}
-            placeholder="DD/MM/YYYY"
-          />
+          <Pressable
+            onPress={() => setShowDatePicker(true)}
+            style={[{
+              backgroundColor: '#ffffff',
+              borderRadius: 12,
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              marginBottom: validationErrors.startDate ? 4 : 16,
+              borderWidth: 1,
+              borderColor: validationErrors.startDate ? '#ef4444' : '#e2e8f0',
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }]}
+          >
+            <Text style={{ fontSize: 14, color: startDate ? '#0f172a' : '#94a3b8' }}>
+              {startDate || "Select date"}
+            </Text>
+            <Text style={{ fontSize: 16 }}>📅</Text>
+          </Pressable>
+          {validationErrors.startDate && (
+            <Text style={{ fontSize: 12, color: '#ef4444', marginBottom: 12 }}>
+              {validationErrors.startDate}
+            </Text>
+          )}
 
           {bookingType === "hourly" && (
             <>
               <Text style={{ fontSize: 14, fontWeight: '600', color: '#0f172a', marginBottom: 6 }}>Start Time *</Text>
-              <TextInput
-                style={styles.input}
+              <TimePickerDropdown
                 value={startTime}
-                onChangeText={setStartTime}
-                placeholder="HH:MM AM/PM"
+                onChange={setStartTime}
+                hasError={Boolean(validationErrors.startTime)}
               />
             </>
           )}
@@ -881,7 +915,8 @@ export default function NurseBookingScreen({ onBack }: Readonly<NurseBookingScre
             }}
           >
             <Text style={{ fontSize: 13, color: "#0f172a", fontWeight: "500" }}>
-              {sortBy === "rating" ? "Rating" : 
+              {sortBy === "nearest" ? "📍 Nearest" :
+               sortBy === "rating" ? "Rating" :
                sortBy === "experience" ? "Experience" :
                sortBy === "hourly_rate" ? "Hourly Rate" : "Daily Rate"}
             </Text>
@@ -904,7 +939,7 @@ export default function NurseBookingScreen({ onBack }: Readonly<NurseBookingScre
               shadowRadius: 4,
               elevation: 3
             }}>
-              {[{id: "rating", label: "Rating"}, {id: "experience", label: "Experience"}, {id: "hourly_rate", label: "Hourly Rate"}, {id: "daily_rate", label: "Daily Rate"}].map(option => (
+              {[{id: "nearest", label: "📍 Nearest"}, {id: "rating", label: "Rating"}, {id: "experience", label: "Experience"}, {id: "hourly_rate", label: "Hourly Rate"}, {id: "daily_rate", label: "Daily Rate"}].map(option => (
                 <Pressable
                   key={option.id}
                   onPress={() => {
@@ -957,6 +992,9 @@ export default function NurseBookingScreen({ onBack }: Readonly<NurseBookingScre
                       </Text>
                       <Text style={{ fontSize: 12, color: '#666', marginTop: 2 }}>
                         {nurse.experience} years • {nurse.gender} • ⭐ {nurse.rating.toFixed(1)}
+                        {location && nurse.latitude != null && nurse.longitude != null
+                          ? ` · 📍 ${formatDistance(haversineKm(location.latitude, location.longitude, nurse.latitude, nurse.longitude))} away`
+                          : ""}
                       </Text>
                     </View>
                     {!nurse.is_active && (
@@ -1013,6 +1051,18 @@ export default function NurseBookingScreen({ onBack }: Readonly<NurseBookingScre
           setAlert({ ...alert, visible: false });
           alert.onConfirm?.();
         }}
+      />
+
+      <DatePickerModal
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        onSelect={(date) => {
+          setStartDate(date);
+          if (validationErrors.startDate) {
+            setValidationErrors({ ...validationErrors, startDate: undefined });
+          }
+        }}
+        selectedDate={startDate}
       />
     </ScrollView>
   );

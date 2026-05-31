@@ -33,6 +33,8 @@ class Doctor(SQLModel, table=True):
     available_slots: str  # JSON string of array: ["09:00 AM", "10:00 AM"]
     image: str  # emoji or image URL
     address: str
+    latitude: float | None = Field(default=None)
+    longitude: float | None = Field(default=None)
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
@@ -70,6 +72,8 @@ class Dentist(SQLModel, table=True):
     available_slots: str  # JSON string of array: ["09:00 AM", "10:00 AM"]
     image: str  # emoji or image URL
     address: str
+    latitude: float | None = Field(default=None)
+    longitude: float | None = Field(default=None)
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
@@ -141,6 +145,8 @@ class Ambulance(SQLModel, table=True):
     base_price: int  # in rupees
     image: str  # emoji or image URL
     ambulance_type: str = Field(index=True)  # BLS, ALS, Neonatal, Air
+    latitude: float | None = Field(default=None)
+    longitude: float | None = Field(default=None)
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
@@ -182,6 +188,8 @@ class Nurse(SQLModel, table=True):
     languages: str  # JSON string of array: ["English", "Hindi"]
     image: str  # emoji or image URL
     gender: str  # Male, Female
+    latitude: float | None = Field(default=None)
+    longitude: float | None = Field(default=None)
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
@@ -228,6 +236,8 @@ class Physiotherapist(SQLModel, table=True):
     languages: str  # JSON string of array: ["English", "Hindi"]
     image: str  # emoji or image URL
     gender: str  # Male, Female
+    latitude: float | None = Field(default=None)
+    longitude: float | None = Field(default=None)
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
@@ -293,4 +303,15 @@ class MedicineOrder(SQLModel, table=True):
     status: str = Field(default="pending")  # pending, confirmed, preparing, out_for_delivery, delivered, cancelled
     created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+
+
+class PrescriptionSubmission(SQLModel, table=True):
+    __tablename__ = "prescription_submissions"
+
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: int | None = Field(default=None, foreign_key="users.id", index=True)
+    image_data: str  # base64 encoded image
+    status: str = Field(default="pending")  # pending, reviewed
+    admin_notes: str | None = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
 

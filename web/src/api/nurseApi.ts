@@ -51,6 +51,8 @@ export interface Nurse {
   languages: string[];
   image: string;
   gender: string;
+  latitude?: number | null;
+  longitude?: number | null;
   is_active: boolean;
 }
 
@@ -67,6 +69,8 @@ export interface NurseCreate {
   languages: string[];
   image: string;
   gender: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface NurseUpdate extends Partial<NurseCreate> {

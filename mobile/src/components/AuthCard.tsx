@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ActivityIndicator, Image, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { styles } from "../styles";
 
-const heroImage = require("../../assets/agentregistration-img.png");
+const logoImage = require("../../assets/medEfix.png");
 
 export interface AuthFormData {
   name?: string;
@@ -69,9 +69,8 @@ export default function AuthCard({
   return (
     <View style={styles.card}>
       <View style={styles.heroBlock}>
-        <View style={styles.heroCircle}>
-          <Image source={heroImage} style={styles.heroImage} />
-        </View>
+        <Image source={logoImage} style={styles.authLogo} resizeMode="contain" />
+        <Text style={styles.logoTagline}>your health, our priority</Text>
       </View>
 
       <Text style={styles.title}>{title}</Text>

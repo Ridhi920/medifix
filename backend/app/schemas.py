@@ -63,6 +63,8 @@ class DoctorResponse(BaseModel):
     available_slots: List[str]
     image: str
     address: str
+    latitude: float | None = None
+    longitude: float | None = None
     is_active: bool
 
 
@@ -77,6 +79,8 @@ class DoctorCreate(BaseModel):
     available_slots: List[str]
     image: str
     address: str
+    latitude: float | None = None
+    longitude: float | None = None
 
 
 class DoctorUpdate(BaseModel):
@@ -90,6 +94,8 @@ class DoctorUpdate(BaseModel):
     available_slots: List[str] | None = None
     image: str | None = None
     address: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
     is_active: bool | None = None
 
 
@@ -138,6 +144,8 @@ class DentistResponse(BaseModel):
     available_slots: List[str]
     image: str
     address: str
+    latitude: float | None = None
+    longitude: float | None = None
     is_active: bool
 
 
@@ -152,6 +160,8 @@ class DentistCreate(BaseModel):
     available_slots: List[str]
     image: str
     address: str
+    latitude: float | None = None
+    longitude: float | None = None
 
 
 class DentistUpdate(BaseModel):
@@ -165,6 +175,8 @@ class DentistUpdate(BaseModel):
     available_slots: List[str] | None = None
     image: str | None = None
     address: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
     is_active: bool | None = None
 
 
@@ -283,6 +295,8 @@ class AmbulanceResponse(BaseModel):
     base_price: int
     image: str
     ambulance_type: str
+    latitude: float | None = None
+    longitude: float | None = None
     is_active: bool
 
 
@@ -294,6 +308,8 @@ class AmbulanceCreate(BaseModel):
     base_price: int
     image: str
     ambulance_type: str
+    latitude: float | None = None
+    longitude: float | None = None
 
 
 class AmbulanceUpdate(BaseModel):
@@ -304,6 +320,8 @@ class AmbulanceUpdate(BaseModel):
     base_price: int | None = None
     image: str | None = None
     ambulance_type: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
     is_active: bool | None = None
 
 
@@ -358,6 +376,8 @@ class NurseResponse(BaseModel):
     languages: List[str]
     image: str
     gender: str
+    latitude: float | None = None
+    longitude: float | None = None
     is_active: bool
 
 
@@ -374,6 +394,8 @@ class NurseCreate(BaseModel):
     languages: List[str]
     image: str
     gender: str
+    latitude: float | None = None
+    longitude: float | None = None
 
 
 class NurseUpdate(BaseModel):
@@ -389,6 +411,8 @@ class NurseUpdate(BaseModel):
     languages: List[str] | None = None
     image: str | None = None
     gender: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
     is_active: bool | None = None
 
 
@@ -458,6 +482,8 @@ class PhysiotherapistResponse(BaseModel):
     languages: List[str]
     image: str
     gender: str
+    latitude: float | None = None
+    longitude: float | None = None
     is_active: bool
 
 
@@ -474,6 +500,8 @@ class PhysiotherapistCreate(BaseModel):
     languages: List[str]
     image: str
     gender: str
+    latitude: float | None = None
+    longitude: float | None = None
 
 
 class PhysiotherapistUpdate(BaseModel):
@@ -489,6 +517,8 @@ class PhysiotherapistUpdate(BaseModel):
     languages: List[str] | None = None
     image: str | None = None
     gender: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
     is_active: bool | None = None
 
 
@@ -622,3 +652,16 @@ class MedicineOrderResponse(BaseModel):
 
 class MedicineOrderStatusUpdate(BaseModel):
     status: str = Field(..., pattern="^(pending|confirmed|preparing|out_for_delivery|delivered|cancelled)$")
+
+
+class PrescriptionSubmissionCreate(BaseModel):
+    image_data: str  # base64 encoded image
+
+
+class PrescriptionSubmissionResponse(BaseModel):
+    id: int
+    user_id: int | None
+    image_data: str
+    status: str
+    admin_notes: str | None
+    created_at: datetime

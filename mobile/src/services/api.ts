@@ -108,6 +108,8 @@ export interface Doctor {
   available_slots: string[];
   image: string;
   address: string;
+  latitude?: number | null;
+  longitude?: number | null;
   is_active: boolean;
 }
 
@@ -200,6 +202,8 @@ export interface Dentist {
   available_slots: string[];
   image: string;
   address: string;
+  latitude?: number | null;
+  longitude?: number | null;
   is_active: boolean;
 }
 

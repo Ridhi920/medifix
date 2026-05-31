@@ -16,6 +16,8 @@ export interface Nurse {
   languages: string[];
   image: string;
   gender: string;
+  latitude?: number | null;
+  longitude?: number | null;
   is_active: boolean;
 }
 

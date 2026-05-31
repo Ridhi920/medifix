@@ -31,6 +31,7 @@ import {
   FitnessCenter as PhysiotherapistIcon,
   LocalPharmacy as PharmacyIcon,
   ShoppingCart as PharmacyOrderIcon,
+  Description as PrescriptionIcon,
   Logout as LogoutIcon,
   Home as HomeIcon,
   LocalHospital as DentistIcon
@@ -57,7 +58,8 @@ const bookingItems = [
   { text: 'Ambulance Bookings', icon: <AmbulanceBookingIcon />, path: '/admin/ambulance-bookings' },
   { text: 'Nurse Bookings', icon: <NurseIcon />, path: '/admin/nurse-bookings' },
   { text: 'Physiotherapist Bookings', icon: <PhysiotherapistIcon />, path: '/admin/physiotherapist-bookings' },
-  { text: 'Pharmacy Orders', icon: <PharmacyOrderIcon />, path: '/admin/pharmacy-orders' }
+  { text: 'Pharmacy Orders', icon: <PharmacyOrderIcon />, path: '/admin/pharmacy-orders' },
+  { text: 'Prescriptions', icon: <PrescriptionIcon />, path: '/admin/prescriptions' }
 ];
 
 export default function DashboardLayout() {
@@ -87,7 +89,7 @@ export default function DashboardLayout() {
 
   // Determine which menu items to show based on current path
   const isServicePath = location.pathname.match(/\/(users|doctors|dentists|lab-tests|ambulances|nurses|physiotherapists|pharmacy)$/);
-  const isBookingPath = location.pathname.match(/\/(appointments|dentist-appointments|lab-bookings|ambulance-bookings|nurse-bookings|physiotherapist-bookings|pharmacy-orders)$/);
+  const isBookingPath = location.pathname.match(/\/(appointments|dentist-appointments|lab-bookings|ambulance-bookings|nurse-bookings|physiotherapist-bookings|pharmacy-orders|prescriptions)$/);
   
   let menuItems = [];
   if (isServicePath) {

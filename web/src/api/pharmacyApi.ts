@@ -93,6 +93,15 @@ export interface MedicineOrder {
   created_at: string;
 }
 
+export interface PrescriptionSubmission {
+  id: number;
+  user_id: number | null;
+  image_data: string;
+  status: 'pending' | 'reviewed';
+  admin_notes: string | null;
+  created_at: string;
+}
+
 // API Methods
 export const pharmacyAPI = {
   // ========== Medicine Management ==========
@@ -158,6 +167,21 @@ export const pharmacyAPI = {
   // Cancel order
   cancelOrder: async (orderId: number): Promise<MedicineOrder> => {
     const response = await api.patch<MedicineOrder>(`/pharmacy/orders/${orderId}/cancel`);
+    return response.data;
+  },
+
+  // ========== Prescriptions ==========
+
+  getAllPrescriptions: async (): Promise<PrescriptionSubmission[]> => {
+    const response = await api.get<PrescriptionSubmission[]>('/pharmacy/prescriptions/all');
+    return response.data;
+  },
+
+  updatePrescriptionStatus: async (id: number, status: string, adminNotes?: string): Promise<PrescriptionSubmission> => {
+    const response = await api.patch<PrescriptionSubmission>(`/pharmacy/prescriptions/${id}/status`, {
+      status,
+      admin_notes: adminNotes,
+    });
     return response.data;
   },
 };

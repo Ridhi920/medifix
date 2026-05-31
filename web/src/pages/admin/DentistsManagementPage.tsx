@@ -324,15 +324,6 @@ export default function DentistsManagementPage() {
                 onChange={(e) => setFormData({ ...formData, qualification: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Image (Emoji or leave empty to upload)"
-                value={formData.image}
-                onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                helperText="Enter emoji or use the upload button below (optional)"
-              />
-            </Grid>
             <Grid item xs={12}>
               <Box>
                 <input
@@ -346,15 +337,15 @@ export default function DentistsManagementPage() {
                   <Button
                     variant="outlined"
                     component="span"
-                    startIcon={<Add />}
+                    fullWidth
                   >
-                    Upload Photo (Optional)
+                    📸 Add Photo
                   </Button>
                 </label>
                 {imagePreview && (
                   <Box sx={{ mt: 2 }}>
                     <Typography variant="caption" display="block" gutterBottom>
-                      Preview:
+                      ✓ Photo selected
                     </Typography>
                     <img
                       src={imagePreview}
@@ -404,6 +395,28 @@ export default function DentistsManagementPage() {
                 label="Address"
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Latitude (optional)"
+                value={(formData as any).latitude ?? ''}
+                onChange={(e) => setFormData({ ...formData, latitude: e.target.value ? parseFloat(e.target.value) : undefined } as any)}
+                helperText="e.g. 28.6139 — for Nearest sort"
+                inputProps={{ step: 'any' }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Longitude (optional)"
+                value={(formData as any).longitude ?? ''}
+                onChange={(e) => setFormData({ ...formData, longitude: e.target.value ? parseFloat(e.target.value) : undefined } as any)}
+                helperText="e.g. 77.2090"
+                inputProps={{ step: 'any' }}
               />
             </Grid>
             <Grid item xs={12}>

@@ -18,6 +18,7 @@ type HomeScreenProps = {
   readonly onOpenPhysiotherapist: () => void;
   readonly onOpenDental: () => void;
   readonly onOpenProfile: () => void;
+  readonly onOpenSearch: () => void;
   readonly onLogout: () => void;
 };
 
@@ -35,6 +36,7 @@ export default function HomeScreen({
   onOpenPhysiotherapist,
   onOpenDental,
   onOpenProfile,
+  onOpenSearch,
   onLogout
 }: Readonly<HomeScreenProps>) {
   const { user, logout } = useAuth();
@@ -83,6 +85,9 @@ export default function HomeScreen({
             )}
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+            <Pressable style={styles.headerIcon} onPress={onOpenSearch}>
+              <Text style={{ fontSize: 20 }}>🔍</Text>
+            </Pressable>
             <Pressable style={styles.headerIcon}>
               <Text style={{ fontSize: 20 }}>🔔</Text>
             </Pressable>
@@ -125,7 +130,8 @@ export default function HomeScreen({
               style={styles.serviceCardIcon}
               resizeMode="contain"
             />
-            <Text style={styles.serviceCardText}>Doctor Consultation</Text>
+            <Text style={styles.serviceCardText}>Consult Doctor</Text>
+            <Text style={styles.serviceCardTagline}>Book Instant Appointment</Text>
           </Pressable>
 
           <Pressable style={styles.serviceCard} onPress={onOpenPharmacy}>
@@ -134,7 +140,8 @@ export default function HomeScreen({
               style={styles.serviceCardIcon}
               resizeMode="contain"
             />
-            <Text style={styles.serviceCardText}>Pharmacy</Text>
+            <Text style={styles.serviceCardText}>Order Medicines</Text>
+            <Text style={styles.serviceCardTagline}>Delivered in 27 Mins</Text>
           </Pressable>
 
           <Pressable style={styles.serviceCard} onPress={onOpenAmbulance}>
@@ -143,7 +150,8 @@ export default function HomeScreen({
               style={styles.serviceCardIcon}
               resizeMode="contain"
             />
-            <Text style={styles.serviceCardText}>Ambulance</Text>
+            <Text style={styles.serviceCardText}>Book Ambulance</Text>
+            <Text style={styles.serviceCardTagline}>Emergency and Scheduled</Text>
           </Pressable>
 
           <Pressable style={styles.serviceCard} onPress={onOpenLab}>
@@ -152,7 +160,8 @@ export default function HomeScreen({
               style={styles.serviceCardIcon}
               resizeMode="contain"
             />
-            <Text style={styles.serviceCardText}>Lab Tests</Text>
+            <Text style={styles.serviceCardText}>Book Lab Test</Text>
+            <Text style={styles.serviceCardTagline}>Sample Collection at Home</Text>
           </Pressable>
 
           <Pressable style={styles.serviceCard} onPress={onOpenNurse}>
@@ -161,7 +170,8 @@ export default function HomeScreen({
               style={styles.serviceCardIcon}
               resizeMode="contain"
             />
-            <Text style={styles.serviceCardText}>Home Nurse</Text>
+            <Text style={styles.serviceCardText}>Book Nurse</Text>
+            <Text style={styles.serviceCardTagline}>Care at Home</Text>
           </Pressable>
 
           <Pressable style={styles.serviceCard} onPress={onOpenPhysiotherapist}>
@@ -170,7 +180,8 @@ export default function HomeScreen({
               style={styles.serviceCardIcon}
               resizeMode="contain"
             />
-            <Text style={styles.serviceCardText}>Physiotherapy</Text>
+            <Text style={styles.serviceCardText}>Book Physiotherapy</Text>
+            <Text style={styles.serviceCardTagline}>Recovery at Home</Text>
           </Pressable>
 
           <Pressable style={styles.serviceCard} onPress={onOpenDental}>
@@ -179,25 +190,26 @@ export default function HomeScreen({
               style={styles.serviceCardIcon}
               resizeMode="contain"
             />
-            <Text style={styles.serviceCardText}>Dental Care</Text>
+            <Text style={styles.serviceCardText}>Book Dentist</Text>
+            <Text style={styles.serviceCardTagline}>Dental Care Made Easy</Text>
           </Pressable>
-
-
 
           <Pressable style={styles.serviceCard} onPress={onOpenServices}>
             <View style={[styles.serviceCardIcon, { backgroundColor: '#FF6B35', borderRadius: 50, justifyContent: 'center', alignItems: 'center' }]}>
               <Text style={{ fontSize: 32, color: '#fff' }}>+</Text>
             </View>
             <Text style={styles.serviceCardText}>More Services</Text>
+            <Text style={styles.serviceCardTagline}>More Healthcare Services</Text>
           </Pressable>
         </View>
 
         {/* Emergency Ambulance Banner */}
         <View style={styles.emergencyBanner}>
-          <Text style={styles.emergencyText}>Need Immediate Ambulance Support?</Text>
+          <Text style={styles.emergencyText}>Need Immediate Ambulance Support???</Text>
           <Pressable style={styles.callNowButton}>
             <Text style={styles.callNowText}>Call Now</Text>
           </Pressable>
+
         </View>
 
         {/* Why Choose MedEfix */}

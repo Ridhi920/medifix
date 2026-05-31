@@ -18,6 +18,7 @@ import PhysiotherapistsManagementPage from "./pages/admin/PhysiotherapistsManage
 import PhysiotherapistBookingsManagementPage from "./pages/admin/PhysiotherapistBookingsManagementPage";
 import PharmacyManagementPage from "./pages/admin/PharmacyManagementPage";
 import PharmacyBookingsManagementPage from "./pages/admin/PharmacyBookingsManagementPage";
+import PrescriptionsManagementPage from "./pages/admin/PrescriptionsManagementPage";
 import UsersManagementPage from "./pages/admin/UsersManagementPage";
 
 export default function App() {
@@ -65,6 +66,7 @@ export default function App() {
             <Route path="physiotherapist-bookings" element={<PhysiotherapistBookingsManagementPage />} />
             <Route path="pharmacy" element={<PharmacyManagementPage />} />
             <Route path="pharmacy-orders" element={<PharmacyBookingsManagementPage />} />
+            <Route path="prescriptions" element={<PrescriptionsManagementPage />} />
           </Route>
 
           {/* Catch all - redirect to admin login */}

@@ -371,6 +371,8 @@ def get_nurses(
             languages=json.loads(nurse.languages),
             image=nurse.image,
             gender=nurse.gender,
+            latitude=nurse.latitude,
+            longitude=nurse.longitude,
             is_active=nurse.is_active,
         )
         for nurse in nurses
@@ -432,6 +434,8 @@ def create_nurse(
         languages=json.dumps(nurse_data.languages),
         image=nurse_data.image,
         gender=nurse_data.gender,
+        latitude=nurse_data.latitude,
+        longitude=nurse_data.longitude,
     )
     
     session.add(nurse)

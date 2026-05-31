@@ -11,6 +11,8 @@ export interface Ambulance {
   base_price: number;
   image: string;
   ambulance_type: string;
+  latitude?: number | null;
+  longitude?: number | null;
   is_active: boolean;
 }
 

@@ -64,6 +64,8 @@ export default function DoctorsManagementPage() {
     available_slots: [],
     image: '',
     address: '',
+    latitude: undefined,
+    longitude: undefined,
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
@@ -99,6 +101,8 @@ export default function DoctorsManagementPage() {
         available_slots: doctor.available_slots,
         image: doctor.image,
         address: doctor.address,
+        latitude: doctor.latitude ?? undefined,
+        longitude: doctor.longitude ?? undefined,
       });
       setImagePreview(doctor.image);
       setImageFile(null);
@@ -115,6 +119,8 @@ export default function DoctorsManagementPage() {
         available_slots: [],
         image: '',
         address: '',
+        latitude: undefined,
+        longitude: undefined,
       });
       setImagePreview('');
       setImageFile(null);
@@ -223,6 +229,7 @@ export default function DoctorsManagementPage() {
               <TableCell><strong>Name</strong></TableCell>
               <TableCell><strong>Specialty</strong></TableCell>
               <TableCell><strong>Experience</strong></TableCell>
+              <TableCell><strong>Address</strong></TableCell>
               <TableCell><strong>Rating</strong></TableCell>
               <TableCell><strong>Fee (₹)</strong></TableCell>
               <TableCell><strong>Status</strong></TableCell>
@@ -253,6 +260,11 @@ export default function DoctorsManagementPage() {
                   <Chip label={doctor.specialty} size="small" color="primary" variant="outlined" />
                 </TableCell>
                 <TableCell>{doctor.experience} years</TableCell>
+                <TableCell>
+                  <Typography variant="body2" sx={{ maxWidth: 200 }}>
+                    {doctor.address || '—'}
+                  </Typography>
+                </TableCell>
                 <TableCell>⭐ {doctor.rating}</TableCell>
                 <TableCell>₹{doctor.consultation_fee}</TableCell>
                 <TableCell>
@@ -323,15 +335,6 @@ export default function DoctorsManagementPage() {
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Image (Emoji or leave empty to upload)"
-                value={formData.image.startsWith('data:') ? '' : formData.image}
-                onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                helperText="Optional: Enter emoji or leave empty to upload image"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
               <input
                 accept="image/*"
                 style={{ display: 'none' }}
@@ -346,7 +349,7 @@ export default function DoctorsManagementPage() {
                   fullWidth
                   sx={{ height: '56px' }}
                 >
-                  Upload Photo (Optional)
+                  📸 Add Photo
                 </Button>
               </label>
               {imagePreview && (
@@ -358,6 +361,11 @@ export default function DoctorsManagementPage() {
                   />
                 </Box>
               )}
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Typography variant="body2" color="textSecondary" sx={{ pt: 2 }}>
+                {imagePreview ? '✓ Photo selected' : 'No photo selected'}
+              </Typography>
             </Grid>
             <Grid item xs={12} sm={4}>
               <TextField
@@ -393,6 +401,28 @@ export default function DoctorsManagementPage() {
                 label="Address"
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Latitude (optional)"
+                value={formData.latitude ?? ''}
+                onChange={(e) => setFormData({ ...formData, latitude: e.target.value ? parseFloat(e.target.value) : undefined })}
+                helperText="e.g. 28.6139 — enter for Nearest sort"
+                inputProps={{ step: 'any' }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Longitude (optional)"
+                value={formData.longitude ?? ''}
+                onChange={(e) => setFormData({ ...formData, longitude: e.target.value ? parseFloat(e.target.value) : undefined })}
+                helperText="e.g. 77.2090"
+                inputProps={{ step: 'any' }}
               />
             </Grid>
             <Grid item xs={12}>

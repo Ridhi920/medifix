@@ -56,6 +56,8 @@ export default function PhysiotherapistsManagementPage() {
 
   const [serviceInput, setServiceInput] = useState('');
   const [languageInput, setLanguageInput] = useState('');
+  const [_imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
 
   useEffect(() => {
     fetchPhysiotherapists();
@@ -91,6 +93,8 @@ export default function PhysiotherapistsManagementPage() {
         image: physiotherapist.image,
         gender: physiotherapist.gender,
       });
+      setImagePreview(physiotherapist.image);
+      setImageFile(null);
     } else {
       setEditingPhysiotherapist(null);
       setFormData({
@@ -107,6 +111,8 @@ export default function PhysiotherapistsManagementPage() {
         image: '',
         gender: '',
       });
+      setImagePreview('');
+      setImageFile(null);
     }
     setServiceInput('');
     setLanguageInput('');
@@ -116,6 +122,22 @@ export default function PhysiotherapistsManagementPage() {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingPhysiotherapist(null);
+    setImageFile(null);
+    setImagePreview('');
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setImagePreview(base64String);
+        setFormData(prev => ({ ...prev, image: base64String }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = async () => {
@@ -234,7 +256,17 @@ export default function PhysiotherapistsManagementPage() {
           <TableBody>
             {physiotherapists.map((physiotherapist) => (
               <TableRow key={physiotherapist.id}>
-                <TableCell sx={{ fontSize: '2rem' }}>{physiotherapist.image}</TableCell>
+                <TableCell>
+                  {physiotherapist.image && (physiotherapist.image.startsWith('data:') || physiotherapist.image.startsWith('http')) ? (
+                    <img
+                      src={physiotherapist.image}
+                      alt={physiotherapist.name}
+                      style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <Typography fontSize={32}>{physiotherapist.image || '🧑‍⚕️'}</Typography>
+                  )}
+                </TableCell>
                 <TableCell>{physiotherapist.name}</TableCell>
                 <TableCell>{physiotherapist.qualification}</TableCell>
                 <TableCell>
@@ -431,13 +463,61 @@ export default function PhysiotherapistsManagementPage() {
               </Stack>
             </Box>
 
-            <TextField
-              label="Image (Emoji)"
-              value={formData.image}
-              onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-              fullWidth
-              placeholder="🧘"
-            />
+            <Box>
+              <input
+                accept="image/*"
+                style={{ display: 'none' }}
+                id="physio-image-upload"
+                type="file"
+                onChange={handleImageChange}
+              />
+              <label htmlFor="physio-image-upload">
+                <Button
+                  variant="outlined"
+                  component="span"
+                  fullWidth
+                >
+                  📸 Add Photo
+                </Button>
+              </label>
+              {imagePreview && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="caption" display="block" gutterBottom>
+                    ✓ Photo selected
+                  </Typography>
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    style={{
+                      maxWidth: '100px',
+                      maxHeight: '100px',
+                      objectFit: 'cover',
+                      borderRadius: '8px'
+                    }}
+                  />
+                </Box>
+              )}
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField
+                label="Latitude (optional)"
+                type="number"
+                inputProps={{ step: 'any' }}
+                value={(formData as any).latitude ?? ''}
+                onChange={(e) => setFormData({ ...formData, latitude: e.target.value ? parseFloat(e.target.value) : undefined } as any)}
+                fullWidth
+                helperText="e.g. 28.6139 — for Nearest sort"
+              />
+              <TextField
+                label="Longitude (optional)"
+                type="number"
+                inputProps={{ step: 'any' }}
+                value={(formData as any).longitude ?? ''}
+                onChange={(e) => setFormData({ ...formData, longitude: e.target.value ? parseFloat(e.target.value) : undefined } as any)}
+                fullWidth
+                helperText="e.g. 77.2090"
+              />
+            </Box>
           </Stack>
         </DialogContent>
         <DialogActions>

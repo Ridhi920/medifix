@@ -50,6 +50,8 @@ export interface Dentist {
   available_slots: string[];
   image: string;
   address: string;
+  latitude?: number | null;
+  longitude?: number | null;
   is_active: boolean;
 }
 
@@ -64,6 +66,8 @@ export interface DentistCreate {
   available_slots: string[];
   image: string;
   address: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface DentistUpdate extends Partial<DentistCreate> {

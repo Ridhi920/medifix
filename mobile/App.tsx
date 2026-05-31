@@ -1,7 +1,7 @@
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
-import { View, Image, StyleSheet } from "react-native";
+import { View, Image, StyleSheet, ImageBackground } from "react-native";
 import { AuthProvider } from "./src/context/AuthContext";
 import { SERVICES, type ServiceKey } from "./src/data/services";
 import { styles } from "./src/styles";
@@ -23,12 +23,14 @@ import ProfileMenuScreen from "./src/screens/profile/ProfileMenuScreen";
 import EditProfileScreen from "./src/screens/profile/EditProfileScreen";
 import UpcomingBookingsScreen from "./src/screens/profile/UpcomingBookingsScreen";
 import CompletedBookingsScreen from "./src/screens/profile/CompletedBookingsScreen";
+import GlobalSearchScreen from "./src/screens/search/GlobalSearchScreen";
 
 type Screen =
   | "login"
   | "signup"
   | "forgot"
   | "home"
+  | "search"
   | "services"
   | "service-dental"
   | "appointments"
@@ -82,6 +84,19 @@ function renderScreen(
           onBackToLogin={() => setScreen("login")}
         />
       );
+    case "search":
+      return (
+        <GlobalSearchScreen
+          onBack={() => setScreen("home")}
+          onOpenAppointments={() => setScreen("appointments")}
+          onOpenDental={() => setScreen("dentist-appointments")}
+          onOpenPharmacy={() => setScreen("pharmacy")}
+          onOpenLab={() => setScreen("lab")}
+          onOpenNurse={() => setScreen("nurse")}
+          onOpenPhysiotherapist={() => setScreen("physiotherapist")}
+          onOpenAmbulance={() => setScreen("ambulance")}
+        />
+      );
     case "home":
       return (
         <HomeScreen
@@ -98,6 +113,7 @@ function renderScreen(
           onOpenPhysiotherapist={() => setScreen("physiotherapist")}
           onOpenDental={() => setScreen("dentist-appointments")}
           onOpenProfile={() => setScreen("profile")}
+          onOpenSearch={() => setScreen("search")}
           onLogout={() => setScreen("login")}
         />
       );
@@ -152,7 +168,25 @@ function AppContent() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const isAuthScreen = screen === "login" || screen === "signup" || screen === "forgot";
-  const containerStyle = screen === "home" || !isAuthScreen ? { flex: 1 } : styles.container;
+  const containerStyle = { flex: 1 };
+
+  if (isAuthScreen) {
+    return (
+      <ImageBackground
+        source={require("./assets/medefix background.jpeg")}
+        style={{ flex: 1 }}
+        blurRadius={18}
+        resizeMode="cover"
+      >
+        <View style={{ flex: 1, backgroundColor: "rgba(248, 245, 240, 0.72)" }}>
+          <View style={styles.container}>
+            <StatusBar style="dark" />
+            {renderScreen(screen, menuOpen, setScreen, setMenuOpen)}
+          </View>
+        </View>
+      </ImageBackground>
+    );
+  }
 
   return (
     <LinearGradient

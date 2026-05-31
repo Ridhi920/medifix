@@ -27,6 +27,8 @@ import {
   Card,
   CardContent,
   Grid,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import {
   Visibility,
@@ -38,8 +40,9 @@ import {
   LocalShipping,
   Done,
   Close,
+  Assignment,
 } from '@mui/icons-material';
-import { pharmacyAPI, MedicineOrder } from '../../api/pharmacyApi';
+import { pharmacyAPI, MedicineOrder, PrescriptionSubmission } from '../../api/pharmacyApi';
 
 const STATUS_COLORS: Record<string, 'default' | 'warning' | 'info' | 'success' | 'error'> = {
   pending: 'warning',
@@ -60,15 +63,20 @@ const STATUS_OPTIONS = [
 ] as const;
 
 export default function PharmacyBookingsManagementPage() {
+  const [activeTab, setActiveTab] = useState(0);
   const [orders, setOrders] = useState<MedicineOrder[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<MedicineOrder | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [statusMenuAnchor, setStatusMenuAnchor] = useState<null | HTMLElement>(null);
   const [statusChangeOrder, setStatusChangeOrder] = useState<MedicineOrder | null>(null);
+  const [prescriptions, setPrescriptions] = useState<PrescriptionSubmission[]>([]);
+  const [selectedPrescription, setSelectedPrescription] = useState<PrescriptionSubmission | null>(null);
+  const [openPrescriptionDialog, setOpenPrescriptionDialog] = useState(false);
 
   useEffect(() => {
     fetchOrders();
+    fetchPrescriptions();
   }, []);
 
   const fetchOrders = async () => {
@@ -77,6 +85,26 @@ export default function PharmacyBookingsManagementPage() {
       setOrders(data);
     } catch (error: any) {
       showSnackbar('Failed to load orders', 'error');
+    }
+  };
+
+  const fetchPrescriptions = async () => {
+    try {
+      const data = await pharmacyAPI.getAllPrescriptions();
+      setPrescriptions(data);
+    } catch {
+      // silently ignore if endpoint not yet available
+    }
+  };
+
+  const handleMarkReviewed = async (id: number) => {
+    try {
+      await pharmacyAPI.updatePrescriptionStatus(id, 'reviewed');
+      showSnackbar('Prescription marked as reviewed', 'success');
+      fetchPrescriptions();
+      setOpenPrescriptionDialog(false);
+    } catch {
+      showSnackbar('Failed to update prescription', 'error');
     }
   };
 
@@ -171,14 +199,143 @@ export default function PharmacyBookingsManagementPage() {
   return (
     <Box>
       <Typography variant="h4" component="h1" sx={{ mb: 3 }}>
-        Pharmacy Orders Management
+        Pharmacy Management
       </Typography>
 
-      <TableContainer component={Paper}>
+      <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
+        <Tab label={`Orders (${orders.length})`} />
+        <Tab
+          label={`Prescriptions (${prescriptions.length})`}
+          icon={prescriptions.filter(p => p.status === 'pending').length > 0
+            ? <Chip label={prescriptions.filter(p => p.status === 'pending').length} color="warning" size="small" />
+            : undefined}
+          iconPosition="end"
+        />
+      </Tabs>
+
+      {activeTab === 1 && (
+        <>
+          <TableContainer component={Paper} sx={{ mb: 3 }}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>ID</TableCell>
+                  <TableCell>User ID</TableCell>
+                  <TableCell>Preview</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Submitted</TableCell>
+                  <TableCell align="right">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {prescriptions.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                      No prescription submissions yet
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  prescriptions.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell>#{p.id}</TableCell>
+                      <TableCell>{p.user_id ?? '—'}</TableCell>
+                      <TableCell>
+                        <Box
+                          component="img"
+                          src={p.image_data}
+                          alt="prescription"
+                          sx={{ width: 60, height: 45, objectFit: 'cover', borderRadius: 1, border: '1px solid #e2e8f0', cursor: 'pointer' }}
+                          onClick={() => { setSelectedPrescription(p); setOpenPrescriptionDialog(true); }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={p.status === 'pending' ? 'Pending Review' : 'Reviewed'}
+                          color={p.status === 'pending' ? 'warning' : 'success'}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>{formatDateTime(p.created_at)}</TableCell>
+                      <TableCell align="right">
+                        <IconButton size="small" color="primary" onClick={() => { setSelectedPrescription(p); setOpenPrescriptionDialog(true); }}>
+                          <Visibility />
+                        </IconButton>
+                        {p.status === 'pending' && (
+                          <IconButton size="small" color="success" onClick={() => handleMarkReviewed(p.id)}>
+                            <CheckCircle />
+                          </IconButton>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          {/* Prescription Detail Dialog */}
+          <Dialog open={openPrescriptionDialog} onClose={() => setOpenPrescriptionDialog(false)} maxWidth="sm" fullWidth>
+            <DialogTitle>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="h6">Prescription #{selectedPrescription?.id}</Typography>
+                <Chip
+                  label={selectedPrescription?.status === 'pending' ? 'Pending Review' : 'Reviewed'}
+                  color={selectedPrescription?.status === 'pending' ? 'warning' : 'success'}
+                  size="small"
+                />
+              </Box>
+            </DialogTitle>
+            <DialogContent>
+              {selectedPrescription && (
+                <Stack spacing={2}>
+                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                    <Box
+                      component="img"
+                      src={selectedPrescription.image_data}
+                      alt="prescription"
+                      sx={{ maxWidth: '100%', maxHeight: 400, borderRadius: 2, border: '1px solid #e2e8f0' }}
+                    />
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="textSecondary">Submitted by User ID</Typography>
+                    <Typography variant="body1">{selectedPrescription.user_id ?? 'Anonymous'}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="textSecondary">Submitted At</Typography>
+                    <Typography variant="body1">{formatDateTime(selectedPrescription.created_at)}</Typography>
+                  </Box>
+                  {selectedPrescription.admin_notes && (
+                    <Box>
+                      <Typography variant="body2" color="textSecondary">Admin Notes</Typography>
+                      <Typography variant="body1">{selectedPrescription.admin_notes}</Typography>
+                    </Box>
+                  )}
+                </Stack>
+              )}
+            </DialogContent>
+            <DialogActions>
+              {selectedPrescription?.status === 'pending' && (
+                <Button
+                  onClick={() => handleMarkReviewed(selectedPrescription.id)}
+                  color="success"
+                  variant="contained"
+                  startIcon={<CheckCircle />}
+                >
+                  Mark as Reviewed
+                </Button>
+              )}
+              <Button onClick={() => setOpenPrescriptionDialog(false)}>Close</Button>
+            </DialogActions>
+          </Dialog>
+        </>
+      )}
+
+      {activeTab === 0 && <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
               <TableCell>Order ID</TableCell>
+              <TableCell>Rx</TableCell>
               <TableCell>Patient</TableCell>
               <TableCell>Phone</TableCell>
               <TableCell>Items</TableCell>
@@ -201,9 +358,14 @@ export default function PharmacyBookingsManagementPage() {
                 </TableCell>
                 <TableCell>{order.patient_phone}</TableCell>
                 <TableCell>
-                  <Chip 
-                    label={`${order.items.length} item${order.items.length > 1 ? 's' : ''}`} 
-                    size="small" 
+                  {order.prescription_image
+                    ? <Chip icon={<Assignment fontSize="small" />} label="Rx" color="success" size="small" />
+                    : <Typography variant="body2" color="textSecondary">—</Typography>}
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    label={`${order.items.length} item${order.items.length > 1 ? 's' : ''}`}
+                    size="small"
                     color="primary"
                   />
                 </TableCell>
@@ -240,7 +402,7 @@ export default function PharmacyBookingsManagementPage() {
             ))}
           </TableBody>
         </Table>
-      </TableContainer>
+      </TableContainer>}
 
       {/* Status Change Menu */}
       <Menu
@@ -364,7 +526,12 @@ export default function PharmacyBookingsManagementPage() {
                         <Typography variant="body2" color="textSecondary" gutterBottom>
                           Prescription
                         </Typography>
-                        <Chip label="Prescription Uploaded" color="success" size="small" />
+                        <Box
+                          component="img"
+                          src={selectedOrder.prescription_image}
+                          alt="prescription"
+                          sx={{ maxWidth: '100%', maxHeight: 300, borderRadius: 2, border: '1px solid #e2e8f0', mt: 1 }}
+                        />
                       </Box>
                     )}
                   </CardContent>

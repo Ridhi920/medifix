@@ -93,14 +93,15 @@ export default function ServicesListScreen({
                     fontSize: 16,
                     fontWeight: "700",
                     color: "#0f172a",
-                    marginBottom: 6
+                    marginBottom: 4
                   }}>
                     {service.title}
                   </Text>
                   <Text style={{
-                    fontSize: 13,
-                    color: "#64748b",
-                    lineHeight: 18,
+                    fontSize: 11,
+                    color: "#FF6B35",
+                    fontWeight: "500",
+                    lineHeight: 16,
                     marginBottom: 12
                   }}>
                     {service.summary}

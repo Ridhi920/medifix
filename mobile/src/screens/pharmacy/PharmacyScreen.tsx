@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
-import { Pressable, ScrollView, Text, View, TextInput, Image, ActivityIndicator } from "react-native";
+import { Modal, Pressable, ScrollView, Text, View, TextInput, Image, ActivityIndicator } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { styles } from "../../styles";
 import { MEDICINES, MEDICINE_CATEGORIES, type Medicine } from "../../data/medicines";
 import LoadingScreen from "../../components/LoadingScreen";
+import PrescriptionUploadSuccessModal from "../../components/PrescriptionUploadSuccessModal";
+import { pharmacyApi } from "../../api/pharmacyApi";
 
 type PharmacyScreenProps = {
   readonly onBack: () => void;
@@ -468,6 +470,8 @@ export default function PharmacyScreen({ onBack }: Readonly<PharmacyScreenProps>
   const [loading, setLoading] = useState<boolean>(true);
   const [prescriptionUploaded, setPrescriptionUploaded] = useState<boolean>(false);
   const [prescriptionImage, setPrescriptionImage] = useState<string>("");
+  const [showPrescriptionModal, setShowPrescriptionModal] = useState<boolean>(false);
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -493,50 +497,67 @@ export default function PharmacyScreen({ onBack }: Readonly<PharmacyScreenProps>
     return matchesCategory && matchesSearch;
   });
 
+  const handlePrescriptionSuccess = async (uri: string, base64?: string | null) => {
+    setPrescriptionImage(uri);
+    setPrescriptionUploaded(true);
+    setShowSuccessModal(true);
+    // Submit to backend best-effort (silently ignore errors)
+    if (base64) {
+      try {
+        await pharmacyApi.submitPrescription(`data:image/jpeg;base64,${base64}`);
+      } catch {
+        // backend submission is best-effort
+      }
+    }
+  };
+
+  const handleSuccessModalCancel = () => {
+    setShowSuccessModal(false);
+  };
+
+  const handleSuccessModalCheckAvailability = (checkAvailability: boolean) => {
+    setShowSuccessModal(false);
+    if (checkAvailability) {
+      // Filter to show only prescription medicines
+      setSelectedCategory("All");
+      setSearchQuery("");
+      // Optionally show a notification
+      alert("✓ Now showing available medicines based on your prescription");
+    }
+  };
+
   const handleUploadPrescription = async () => {
-    // Request permission to access media library
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
     if (permissionResult.granted === false) {
       alert("Permission to access camera roll is required!");
       return;
     }
-
-    // Launch image picker
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: "images",
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.8,
+      quality: 0.6,
+      base64: true,
     });
-
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setPrescriptionImage(result.assets[0].uri);
-      setPrescriptionUploaded(true);
-      alert("Prescription uploaded successfully!");
+      await handlePrescriptionSuccess(result.assets[0].uri, result.assets[0].base64);
     }
   };
 
   const handleTakePhoto = async () => {
-    // Request permission to access camera
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-    
     if (permissionResult.granted === false) {
       alert("Permission to access camera is required!");
       return;
     }
-
-    // Launch camera
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.8,
+      quality: 0.6,
+      base64: true,
     });
-
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setPrescriptionImage(result.assets[0].uri);
-      setPrescriptionUploaded(true);
-      alert("Prescription uploaded successfully!");
+      await handlePrescriptionSuccess(result.assets[0].uri, result.assets[0].base64);
     }
   };
 
@@ -943,6 +964,13 @@ export default function PharmacyScreen({ onBack }: Readonly<PharmacyScreenProps>
           </View>
         </Pressable>
       )}
+
+      {/* Prescription Success Modal */}
+      <PrescriptionUploadSuccessModal
+        visible={showSuccessModal}
+        onCancel={handleSuccessModalCancel}
+        onCheckAvailability={handleSuccessModalCheckAvailability}
+      />
     </View>
   );
 }

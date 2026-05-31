@@ -54,6 +54,8 @@ export default function AmbulancesManagementPage() {
   });
 
   const [featureInput, setFeatureInput] = useState('');
+  const [_imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
 
   useEffect(() => {
     fetchAmbulances();
@@ -84,6 +86,8 @@ export default function AmbulancesManagementPage() {
         image: ambulance.image,
         ambulance_type: ambulance.ambulance_type,
       });
+      setImagePreview(ambulance.image);
+      setImageFile(null);
     } else {
       setEditingAmbulance(null);
       setFormData({
@@ -92,17 +96,35 @@ export default function AmbulancesManagementPage() {
         features: [],
         estimated_time: '',
         base_price: 0,
-        image: '🚑',
+        image: '',
         ambulance_type: 'BLS',
       });
+      setImagePreview('');
+      setImageFile(null);
     }
     setFeatureInput('');
     setOpenDialog(true);
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setImagePreview(base64String);
+        setFormData(prev => ({ ...prev, image: base64String }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingAmbulance(null);
+    setImageFile(null);
+    setImagePreview('');
   };
 
   const handleSubmit = async () => {
@@ -195,7 +217,15 @@ export default function AmbulancesManagementPage() {
             {ambulances.map((ambulance) => (
               <TableRow key={ambulance.id} hover>
                 <TableCell>
-                  <Typography fontSize={32}>{ambulance.image}</Typography>
+                  {ambulance.image && (ambulance.image.startsWith('data:') || ambulance.image.startsWith('http')) ? (
+                    <img
+                      src={ambulance.image}
+                      alt={ambulance.name}
+                      style={{ width: 40, height: 40, borderRadius: '8px', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <Typography fontSize={32}>{ambulance.image || '🚑'}</Typography>
+                  )}
                 </TableCell>
                 <TableCell>
                   <Typography fontWeight={600}>{ambulance.name}</Typography>
@@ -282,13 +312,41 @@ export default function AmbulancesManagementPage() {
                   </option>
                 ))}
               </TextField>
-              <TextField
-                label="Image/Emoji"
-                value={formData.image}
-                onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                fullWidth
-                required
-              />
+              <Box sx={{ width: '100%' }}>
+                <input
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  id="ambulance-image-upload"
+                  type="file"
+                  onChange={handleImageChange}
+                />
+                <label htmlFor="ambulance-image-upload">
+                  <Button
+                    variant="outlined"
+                    component="span"
+                    fullWidth
+                  >
+                    📸 Add Photo
+                  </Button>
+                </label>
+                {imagePreview && (
+                  <Box sx={{ mt: 2, textAlign: 'center' }}>
+                    <Typography variant="caption" display="block" gutterBottom>
+                      ✓ Photo selected
+                    </Typography>
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      style={{
+                        maxWidth: '100px',
+                        maxHeight: '100px',
+                        objectFit: 'cover',
+                        borderRadius: '8px'
+                      }}
+                    />
+                  </Box>
+                )}
+              </Box>
             </Stack>
 
             {/* Features */}
@@ -343,6 +401,26 @@ export default function AmbulancesManagementPage() {
                 onChange={(e) => setFormData({ ...formData, estimated_time: e.target.value })}
                 fullWidth
                 required
+              />
+            </Stack>
+            <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
+              <TextField
+                label="Latitude (optional)"
+                type="number"
+                inputProps={{ step: 'any' }}
+                value={(formData as any).latitude ?? ''}
+                onChange={(e) => setFormData({ ...formData, latitude: e.target.value ? parseFloat(e.target.value) : undefined } as any)}
+                fullWidth
+                helperText="e.g. 28.6139 — for Nearest sort"
+              />
+              <TextField
+                label="Longitude (optional)"
+                type="number"
+                inputProps={{ step: 'any' }}
+                value={(formData as any).longitude ?? ''}
+                onChange={(e) => setFormData({ ...formData, longitude: e.target.value ? parseFloat(e.target.value) : undefined } as any)}
+                fullWidth
+                helperText="e.g. 77.2090"
               />
             </Stack>
           </Stack>

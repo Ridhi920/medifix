@@ -50,6 +50,8 @@ export interface Doctor {
   available_slots: string[];
   image: string;
   address: string;
+  latitude?: number | null;
+  longitude?: number | null;
   is_active: boolean;
 }
 
@@ -64,6 +66,8 @@ export interface DoctorCreate {
   available_slots: string[];
   image: string;
   address: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface DoctorUpdate extends Partial<DoctorCreate> {

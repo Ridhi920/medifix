@@ -6,7 +6,7 @@ from sqlmodel import Session, select
 
 from .auth import get_current_user, get_current_admin_user
 from .db import get_session
-from .models import Medicine, MedicineOrder, User
+from .models import Medicine, MedicineOrder, PrescriptionSubmission, User
 from .schemas import (
     MedicineCreate,
     MedicineOrderCreate,
@@ -14,6 +14,8 @@ from .schemas import (
     MedicineOrderStatusUpdate,
     MedicineResponse,
     MedicineUpdate,
+    PrescriptionSubmissionCreate,
+    PrescriptionSubmissionResponse,
 )
 
 router = APIRouter(prefix="/pharmacy", tags=["pharmacy"])
@@ -441,15 +443,15 @@ def update_order_status(
 ) -> MedicineOrderResponse:
     """Update medicine order status (admin only)."""
     order = session.get(MedicineOrder, order_id)
-    
+
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    
+
     order.status = status_update.status
     session.add(order)
     session.commit()
     session.refresh(order)
-    
+
     return MedicineOrderResponse(
         id=order.id,
         user_id=order.user_id,
@@ -462,4 +464,85 @@ def update_order_status(
         notes=order.notes,
         status=order.status,
         created_at=order.created_at,
+    )
+
+
+# ========== Prescription Submission Endpoints ==========
+
+@router.post("/prescriptions", response_model=PrescriptionSubmissionResponse, status_code=status.HTTP_201_CREATED)
+def submit_prescription(
+    data: PrescriptionSubmissionCreate,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+) -> PrescriptionSubmissionResponse:
+    """Submit a prescription image for review."""
+    submission = PrescriptionSubmission(
+        user_id=current_user.id,
+        image_data=data.image_data,
+    )
+    session.add(submission)
+    session.commit()
+    session.refresh(submission)
+
+    return PrescriptionSubmissionResponse(
+        id=submission.id,
+        user_id=submission.user_id,
+        image_data=submission.image_data,
+        status=submission.status,
+        admin_notes=submission.admin_notes,
+        created_at=submission.created_at,
+    )
+
+
+@router.get("/prescriptions/all", response_model=List[PrescriptionSubmissionResponse])
+def get_all_prescriptions(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_admin_user),
+) -> List[PrescriptionSubmissionResponse]:
+    """Get all prescription submissions (admin only)."""
+    submissions = session.exec(
+        select(PrescriptionSubmission).order_by(PrescriptionSubmission.created_at.desc())
+    ).all()
+
+    return [
+        PrescriptionSubmissionResponse(
+            id=s.id,
+            user_id=s.user_id,
+            image_data=s.image_data,
+            status=s.status,
+            admin_notes=s.admin_notes,
+            created_at=s.created_at,
+        )
+        for s in submissions
+    ]
+
+
+@router.patch("/prescriptions/{submission_id}/status", response_model=PrescriptionSubmissionResponse)
+def update_prescription_status(
+    submission_id: int,
+    status_update: dict,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_admin_user),
+) -> PrescriptionSubmissionResponse:
+    """Update prescription submission status (admin only)."""
+    submission = session.get(PrescriptionSubmission, submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Prescription not found")
+
+    if "status" in status_update:
+        submission.status = status_update["status"]
+    if "admin_notes" in status_update:
+        submission.admin_notes = status_update["admin_notes"]
+
+    session.add(submission)
+    session.commit()
+    session.refresh(submission)
+
+    return PrescriptionSubmissionResponse(
+        id=submission.id,
+        user_id=submission.user_id,
+        image_data=submission.image_data,
+        status=submission.status,
+        admin_notes=submission.admin_notes,
+        created_at=submission.created_at,
     )

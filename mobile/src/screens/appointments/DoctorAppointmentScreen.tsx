@@ -5,6 +5,8 @@ import { doctorAPI, type Doctor } from "../../services/api";
 import { parseBackendErrors, validators } from "../../utils/errorHandler";
 import CustomAlert from "../../components/CustomAlert";
 import LoadingScreen from "../../components/LoadingScreen";
+import { useLocation } from "../../hooks/useLocation";
+import { haversineKm, formatDistance } from "../../utils/locationUtils";
 
 type DoctorAppointmentScreenProps = {
   readonly onBack: () => void;
@@ -43,6 +45,7 @@ const DoctorImage = ({ image, size = 40 }: { image: string; size?: number }) => 
 };
 
 export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppointmentScreenProps>) {
+  const { location } = useLocation();
   const [loading, setLoading] = useState<boolean>(true);
   const [booking, setBooking] = useState<boolean>(false);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -77,7 +80,7 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
 
   useEffect(() => {
     filterAndSortDoctors();
-  }, [doctors, searchQuery, selectedSpecialty, selectedExperience, sortBy]);
+  }, [doctors, searchQuery, selectedSpecialty, selectedExperience, sortBy, location]);
 
   const fetchDoctors = async () => {
     try {
@@ -129,7 +132,17 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
     }
 
     // Sort
-    if (sortBy === "rating") {
+    if (sortBy === "nearest" && location) {
+      filtered.sort((a, b) => {
+        const dA = a.latitude != null && a.longitude != null
+          ? haversineKm(location.latitude, location.longitude, a.latitude, a.longitude)
+          : Infinity;
+        const dB = b.latitude != null && b.longitude != null
+          ? haversineKm(location.latitude, location.longitude, b.latitude, b.longitude)
+          : Infinity;
+        return dA - dB;
+      });
+    } else if (sortBy === "rating") {
       filtered.sort((a, b) => b.rating - a.rating);
     } else if (sortBy === "experience") {
       filtered.sort((a, b) => b.experience - a.experience);
@@ -448,7 +461,8 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
                   }}
                 >
                   <Text style={{ fontSize: 13, color: "#0f172a", fontWeight: "500" }} numberOfLines={1}>
-                    {sortBy === "rating" ? "Top Rated" :
+                    {sortBy === "nearest" ? "📍 Nearest" :
+                     sortBy === "rating" ? "Top Rated" :
                      sortBy === "experience" ? "Experience" :
                      sortBy === "fee_low" ? "Fee ↑" : "Fee ↓"}
                   </Text>
@@ -472,6 +486,7 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
                     shadowRadius: 8,
                   }}>
                     {[
+                      { id: "nearest", label: "📍 Nearest" },
                       { id: "rating", label: "Top Rated" },
                       { id: "experience", label: "Most Experienced" },
                       { id: "fee_low", label: "Fee: Low to High" },
@@ -543,6 +558,9 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
                     </View>
                     <Text style={{ fontSize: 12, color: "#64748b", marginTop: 6 }}>
                       📍 {doctor.address}
+                      {location && doctor.latitude != null && doctor.longitude != null
+                        ? ` · ${formatDistance(haversineKm(location.latitude, location.longitude, doctor.latitude, doctor.longitude))} away`
+                        : ""}
                     </Text>
                     <View style={{ 
                       marginTop: 8,
@@ -566,40 +584,98 @@ export default function DoctorAppointmentScreen({ onBack }: Readonly<DoctorAppoi
         {/* Selected Doctor & Booking */}
         {selectedDoctor && (
           <View style={{ marginTop: 24 }}>
-            {/* Selected Doctor Card */}
+            {/* Selected Doctor Detail Card */}
             <View style={{
-              backgroundColor: "#eef2ff",
-              borderRadius: 16,
-              padding: 16,
+              backgroundColor: "#ffffff",
+              borderRadius: 20,
+              padding: 20,
               marginBottom: 20,
-              borderWidth: 2,
-              borderColor: "#1e3a8a"
+              borderWidth: 1.5,
+              borderColor: "#e2e8f0",
+              shadowColor: "#0f172a",
+              shadowOpacity: 0.07,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 4 },
             }}>
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flex: 1 }}>
-                  <DoctorImage image={selectedDoctor.image} size={36} />
+              {/* Top row: image + name + close */}
+              <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 14, flex: 1 }}>
+                  <View style={{
+                    width: 64, height: 64, borderRadius: 32,
+                    backgroundColor: "#eef2ff",
+                    alignItems: "center", justifyContent: "center",
+                    overflow: "hidden",
+                  }}>
+                    <DoctorImage image={selectedDoctor.image} size={56} />
+                  </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 16, fontWeight: "700", color: "#0f172a" }}>
+                    <Text style={{ fontSize: 17, fontWeight: "700", color: "#0f172a" }}>
                       {selectedDoctor.name}
                     </Text>
-                    <Text style={{ fontSize: 14, color: "#FF6B35" }}>
+                    <Text style={{ fontSize: 14, color: "#FF6B35", fontWeight: "600", marginTop: 2 }}>
                       {selectedDoctor.specialty}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
+                      {selectedDoctor.qualification}
                     </Text>
                   </View>
                 </View>
                 <Pressable
                   onPress={() => setSelectedDoctor(null)}
                   style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 14,
-                    backgroundColor: "#ffffff",
-                    alignItems: "center",
-                    justifyContent: "center"
+                    width: 28, height: 28, borderRadius: 14,
+                    backgroundColor: "#f1f5f9",
+                    alignItems: "center", justifyContent: "center",
                   }}
                 >
-                  <Text style={{ color: "#0f172a", fontWeight: "700" }}>✕</Text>
+                  <Text style={{ color: "#64748b", fontWeight: "700", fontSize: 13 }}>✕</Text>
                 </Pressable>
+              </View>
+
+              {/* Divider */}
+              <View style={{ height: 1, backgroundColor: "#f1f5f9", marginBottom: 14 }} />
+
+              {/* Detail rows */}
+              <View style={{ gap: 10 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: "#fff7ed", alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ fontSize: 16 }}>⭐</Text>
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 11, color: "#94a3b8", fontWeight: "600" }}>RATING</Text>
+                    <Text style={{ fontSize: 14, fontWeight: "700", color: "#0f172a" }}>{selectedDoctor.rating} / 5.0</Text>
+                  </View>
+                </View>
+
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: "#f0fdf4", alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ fontSize: 16 }}>🏥</Text>
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 11, color: "#94a3b8", fontWeight: "600" }}>EXPERIENCE</Text>
+                    <Text style={{ fontSize: 14, fontWeight: "700", color: "#0f172a" }}>{selectedDoctor.experience} Years</Text>
+                  </View>
+                </View>
+
+                <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
+                  <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: "#eff6ff", alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ fontSize: 16 }}>📍</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 11, color: "#94a3b8", fontWeight: "600" }}>ADDRESS</Text>
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: "#0f172a", lineHeight: 20 }}>{selectedDoctor.address}</Text>
+                  </View>
+                </View>
+
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: "#faf5ff", alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ fontSize: 16 }}>💰</Text>
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 11, color: "#94a3b8", fontWeight: "600" }}>CONSULTATION FEE</Text>
+                    <Text style={{ fontSize: 16, fontWeight: "800", color: "#1e3a8a" }}>₹{selectedDoctor.consultation_fee}</Text>
+                  </View>
+                </View>
               </View>
             </View>
 

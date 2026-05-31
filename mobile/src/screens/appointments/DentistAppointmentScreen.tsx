@@ -5,6 +5,8 @@ import { dentistAPI, type Dentist } from "../../services/api";
 import { parseBackendErrors, validators } from "../../utils/errorHandler";
 import CustomAlert from "../../components/CustomAlert";
 import LoadingScreen from "../../components/LoadingScreen";
+import { useLocation } from "../../hooks/useLocation";
+import { haversineKm, formatDistance } from "../../utils/locationUtils";
 
 type DentistAppointmentScreenProps = {
   readonly onBack: () => void;
@@ -43,6 +45,7 @@ const DentistImage = ({ image, size = 40 }: { image: string; size?: number }) =>
 };
 
 export default function DentistAppointmentScreen({ onBack }: Readonly<DentistAppointmentScreenProps>) {
+  const { location } = useLocation();
   const [loading, setLoading] = useState<boolean>(true);
   const [booking, setBooking] = useState<boolean>(false);
   const [dentists, setDentists] = useState<Dentist[]>([]);
@@ -77,7 +80,7 @@ export default function DentistAppointmentScreen({ onBack }: Readonly<DentistApp
 
   useEffect(() => {
     filterAndSortDentists();
-  }, [dentists, searchQuery, selectedSpecialty, selectedExperience, sortBy]);
+  }, [dentists, searchQuery, selectedSpecialty, selectedExperience, sortBy, location]);
 
   const fetchDentists = async () => {
     try {
@@ -129,7 +132,17 @@ export default function DentistAppointmentScreen({ onBack }: Readonly<DentistApp
     }
 
     // Sort
-    if (sortBy === "rating") {
+    if (sortBy === "nearest" && location) {
+      filtered.sort((a, b) => {
+        const dA = a.latitude != null && a.longitude != null
+          ? haversineKm(location.latitude, location.longitude, a.latitude, a.longitude)
+          : Infinity;
+        const dB = b.latitude != null && b.longitude != null
+          ? haversineKm(location.latitude, location.longitude, b.latitude, b.longitude)
+          : Infinity;
+        return dA - dB;
+      });
+    } else if (sortBy === "rating") {
       filtered.sort((a, b) => b.rating - a.rating);
     } else if (sortBy === "experience") {
       filtered.sort((a, b) => b.experience - a.experience);
@@ -479,8 +492,9 @@ export default function DentistAppointmentScreen({ onBack }: Readonly<DentistApp
                 }}
               >
                 <Text style={{ fontSize: 13, color: "#0f172a", fontWeight: "500" }}>
-                  {sortBy === "rating" ? "Rating (High to Low)" : 
-                   sortBy === "experience" ? "Experience (High to Low)" : 
+                  {sortBy === "nearest" ? "📍 Nearest" :
+                   sortBy === "rating" ? "Rating (High to Low)" :
+                   sortBy === "experience" ? "Experience (High to Low)" :
                    sortBy === "fee_low" ? "Fee (Low to High)" : "Fee (High to Low)"}
                 </Text>
                 <Text style={{ fontSize: 10, color: "#64748b" }}>▼</Text>
@@ -503,6 +517,7 @@ export default function DentistAppointmentScreen({ onBack }: Readonly<DentistApp
                   elevation: 3
                 }}>
                   {[
+                    {id: "nearest", label: "📍 Nearest"},
                     {id: "rating", label: "Rating (High to Low)"},
                     {id: "experience", label: "Experience (High to Low)"},
                     {id: "fee_low", label: "Fee (Low to High)"},
@@ -574,6 +589,9 @@ export default function DentistAppointmentScreen({ onBack }: Readonly<DentistApp
                     </View>
                     <Text style={{ fontSize: 12, color: "#64748b", marginTop: 6 }}>
                       📍 {dentist.address}
+                      {location && dentist.latitude != null && dentist.longitude != null
+                        ? ` · ${formatDistance(haversineKm(location.latitude, location.longitude, dentist.latitude, dentist.longitude))} away`
+                        : ""}
                     </Text>
                     <View style={{ 
                       marginTop: 8,

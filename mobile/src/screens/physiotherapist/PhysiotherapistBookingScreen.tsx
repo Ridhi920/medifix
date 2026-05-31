@@ -1,16 +1,21 @@
 import { useState, useEffect } from "react";
-import { Pressable, ScrollView, Text, View, TextInput, ActivityIndicator } from "react-native";
+import { Pressable, ScrollView, Text, View, TextInput, ActivityIndicator, Image } from "react-native";
+import DatePickerModal from "../../components/DatePickerModal";
+import TimePickerDropdown from "../../components/TimePickerDropdown";
 import { styles } from "../../styles";
 import { physiotherapistAPI, type Physiotherapist } from "../../api/physiotherapistApi";
 import { parseBackendErrors, validators } from "../../utils/errorHandler";
 import CustomAlert from "../../components/CustomAlert";
 import LoadingScreen from "../../components/LoadingScreen";
+import { useLocation } from "../../hooks/useLocation";
+import { haversineKm, formatDistance } from "../../utils/locationUtils";
 
 type PhysiotherapistBookingScreenProps = {
   readonly onBack: () => void;
 };
 
 type BookingType = "session" | "daily" | "weekly";
+type ServiceType = "home" | "clinic";
 
 type ValidationErrors = {
   patientName?: string;
@@ -30,7 +35,25 @@ type AlertState = {
   onConfirm?: () => void;
 };
 
+const isImageUrl = (imageString: string): boolean => {
+  return imageString.startsWith('data:') || imageString.startsWith('http://') || imageString.startsWith('https://');
+};
+
+const PhysiotherapistImage = ({ image, size = 40 }: { image: string; size?: number }) => {
+  if (isImageUrl(image)) {
+    return (
+      <Image
+        source={{ uri: image }}
+        style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: '#f1f5f9' }}
+        resizeMode="cover"
+      />
+    );
+  }
+  return <Text style={{ fontSize: size }}>{image || '🧑‍⚕️'}</Text>;
+};
+
 export default function PhysiotherapistBookingScreen({ onBack }: Readonly<PhysiotherapistBookingScreenProps>) {
+  const { location } = useLocation();
   const [loading, setLoading] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [physiotherapists, setPhysiotherapists] = useState<Physiotherapist[]>([]);
@@ -55,11 +78,13 @@ export default function PhysiotherapistBookingScreen({ onBack }: Readonly<Physio
   const [address, setAddress] = useState<string>("");
   const [medicalCondition, setMedicalCondition] = useState<string>("");
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [serviceType, setServiceType] = useState<ServiceType>("home");
   const [bookingType, setBookingType] = useState<BookingType>("session");
   const [duration, setDuration] = useState<string>("1");
   const [shiftPreference, setShiftPreference] = useState<string>("Morning (8 AM - 12 PM)");
   const [startDate, setStartDate] = useState<string>("");
-  const [startTime, setStartTime] = useState<string>("09:00 AM");
+  const [startTime, setStartTime] = useState<string>("");
+  const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [specialInstructions, setSpecialInstructions] = useState<string>("");
   
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
@@ -78,7 +103,7 @@ export default function PhysiotherapistBookingScreen({ onBack }: Readonly<Physio
 
   useEffect(() => {
     filterPhysiotherapists();
-  }, [selectedSpecialization, selectedExperience, selectedRating, sortBy, searchQuery, physiotherapists]);
+  }, [selectedSpecialization, selectedExperience, selectedRating, sortBy, searchQuery, physiotherapists, location]);
 
   const fetchPhysiotherapists = async () => {
     try {
@@ -137,7 +162,17 @@ export default function PhysiotherapistBookingScreen({ onBack }: Readonly<Physio
     }
 
     // Sort
-    if (sortBy === "rating") {
+    if (sortBy === "nearest" && location) {
+      filtered.sort((a, b) => {
+        const dA = a.latitude != null && a.longitude != null
+          ? haversineKm(location.latitude, location.longitude, a.latitude, a.longitude)
+          : Infinity;
+        const dB = b.latitude != null && b.longitude != null
+          ? haversineKm(location.latitude, location.longitude, b.latitude, b.longitude)
+          : Infinity;
+        return dA - dB;
+      });
+    } else if (sortBy === "rating") {
       filtered.sort((a, b) => b.rating - a.rating);
     } else if (sortBy === "experience") {
       filtered.sort((a, b) => b.experience - a.experience);
@@ -192,7 +227,9 @@ export default function PhysiotherapistBookingScreen({ onBack }: Readonly<Physio
       errors.patientAge = "Please enter a valid age (1-150)";
     }
     errors.contactNumber = validators.phone(contactNumber);
-    errors.address = validators.address(address);
+    if (serviceType === "home") {
+      errors.address = validators.address(address);
+    }
     errors.startDate = validators.date(startDate);
     
     if (!duration || parseInt(duration) < 1) {
@@ -268,7 +305,8 @@ export default function PhysiotherapistBookingScreen({ onBack }: Readonly<Physio
         patient_age: parseInt(patientAge),
         patient_gender: patientGender,
         contact_number: contactNumber,
-        address: address,
+        service_type: serviceType,
+        address: serviceType === "home" ? address : undefined,
         medical_condition: medicalCondition || undefined,
         required_services: selectedServices,
         booking_type: bookingType,
@@ -289,6 +327,7 @@ export default function PhysiotherapistBookingScreen({ onBack }: Readonly<Physio
           `Booking ID: #${booking.id}\n` +
           `Physiotherapist: ${selectedPhysiotherapist.name}\n` +
           `Patient: ${patientName}\n` +
+          `Service: ${serviceType === "home" ? "Home Service" : "Visit Clinic"}\n` +
           `Duration: ${duration} ${bookingType === "session" ? "sessions" : bookingType === "daily" ? "days" : "weeks"}\n` +
           `Total Price: ₹${booking.total_price}\n\n` +
           `Our team will contact you shortly at ${contactNumber}`,
@@ -319,11 +358,12 @@ export default function PhysiotherapistBookingScreen({ onBack }: Readonly<Physio
     setAddress("");
     setMedicalCondition("");
     setSelectedServices([]);
+    setServiceType("home");
     setBookingType("session");
     setDuration("1");
     setShiftPreference("Morning (8 AM - 12 PM)");
     setStartDate("");
-    setStartTime("09:00 AM");
+    setStartTime("");
     setSpecialInstructions("");
     setShowBookingForm(false);
     setValidationErrors({});
@@ -346,7 +386,9 @@ export default function PhysiotherapistBookingScreen({ onBack }: Readonly<Physio
         {/* Physiotherapist Info */}
         <View style={[styles.card, { marginBottom: 16 }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-            <Text style={{ fontSize: 40, marginRight: 12 }}>{selectedPhysiotherapist.image}</Text>
+            <View style={{ marginRight: 12 }}>
+              <PhysiotherapistImage image={selectedPhysiotherapist.image} size={40} />
+            </View>
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 18, fontWeight: '600', color: '#1a1a1a' }}>{selectedPhysiotherapist.name}</Text>
               <Text style={{ fontSize: 14, color: '#666', marginTop: 2 }}>
@@ -369,10 +411,59 @@ export default function PhysiotherapistBookingScreen({ onBack }: Readonly<Physio
           </View>
         </View>
 
+        {/* Service Type Toggle */}
+        <View style={{ marginBottom: 16 }}>
+          <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Service Type</Text>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <Pressable
+              onPress={() => setServiceType("home")}
+              style={{
+                flex: 1,
+                backgroundColor: serviceType === "home" ? "#FF6B35" : "#f1f5f9",
+                paddingVertical: 14,
+                paddingHorizontal: 16,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: serviceType === "home" ? "#FF6B35" : "#e2e8f0",
+                alignItems: "center"
+              }}
+            >
+              <Text style={{ fontSize: 22, marginBottom: 4 }}>🏠</Text>
+              <Text style={{ fontSize: 14, fontWeight: "700", color: serviceType === "home" ? "#ffffff" : "#0f172a" }}>
+                Home Service
+              </Text>
+              <Text style={{ fontSize: 11, color: serviceType === "home" ? "#ffe0d0" : "#64748b", textAlign: "center", marginTop: 2 }}>
+                Therapist visits you
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setServiceType("clinic")}
+              style={{
+                flex: 1,
+                backgroundColor: serviceType === "clinic" ? "#FF6B35" : "#f1f5f9",
+                paddingVertical: 14,
+                paddingHorizontal: 16,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: serviceType === "clinic" ? "#FF6B35" : "#e2e8f0",
+                alignItems: "center"
+              }}
+            >
+              <Text style={{ fontSize: 22, marginBottom: 4 }}>🏥</Text>
+              <Text style={{ fontSize: 14, fontWeight: "700", color: serviceType === "clinic" ? "#ffffff" : "#0f172a" }}>
+                Visit Clinic
+              </Text>
+              <Text style={{ fontSize: 11, color: serviceType === "clinic" ? "#ffe0d0" : "#64748b", textAlign: "center", marginTop: 2 }}>
+                You visit the clinic
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+
         {/* Patient Information */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Patient Information</Text>
-          
+
           <Text style={{ fontSize: 14, fontWeight: '600', color: '#0f172a', marginBottom: 6 }}>Patient Name *</Text>
           <TextInput
             style={[styles.input, validationErrors.patientName && { borderColor: '#ef4444', borderWidth: 1.5 }]}
@@ -425,15 +516,20 @@ export default function PhysiotherapistBookingScreen({ onBack }: Readonly<Physio
             keyboardType="phone-pad"
           />
 
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#0f172a', marginBottom: 6 }}>Address *</Text>
-          <TextInput
-            style={[styles.input, validationErrors.address && { borderColor: '#ef4444', borderWidth: 1.5 }]}
-            value={address}
-            onChangeText={setAddress}
-            placeholder="Enter complete address"
-            multiline
-            numberOfLines={2}
-          />
+          {serviceType === "home" && (
+            <>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#0f172a', marginBottom: 6 }}>Home Address *</Text>
+              <TextInput
+                style={[styles.input, validationErrors.address && { borderColor: '#ef4444', borderWidth: 1.5 }]}
+                value={address}
+                onChangeText={setAddress}
+                placeholder="Enter complete address for home visit"
+                multiline
+                numberOfLines={2}
+              />
+              {validationErrors.address && <Text style={{ fontSize: 12, color: '#ef4444', marginBottom: 8, marginTop: -8 }}>{validationErrors.address}</Text>}
+            </>
+          )}
 
           <Text style={{ fontSize: 14, fontWeight: '600', color: '#0f172a', marginBottom: 6 }}>Medical Condition (Optional)</Text>
           <TextInput
@@ -526,21 +622,39 @@ export default function PhysiotherapistBookingScreen({ onBack }: Readonly<Physio
           </View>
 
           <Text style={{ fontSize: 14, fontWeight: '600', color: '#0f172a', marginBottom: 6 }}>Start Date *</Text>
-          <TextInput
-            style={[styles.input, validationErrors.startDate && { borderColor: '#ef4444', borderWidth: 1.5 }]}
-            value={startDate}
-            onChangeText={setStartDate}
-            placeholder="DD/MM/YYYY"
-          />
+          <Pressable
+            onPress={() => setShowDatePicker(true)}
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: 12,
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              marginBottom: validationErrors.startDate ? 4 : 16,
+              borderWidth: 1,
+              borderColor: validationErrors.startDate ? '#ef4444' : '#e2e8f0',
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
+          >
+            <Text style={{ fontSize: 14, color: startDate ? '#0f172a' : '#94a3b8' }}>
+              {startDate || "Select date"}
+            </Text>
+            <Text style={{ fontSize: 16 }}>📅</Text>
+          </Pressable>
+          {validationErrors.startDate && (
+            <Text style={{ fontSize: 12, color: '#ef4444', marginBottom: 12 }}>
+              {validationErrors.startDate}
+            </Text>
+          )}
 
           {bookingType === "session" && (
             <>
               <Text style={{ fontSize: 14, fontWeight: '600', color: '#0f172a', marginBottom: 6 }}>Start Time *</Text>
-              <TextInput
-                style={styles.input}
+              <TimePickerDropdown
                 value={startTime}
-                onChangeText={setStartTime}
-                placeholder="HH:MM AM/PM"
+                onChange={setStartTime}
+                hasError={Boolean(validationErrors.startTime)}
               />
             </>
           )}
@@ -843,7 +957,8 @@ export default function PhysiotherapistBookingScreen({ onBack }: Readonly<Physio
             }}
           >
             <Text style={{ fontSize: 13, color: "#0f172a", fontWeight: "500" }}>
-              {sortBy === "rating" ? "Rating" : 
+              {sortBy === "nearest" ? "📍 Nearest" :
+               sortBy === "rating" ? "Rating" :
                sortBy === "experience" ? "Experience" :
                sortBy === "hourly_rate" ? "Hourly Rate" : "Daily Rate"}
             </Text>
@@ -866,7 +981,7 @@ export default function PhysiotherapistBookingScreen({ onBack }: Readonly<Physio
               shadowRadius: 4,
               elevation: 3
             }}>
-              {[{id: "rating", label: "Rating"}, {id: "experience", label: "Experience"}, {id: "hourly_rate", label: "Hourly Rate"}, {id: "daily_rate", label: "Daily Rate"}].map(option => (
+              {[{id: "nearest", label: "📍 Nearest"}, {id: "rating", label: "Rating"}, {id: "experience", label: "Experience"}, {id: "hourly_rate", label: "Hourly Rate"}, {id: "daily_rate", label: "Daily Rate"}].map(option => (
                 <Pressable
                   key={option.id}
                   onPress={() => {
@@ -914,7 +1029,9 @@ export default function PhysiotherapistBookingScreen({ onBack }: Readonly<Physio
               ]}
             >
               <View style={{ flexDirection: 'row' }}>
-                <Text style={{ fontSize: 48, marginRight: 12 }}>{physiotherapist.image}</Text>
+                <View style={{ marginRight: 12 }}>
+                  <PhysiotherapistImage image={physiotherapist.image} size={48} />
+                </View>
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                     <View style={{ flex: 1 }}>
@@ -943,6 +1060,11 @@ export default function PhysiotherapistBookingScreen({ onBack }: Readonly<Physio
                     <Text style={{ fontSize: 13, color: '#666' }}>
                       {physiotherapist.gender}
                     </Text>
+                    {location && physiotherapist.latitude != null && physiotherapist.longitude != null && (
+                      <Text style={{ fontSize: 13, color: '#666' }}>
+                        📍 {formatDistance(haversineKm(location.latitude, location.longitude, physiotherapist.latitude, physiotherapist.longitude))} away
+                      </Text>
+                    )}
                   </View>
 
                   <Text style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>
@@ -989,6 +1111,18 @@ export default function PhysiotherapistBookingScreen({ onBack }: Readonly<Physio
         title={alert.title}
         message={alert.message}
         onClose={() => setAlert({ ...alert, visible: false })}
+      />
+
+      <DatePickerModal
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        onSelect={(date) => {
+          setStartDate(date);
+          if (validationErrors.startDate) {
+            setValidationErrors({ ...validationErrors, startDate: undefined });
+          }
+        }}
+        selectedDate={startDate}
       />
     </ScrollView>
   );

@@ -375,6 +375,8 @@ def get_physiotherapist(
         languages=json.loads(physiotherapist.languages),
         image=physiotherapist.image,
         gender=physiotherapist.gender,
+        latitude=physiotherapist.latitude,
+        longitude=physiotherapist.longitude,
         is_active=physiotherapist.is_active,
     )
 
@@ -399,6 +401,8 @@ def create_physiotherapist(
         languages=json.dumps(physiotherapist_data.languages),
         image=physiotherapist_data.image,
         gender=physiotherapist_data.gender,
+        latitude=physiotherapist_data.latitude,
+        longitude=physiotherapist_data.longitude,
     )
     
     session.add(physiotherapist)
@@ -419,6 +423,8 @@ def create_physiotherapist(
         languages=json.loads(physiotherapist.languages),
         image=physiotherapist.image,
         gender=physiotherapist.gender,
+        latitude=physiotherapist.latitude,
+        longitude=physiotherapist.longitude,
         is_active=physiotherapist.is_active,
     )
 
@@ -466,6 +472,8 @@ def update_physiotherapist(
         languages=json.loads(physiotherapist.languages),
         image=physiotherapist.image,
         gender=physiotherapist.gender,
+        latitude=physiotherapist.latitude,
+        longitude=physiotherapist.longitude,
         is_active=physiotherapist.is_active,
     )
 
