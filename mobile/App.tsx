@@ -9,6 +9,7 @@ import LoginScreen from "./src/screens/auth/LoginScreen";
 import SignupScreen from "./src/screens/auth/SignupScreen";
 import ForgotScreen from "./src/screens/auth/ForgotScreen";
 import HomeScreen from "./src/screens/home/HomeScreen";
+import SupportScreen from "./src/screens/support/SupportScreen";
 import ServicesListScreen from "./src/screens/services/ServicesListScreen";
 import DentalServiceScreen from "./src/screens/services/DentalServiceScreen";
 
@@ -23,6 +24,7 @@ import ProfileMenuScreen from "./src/screens/profile/ProfileMenuScreen";
 import EditProfileScreen from "./src/screens/profile/EditProfileScreen";
 import UpcomingBookingsScreen from "./src/screens/profile/UpcomingBookingsScreen";
 import CompletedBookingsScreen from "./src/screens/profile/CompletedBookingsScreen";
+import OrderHistoryScreen from "./src/screens/profile/OrderHistoryScreen";
 import GlobalSearchScreen from "./src/screens/search/GlobalSearchScreen";
 
 type Screen =
@@ -43,7 +45,9 @@ type Screen =
   | "profile"
   | "edit-profile"
   | "upcoming-bookings"
-  | "completed-bookings";
+  | "completed-bookings"
+  | "order-history"
+  | "support";
 
 const serviceScreenMap: Record<ServiceKey, Screen> = {
   doctor: "appointments",
@@ -114,6 +118,7 @@ function renderScreen(
           onOpenDental={() => setScreen("dentist-appointments")}
           onOpenProfile={() => setScreen("profile")}
           onOpenSearch={() => setScreen("search")}
+          onOpenSupport={() => setScreen("support")}
           onLogout={() => setScreen("login")}
         />
       );
@@ -149,6 +154,7 @@ function renderScreen(
           onOpenEditProfile={() => setScreen("edit-profile")}
           onOpenUpcomingBookings={() => setScreen("upcoming-bookings")}
           onOpenCompletedBookings={() => setScreen("completed-bookings")}
+          onOpenOrderHistory={() => setScreen("order-history")}
           onLogout={() => setScreen("login")}
         />
       );
@@ -158,6 +164,10 @@ function renderScreen(
       return <UpcomingBookingsScreen onBack={() => setScreen("profile")} />;
     case "completed-bookings":
       return <CompletedBookingsScreen onBack={() => setScreen("profile")} />;
+    case "order-history":
+      return <OrderHistoryScreen onBack={() => setScreen("profile")} />;
+    case "support":
+      return <SupportScreen onBack={() => setScreen("home")} />;
     default:
       return null;
   }

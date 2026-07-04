@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
 
 const DAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const FULL_WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December"
@@ -12,6 +13,7 @@ type DatePickerModalProps = {
   readonly onClose: () => void;
   readonly onSelect: (dateStr: string) => void; // DD/MM/YYYY
   readonly selectedDate?: string; // DD/MM/YYYY
+  readonly allowedWeekdays?: readonly string[]; // e.g. ["Monday", "Wednesday"] — only these weekdays selectable
 };
 
 function parseDate(str?: string): Date | null {
@@ -23,9 +25,15 @@ function parseDate(str?: string): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
-export default function DatePickerModal({ visible, onClose, onSelect, selectedDate }: Readonly<DatePickerModalProps>) {
+export default function DatePickerModal({ visible, onClose, onSelect, selectedDate, allowedWeekdays }: Readonly<DatePickerModalProps>) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
+  const isAllowedWeekday = (day: number) => {
+    if (!allowedWeekdays || allowedWeekdays.length === 0) return true;
+    const weekday = FULL_WEEKDAYS[new Date(viewYear, viewMonth, day).getDay()];
+    return allowedWeekdays.includes(weekday);
+  };
 
   const selected = parseDate(selectedDate);
 
@@ -49,6 +57,7 @@ export default function DatePickerModal({ visible, onClose, onSelect, selectedDa
     const date = new Date(viewYear, viewMonth, day);
     date.setHours(0, 0, 0, 0);
     if (date < today) return;
+    if (!isAllowedWeekday(day)) return;
     const dd = String(day).padStart(2, "0");
     const mm = String(viewMonth + 1).padStart(2, "0");
     onSelect(`${dd}/${mm}/${viewYear}`);
@@ -116,7 +125,7 @@ export default function DatePickerModal({ visible, onClose, onSelect, selectedDa
                 <Pressable
                   key={col}
                   onPress={() => day !== null && handleDay(day)}
-                  disabled={day === null || isPast(day)}
+                  disabled={day === null || isPast(day) || !isAllowedWeekday(day)}
                   style={{
                     flex: 1,
                     alignItems: "center",
@@ -131,13 +140,13 @@ export default function DatePickerModal({ visible, onClose, onSelect, selectedDa
                     color: day === null
                       ? "transparent"
                       : isSelected(day) ? "#ffffff"
-                      : isPast(day) ? "#cbd5e1"
+                      : (isPast(day) || !isAllowedWeekday(day)) ? "#cbd5e1"
                       : isToday(day) ? "#FF6B35"
                       : "#0f172a"
                   }}>
                     {day ?? ""}
                   </Text>
-                  {day !== null && isToday(day) && !isSelected(day) && (
+                  {day !== null && isToday(day) && !isSelected(day) && isAllowedWeekday(day) && (
                     <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: "#FF6B35", marginTop: 2 }} />
                   )}
                 </Pressable>

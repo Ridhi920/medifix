@@ -28,6 +28,7 @@ import {
   Delete,
 } from '@mui/icons-material';
 import { ambulanceAPI, Ambulance, AmbulanceCreate } from '../../api/ambulanceApi';
+import LocationPicker from '../../components/LocationPicker';
 
 const AMBULANCE_TYPES = [
   'BLS',
@@ -403,26 +404,12 @@ export default function AmbulancesManagementPage() {
                 required
               />
             </Stack>
-            <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
-              <TextField
-                label="Latitude (optional)"
-                type="number"
-                inputProps={{ step: 'any' }}
-                value={(formData as any).latitude ?? ''}
-                onChange={(e) => setFormData({ ...formData, latitude: e.target.value ? parseFloat(e.target.value) : undefined } as any)}
-                fullWidth
-                helperText="e.g. 28.6139 — for Nearest sort"
-              />
-              <TextField
-                label="Longitude (optional)"
-                type="number"
-                inputProps={{ step: 'any' }}
-                value={(formData as any).longitude ?? ''}
-                onChange={(e) => setFormData({ ...formData, longitude: e.target.value ? parseFloat(e.target.value) : undefined } as any)}
-                fullWidth
-                helperText="e.g. 77.2090"
-              />
-            </Stack>
+            <LocationPicker
+              latitude={(formData as any).latitude}
+              longitude={(formData as any).longitude}
+              onLocationChange={(lat, lng) => setFormData({ ...formData, latitude: lat, longitude: lng } as any)}
+              label="Location (for Nearest sort)"
+            />
           </Stack>
         </DialogContent>
         <DialogActions>

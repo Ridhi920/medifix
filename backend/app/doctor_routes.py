@@ -51,6 +51,52 @@ def get_doctors(
     ]
 
 
+# Literal-path appointment route must come BEFORE /{doctor_id} wildcard
+@router.post("/doctor_appointments", response_model=AppointmentResponse)
+def create_appointment_early(
+    appointment_data: AppointmentCreate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> AppointmentResponse:
+    """Book an appointment with a doctor."""
+    doctor = session.get(Doctor, appointment_data.doctor_id)
+    if not doctor or not doctor.is_active:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found")
+    available_days = json.loads(doctor.available_days)
+    available_slots = json.loads(doctor.available_slots)
+    if appointment_data.appointment_day not in available_days:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Doctor is not available on {appointment_data.appointment_day}")
+    if appointment_data.appointment_slot not in available_slots:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Time slot {appointment_data.appointment_slot} is not available")
+    existing_appointment = session.exec(
+        select(Appointment)
+        .where(Appointment.doctor_id == appointment_data.doctor_id)
+        .where(Appointment.appointment_day == appointment_data.appointment_day)
+        .where(Appointment.appointment_slot == appointment_data.appointment_slot)
+        .where(Appointment.status.in_(["confirmed", "pending"]))
+    ).first()
+    if existing_appointment:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This time slot is already booked. Please choose another time.")
+    appointment = Appointment(
+        user_id=current_user.id, doctor_id=appointment_data.doctor_id,
+        patient_name=appointment_data.patient_name, patient_age=appointment_data.patient_age,
+        symptoms=appointment_data.symptoms, appointment_day=appointment_data.appointment_day,
+        appointment_slot=appointment_data.appointment_slot, appointment_date=appointment_data.appointment_date,
+        consultation_fee=doctor.consultation_fee, status="pending",
+    )
+    session.add(appointment)
+    session.commit()
+    session.refresh(appointment)
+    return AppointmentResponse(
+        id=appointment.id, user_id=appointment.user_id, doctor_id=appointment.doctor_id,
+        patient_name=appointment.patient_name, patient_age=appointment.patient_age,
+        symptoms=appointment.symptoms, appointment_day=appointment.appointment_day,
+        appointment_slot=appointment.appointment_slot, appointment_date=appointment.appointment_date,
+        consultation_fee=appointment.consultation_fee, status=appointment.status,
+        created_at=appointment.created_at,
+    )
+
+
 @router.get("/{doctor_id}", response_model=DoctorResponse)
 def get_doctor(
     doctor_id: int,
@@ -221,86 +267,6 @@ def delete_doctor(
     session.commit()
     
     return {"message": "Doctor deleted successfully"}
-
-
-@router.post("/doctor_appointments", response_model=AppointmentResponse)
-def create_appointment(
-    appointment_data: AppointmentCreate,
-    current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
-) -> AppointmentResponse:
-    """Book an appointment with a doctor."""
-    # Verify doctor exists and is active
-    doctor = session.get(Doctor, appointment_data.doctor_id)
-    if not doctor or not doctor.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Doctor not found",
-        )
-    
-    # Verify the selected day and slot are available
-    available_days = json.loads(doctor.available_days)
-    available_slots = json.loads(doctor.available_slots)
-    
-    if appointment_data.appointment_day not in available_days:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Doctor is not available on {appointment_data.appointment_day}",
-        )
-    
-    if appointment_data.appointment_slot not in available_slots:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Time slot {appointment_data.appointment_slot} is not available",
-        )
-    
-    # Check if the slot is already booked (confirmed appointments)
-    existing_appointment = session.exec(
-        select(Appointment)
-        .where(Appointment.doctor_id == appointment_data.doctor_id)
-        .where(Appointment.appointment_day == appointment_data.appointment_day)
-        .where(Appointment.appointment_slot == appointment_data.appointment_slot)
-        .where(Appointment.status.in_(["confirmed", "pending"]))
-    ).first()
-    
-    if existing_appointment:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"This time slot is already booked. Please choose another time.",
-        )
-    
-    # Create appointment with pending status
-    appointment = Appointment(
-        user_id=current_user.id,
-        doctor_id=appointment_data.doctor_id,
-        patient_name=appointment_data.patient_name,
-        patient_age=appointment_data.patient_age,
-        symptoms=appointment_data.symptoms,
-        appointment_day=appointment_data.appointment_day,
-        appointment_slot=appointment_data.appointment_slot,
-        appointment_date=appointment_data.appointment_date,
-        consultation_fee=doctor.consultation_fee,
-        status="pending",
-    )
-    
-    session.add(appointment)
-    session.commit()
-    session.refresh(appointment)
-    
-    return AppointmentResponse(
-        id=appointment.id,
-        user_id=appointment.user_id,
-        doctor_id=appointment.doctor_id,
-        patient_name=appointment.patient_name,
-        patient_age=appointment.patient_age,
-        symptoms=appointment.symptoms,
-        appointment_day=appointment.appointment_day,
-        appointment_slot=appointment.appointment_slot,
-        appointment_date=appointment.appointment_date,
-        consultation_fee=appointment.consultation_fee,
-        status=appointment.status,
-        created_at=appointment.created_at,
-    )
 
 
 @router.get("/appointments/all", response_model=List[AppointmentWithDoctor])

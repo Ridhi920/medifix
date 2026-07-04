@@ -34,7 +34,8 @@ import {
   Description as PrescriptionIcon,
   Logout as LogoutIcon,
   Home as HomeIcon,
-  LocalHospital as DentistIcon
+  LocalHospital as DentistIcon,
+  Settings as SettingsIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 
@@ -48,7 +49,8 @@ const serviceItems = [
   { text: 'Ambulances', icon: <AmbulanceIcon />, path: '/admin/ambulances' },
   { text: 'Nurses', icon: <NurseIcon />, path: '/admin/nurses' },
   { text: 'Physiotherapists', icon: <PhysiotherapistIcon />, path: '/admin/physiotherapists' },
-  { text: 'Pharmacy', icon: <PharmacyIcon />, path: '/admin/pharmacy' }
+  { text: 'Pharmacy', icon: <PharmacyIcon />, path: '/admin/pharmacy' },
+  { text: 'Fee Settings', icon: <SettingsIcon />, path: '/admin/fee-settings' }
 ];
 
 const bookingItems = [
@@ -88,7 +90,7 @@ export default function DashboardLayout() {
   };
 
   // Determine which menu items to show based on current path
-  const isServicePath = location.pathname.match(/\/(users|doctors|dentists|lab-tests|ambulances|nurses|physiotherapists|pharmacy)$/);
+  const isServicePath = location.pathname.match(/\/(users|doctors|dentists|lab-tests|ambulances|nurses|physiotherapists|pharmacy|fee-settings)$/);
   const isBookingPath = location.pathname.match(/\/(appointments|dentist-appointments|lab-bookings|ambulance-bookings|nurse-bookings|physiotherapist-bookings|pharmacy-orders|prescriptions)$/);
   
   let menuItems = [];

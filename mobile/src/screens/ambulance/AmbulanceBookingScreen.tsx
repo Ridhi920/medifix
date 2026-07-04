@@ -9,6 +9,7 @@ import DatePickerModal from "../../components/DatePickerModal";
 import TimePickerDropdown from "../../components/TimePickerDropdown";
 import { useLocation } from "../../hooks/useLocation";
 import { haversineKm, formatDistance } from "../../utils/locationUtils";
+import LocationBar from "../../components/LocationBar";
 
 const EMERGENCY_CONTACTS = [
   { name: "Emergency", number: "108" },
@@ -57,7 +58,7 @@ const AmbulanceImage = ({ image, size = 40 }: { image: string; size?: number }) 
 };
 
 export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBookingScreenProps>) {
-  const { location } = useLocation();
+  const { location, locationName, locationLoading, requestLocation, setManualName } = useLocation();
   const [loading, setLoading] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [ambulances, setAmbulances] = useState<Ambulance[]>([]);
@@ -315,6 +316,14 @@ export default function AmbulanceBookingScreen({ onBack }: Readonly<AmbulanceBoo
             </Pressable>
             <Text style={styles.serviceHeaderTitle}>Book Ambulance</Text>
           </View>
+
+          {/* Location Bar */}
+          <LocationBar
+            locationName={locationName}
+            loading={locationLoading}
+            onRequestGPS={requestLocation}
+            onSetManual={setManualName}
+          />
 
           {/* Emergency Banner */}
           <View style={{

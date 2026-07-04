@@ -494,6 +494,30 @@ def submit_prescription(
     )
 
 
+@router.get("/prescriptions/my", response_model=List[PrescriptionSubmissionResponse])
+def get_my_prescriptions(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+) -> List[PrescriptionSubmissionResponse]:
+    """Get current user's prescription submissions."""
+    submissions = session.exec(
+        select(PrescriptionSubmission)
+        .where(PrescriptionSubmission.user_id == current_user.id)
+        .order_by(PrescriptionSubmission.created_at.desc())
+    ).all()
+    return [
+        PrescriptionSubmissionResponse(
+            id=s.id,
+            user_id=s.user_id,
+            image_data=s.image_data,
+            status=s.status,
+            admin_notes=s.admin_notes,
+            created_at=s.created_at,
+        )
+        for s in submissions
+    ]
+
+
 @router.get("/prescriptions/all", response_model=List[PrescriptionSubmissionResponse])
 def get_all_prescriptions(
     session: Session = Depends(get_session),

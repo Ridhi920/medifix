@@ -101,7 +101,7 @@ export default function GlobalSearchScreen({
         id: `med-${m.id}`,
         category: "Medicines",
         title: m.name,
-        subtitle: `${m.category} · ₹${m.price}${m.requiresPrescription ? " · Rx" : ""}`,
+        subtitle: `${m.category} · ₹${m.price}${m.prescriptionRequired ? " · Rx" : ""}`,
         icon: "💊",
         actionKey: "pharmacy",
       })

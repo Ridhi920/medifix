@@ -8,6 +8,7 @@ import type { LabTest } from "../../api/labTestApi";
 import { parseBackendErrors, validators } from "../../utils/errorHandler";
 import CustomAlert from "../../components/CustomAlert";
 import LoadingScreen from "../../components/LoadingScreen";
+import DatePickerModal from "../../components/DatePickerModal";
 
 type LabTestBookingScreenProps = {
   readonly onBack: () => void;
@@ -34,6 +35,7 @@ export default function LabTestBookingScreen({ onBack }: Readonly<LabTestBooking
   const [homeCollection, setHomeCollection] = useState<boolean>(false);
   const [address, setAddress] = useState<string>("");
   const [showBookingForm, setShowBookingForm] = useState<boolean>(false);
+  const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [alert, setAlert] = useState<AlertState>({
     visible: false,
@@ -117,9 +119,6 @@ export default function LabTestBookingScreen({ onBack }: Readonly<LabTestBooking
   const categories = ["All", ...Array.from(new Set(labTests.map(t => t.category)))];
   const priceRanges = ["All", "0-500", "500-1000", "1000-2000", "2000+"];
 
-  // Available dates (next 7 days)
-  const availableDates = ["Tomorrow", "Day After", "3 Days", "4 Days", "5 Days", "6 Days", "7 Days"];
-  
   // Available time slots
   const timeSlots = ["06:00 AM", "07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM"];
 
@@ -843,34 +842,25 @@ export default function LabTestBookingScreen({ onBack }: Readonly<LabTestBooking
               {/* Select Date */}
               <View style={{ marginTop: 24 }}>
                 <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Select Date</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={{ flexDirection: "row", gap: 10 }}>
-                    {availableDates.map((date) => (
-                      <Pressable
-                        key={date}
-                        onPress={() => setSelectedDate(date)}
-                        style={{
-                          backgroundColor: selectedDate === date ? "#FF6B35" : "#f1f5f9",
-                          paddingVertical: 12,
-                          paddingHorizontal: 16,
-                          borderRadius: 12,
-                          borderWidth: 1,
-                          borderColor: selectedDate === date ? "#FF6B35" : "#e2e8f0",
-                          minWidth: 100
-                        }}
-                      >
-                        <Text style={{
-                          fontSize: 13,
-                          fontWeight: "600",
-                          color: selectedDate === date ? "#ffffff" : "#64748b",
-                          textAlign: "center"
-                        }}>
-                          {date}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </ScrollView>
+                <Pressable
+                  onPress={() => setShowDatePicker(true)}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    backgroundColor: "#f1f5f9",
+                    borderWidth: 1,
+                    borderColor: selectedDate ? "#FF6B35" : "#e2e8f0",
+                    borderRadius: 12,
+                    paddingHorizontal: 16,
+                    paddingVertical: 14
+                  }}
+                >
+                  <Text style={{ fontSize: 14, color: selectedDate ? "#0f172a" : "#94a3b8", fontWeight: "600" }}>
+                    {selectedDate || "Select collection date"}
+                  </Text>
+                  <Text style={{ fontSize: 16 }}>📅</Text>
+                </Pressable>
               </View>
 
               {/* Select Time Slot */}
@@ -1004,6 +994,13 @@ export default function LabTestBookingScreen({ onBack }: Readonly<LabTestBooking
           setAlert({ ...alert, visible: false });
         }}
         primaryButtonText="OK"
+      />
+
+      <DatePickerModal
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        onSelect={(date) => setSelectedDate(date)}
+        selectedDate={selectedDate}
       />
     </View>
   );

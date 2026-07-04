@@ -12,6 +12,7 @@ type ProfileMenuScreenProps = {
   readonly onOpenEditProfile: () => void;
   readonly onOpenUpcomingBookings: () => void;
   readonly onOpenCompletedBookings: () => void;
+  readonly onOpenOrderHistory: () => void;
   readonly onLogout: () => void;
 };
 
@@ -28,6 +29,7 @@ export default function ProfileMenuScreen({
   onOpenEditProfile,
   onOpenUpcomingBookings,
   onOpenCompletedBookings,
+  onOpenOrderHistory,
   onLogout,
 }: Readonly<ProfileMenuScreenProps>) {
   const [loading, setLoading] = useState(true);
@@ -219,6 +221,14 @@ export default function ProfileMenuScreen({
             subtitle="View your booking history"
             onPress={onOpenCompletedBookings}
             color="#8b5cf6"
+          />
+
+          <MenuItem
+            icon="📦"
+            title="Order History"
+            subtitle="Track your pharmacy orders"
+            onPress={onOpenOrderHistory}
+            color="#FF6B35"
           />
 
           <Pressable

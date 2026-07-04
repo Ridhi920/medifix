@@ -35,10 +35,23 @@ type AlertState = {
   message: string;
 };
 
+type ServiceType = Booking["type"];
+type FilterValue = "all" | ServiceType;
+
+const SERVICE_FILTERS: { type: ServiceType; icon: string; label: string; section: string }[] = [
+  { type: "doctor", icon: "👨‍⚕️", label: "Doctor", section: "Doctor Appointments" },
+  { type: "lab", icon: "🔬", label: "Lab", section: "Lab Tests" },
+  { type: "ambulance", icon: "🚑", label: "Ambulance", section: "Ambulance Services" },
+  { type: "nurse", icon: "👩‍⚕️", label: "Nurse", section: "Home Nursing" },
+  { type: "physiotherapist", icon: "🧘", label: "Physio", section: "Physiotherapy" },
+];
+
 export default function CompletedBookingsScreen({ onBack }: Readonly<CompletedBookingsScreenProps>) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [filter, setFilter] = useState<FilterValue>("all");
+  const [filterOpen, setFilterOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [alert, setAlert] = useState<AlertState>({
     visible: false,
@@ -200,6 +213,15 @@ export default function CompletedBookingsScreen({ onBack }: Readonly<CompletedBo
     });
   };
 
+  const availableFilters = SERVICE_FILTERS.filter(s => bookings.some(b => b.type === s.type));
+  const currentFilterLabel =
+    filter === "all"
+      ? `All Services (${bookings.length})`
+      : (() => {
+          const s = SERVICE_FILTERS.find(f => f.type === filter);
+          return s ? `${s.icon} ${s.section} (${bookings.filter(b => b.type === filter).length})` : "All Services";
+        })();
+
   const BookingCard = ({ booking }: { booking: Booking }) => (
     <Pressable
       onPress={() => setSelectedBooking(booking)}
@@ -287,56 +309,101 @@ export default function CompletedBookingsScreen({ onBack }: Readonly<CompletedBo
           </View>
         ) : (
           <View>
-            <Text style={{ fontSize: 14, color: "#64748b", marginBottom: 16 }}>
+            <Text style={{ fontSize: 14, color: "#64748b", marginBottom: 12 }}>
               {bookings.length} {bookings.length === 1 ? "booking" : "bookings"} in history
             </Text>
 
-            {/* Doctor Appointments */}
-            {bookings.filter(b => b.type === "doctor").length > 0 && (
-              <View style={{ marginBottom: 20 }}>
-                <Text style={{ fontSize: 16, fontWeight: "700", color: "#0f172a", marginBottom: 12 }}>
-                  👨‍⚕️ Doctor Appointments ({bookings.filter(b => b.type === "doctor").length})
+            {/* Service filter dropdown */}
+            <View style={{ marginBottom: 20, zIndex: 10 }}>
+              <Pressable
+                onPress={() => setFilterOpen(prev => !prev)}
+                style={{
+                  backgroundColor: "#ffffff",
+                  borderRadius: 12,
+                  paddingHorizontal: 14,
+                  paddingVertical: 12,
+                  borderWidth: 1,
+                  borderColor: filterOpen ? "#FF6B35" : "#e2e8f0",
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: "600", color: "#0f172a" }}>
+                  {currentFilterLabel}
                 </Text>
-                {bookings.filter(b => b.type === "doctor").map((booking) => (
-                  <BookingCard key={`${booking.type}-${booking.id}`} booking={booking} />
-                ))}
-              </View>
-            )}
+                <Text style={{ fontSize: 11, color: "#64748b" }}>{filterOpen ? "▲" : "▼"}</Text>
+              </Pressable>
 
-            {/* Lab Tests */}
-            {bookings.filter(b => b.type === "lab").length > 0 && (
-              <View style={{ marginBottom: 20 }}>
-                <Text style={{ fontSize: 16, fontWeight: "700", color: "#0f172a", marginBottom: 12 }}>
-                  🔬 Lab Tests ({bookings.filter(b => b.type === "lab").length})
-                </Text>
-                {bookings.filter(b => b.type === "lab").map((booking) => (
-                  <BookingCard key={`${booking.type}-${booking.id}`} booking={booking} />
-                ))}
-              </View>
-            )}
+              {filterOpen && (
+                <View style={{
+                  backgroundColor: "#ffffff",
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: "#e2e8f0",
+                  marginTop: 4,
+                  overflow: "hidden",
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 8,
+                  elevation: 4,
+                }}>
+                  <Pressable
+                    onPress={() => { setFilter("all"); setFilterOpen(false); }}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 12,
+                      borderBottomWidth: 1,
+                      borderBottomColor: "#f1f5f9",
+                      backgroundColor: filter === "all" ? "#fff4ef" : "transparent",
+                    }}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: filter === "all" ? "700" : "400", color: filter === "all" ? "#FF6B35" : "#0f172a" }}>
+                      All Services ({bookings.length})
+                    </Text>
+                  </Pressable>
+                  {availableFilters.map((s) => (
+                    <Pressable
+                      key={s.type}
+                      onPress={() => { setFilter(s.type); setFilterOpen(false); }}
+                      style={{
+                        paddingHorizontal: 14,
+                        paddingVertical: 12,
+                        borderBottomWidth: 1,
+                        borderBottomColor: "#f1f5f9",
+                        backgroundColor: filter === s.type ? "#fff4ef" : "transparent",
+                      }}
+                    >
+                      <Text style={{ fontSize: 14, fontWeight: filter === s.type ? "700" : "400", color: filter === s.type ? "#FF6B35" : "#0f172a" }}>
+                        {s.icon} {s.section} ({bookings.filter(b => b.type === s.type).length})
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </View>
 
-            {/* Ambulance Bookings */}
-            {bookings.filter(b => b.type === "ambulance").length > 0 && (
-              <View style={{ marginBottom: 20 }}>
-                <Text style={{ fontSize: 16, fontWeight: "700", color: "#0f172a", marginBottom: 12 }}>
-                  🚑 Ambulance Services ({bookings.filter(b => b.type === "ambulance").length})
-                </Text>
-                {bookings.filter(b => b.type === "ambulance").map((booking) => (
-                  <BookingCard key={`${booking.type}-${booking.id}`} booking={booking} />
-                ))}
-              </View>
-            )}
-
-            {/* Nurse Bookings */}
-            {bookings.filter(b => b.type === "nurse").length > 0 && (
-              <View style={{ marginBottom: 20 }}>
-                <Text style={{ fontSize: 16, fontWeight: "700", color: "#0f172a", marginBottom: 12 }}>
-                  👩‍⚕️ Home Nursing ({bookings.filter(b => b.type === "nurse").length})
-                </Text>
-                {bookings.filter(b => b.type === "nurse").map((booking) => (
-                  <BookingCard key={`${booking.type}-${booking.id}`} booking={booking} />
-                ))}
-              </View>
+            {/* Bookings — grouped when "All", flat list when a service is picked */}
+            {filter === "all" ? (
+              SERVICE_FILTERS.map((s) => {
+                const group = bookings.filter(b => b.type === s.type);
+                if (group.length === 0) return null;
+                return (
+                  <View key={s.type} style={{ marginBottom: 20 }}>
+                    <Text style={{ fontSize: 16, fontWeight: "700", color: "#0f172a", marginBottom: 12 }}>
+                      {s.icon} {s.section} ({group.length})
+                    </Text>
+                    {group.map((booking) => (
+                      <BookingCard key={`${booking.type}-${booking.id}`} booking={booking} />
+                    ))}
+                  </View>
+                );
+              })
+            ) : (
+              bookings.filter(b => b.type === filter).map((booking) => (
+                <BookingCard key={`${booking.type}-${booking.id}`} booking={booking} />
+              ))
             )}
           </View>
         )}

@@ -3,6 +3,10 @@ import { Alert, Pressable, ScrollView, Text, View, Image } from "react-native";
 import { styles } from "../../styles";
 import { type ServiceItem, type ServiceKey } from "../../data/services";
 import { useAuth } from "../../context/AuthContext";
+import { useLocation } from "../../hooks/useLocation";
+import LocationBar from "../../components/LocationBar";
+import WhyChooseCarousel from "../../components/WhyChooseCarousel";
+import TestimonialsCarousel from "../../components/TestimonialsCarousel";
 
 type HomeScreenProps = {
   readonly services: ServiceItem[];
@@ -19,6 +23,7 @@ type HomeScreenProps = {
   readonly onOpenDental: () => void;
   readonly onOpenProfile: () => void;
   readonly onOpenSearch: () => void;
+  readonly onOpenSupport: () => void;
   readonly onLogout: () => void;
 };
 
@@ -37,9 +42,11 @@ export default function HomeScreen({
   onOpenDental,
   onOpenProfile,
   onOpenSearch,
+  onOpenSupport,
   onLogout
 }: Readonly<HomeScreenProps>) {
   const { user, logout } = useAuth();
+  const { locationName, locationLoading, requestLocation, setManualName } = useLocation();
   const [heroTextHeight, setHeroTextHeight] = useState(0);
 
   const handleLogout = () => {
@@ -99,6 +106,16 @@ export default function HomeScreen({
               </View>
             </Pressable>
           </View>
+        </View>
+
+        {/* Location Bar */}
+        <View style={{ paddingHorizontal: 20, paddingTop: 10 }}>
+          <LocationBar
+            locationName={locationName}
+            loading={locationLoading}
+            onRequestGPS={requestLocation}
+            onSetManual={setManualName}
+          />
         </View>
 
         {/* Orange Hero Section */}
@@ -212,55 +229,11 @@ export default function HomeScreen({
 
         </View>
 
-        {/* Why Choose MedEfix */}
-        <View style={styles.whySection}>
-          <Text style={styles.whySectionTitle}>
-            Why Choose <Text style={{ color: "#FF6B35" }}>MedEfix</Text>
-          </Text>
-          <View style={styles.whyGrid}>
-            <View style={styles.whyCard}>
-              <View style={styles.whyIconCircle}>
-                <Text style={{ fontSize: 28 }}>✓</Text>
-              </View>
-              <Text style={styles.whyCardText}>Verified Doctors</Text>
-            </View>
+        {/* Why Choose MedEfix — horizontal feature carousel */}
+        <WhyChooseCarousel />
 
-            <View style={styles.whyCard}>
-              <View style={styles.whyIconCircle}>
-                <Text style={{ fontSize: 28 }}>✓</Text>
-              </View>
-              <Text style={styles.whyCardText}>Quick Response</Text>
-            </View>
-
-            <View style={styles.whyCard}>
-              <View style={styles.whyIconCircle}>
-                <Text style={{ fontSize: 28 }}>💰</Text>
-              </View>
-              <Text style={styles.whyCardText}>Affordable Pricing</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Testimonials */}
-        <View style={styles.testimonialSection}>
-          <Text style={styles.testimonialTitle}>What Our Users Say</Text>
-          <View style={styles.testimonialCard}>
-            <View style={styles.testimonialAvatar}>
-              <Text style={{ fontSize: 32 }}>👨</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.testimonialQuote}>
-                "Excellent service, got connected to a doctor within minutes!"
-              </Text>
-            </View>
-          </View>
-          <View style={styles.testimonialDots}>
-            <View style={[styles.dot, styles.activeDot]} />
-            <View style={styles.dot} />
-            <View style={styles.dot} />
-            <View style={styles.dot} />
-          </View>
-        </View>
+        {/* Testimonials — auto-advancing swipeable carousel */}
+        <TestimonialsCarousel />
       </ScrollView>
 
       {/* Bottom Navigation */}
@@ -273,7 +246,7 @@ export default function HomeScreen({
           <Text style={styles.navIcon}>⚙️</Text>
           <Text style={styles.navLabel}>Services</Text>
         </Pressable>
-        <Pressable style={styles.navItem}>
+        <Pressable style={styles.navItem} onPress={onOpenSupport}>
           <Text style={styles.navIcon}>💬</Text>
           <Text style={styles.navLabel}>Support</Text>
         </Pressable>

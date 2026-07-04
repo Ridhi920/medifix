@@ -5,8 +5,25 @@ import { dentistAPI, type Dentist } from "../../services/api";
 import { parseBackendErrors, validators } from "../../utils/errorHandler";
 import CustomAlert from "../../components/CustomAlert";
 import LoadingScreen from "../../components/LoadingScreen";
+import DatePickerModal from "../../components/DatePickerModal";
 import { useLocation } from "../../hooks/useLocation";
 import { haversineKm, formatDistance } from "../../utils/locationUtils";
+import LocationBar from "../../components/LocationBar";
+
+const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+// Derive the weekday name (e.g. "Monday") from a DD/MM/YYYY date string
+const weekdayFromDate = (dateStr: string): string => {
+  const [dd, mm, yyyy] = dateStr.split("/");
+  if (!dd || !mm || !yyyy) return "";
+  return WEEKDAY_NAMES[new Date(Number(yyyy), Number(mm) - 1, Number(dd)).getDay()];
+};
+
+// Convert DD/MM/YYYY -> YYYY-MM-DD for the API
+const toApiDate = (dateStr: string): string => {
+  const [dd, mm, yyyy] = dateStr.split("/");
+  return `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+};
 
 type DentistAppointmentScreenProps = {
   readonly onBack: () => void;
@@ -45,7 +62,7 @@ const DentistImage = ({ image, size = 40 }: { image: string; size?: number }) =>
 };
 
 export default function DentistAppointmentScreen({ onBack }: Readonly<DentistAppointmentScreenProps>) {
-  const { location } = useLocation();
+  const { location, locationName, locationLoading, requestLocation, setManualName } = useLocation();
   const [loading, setLoading] = useState<boolean>(true);
   const [booking, setBooking] = useState<boolean>(false);
   const [dentists, setDentists] = useState<Dentist[]>([]);
@@ -59,6 +76,8 @@ export default function DentistAppointmentScreen({ onBack }: Readonly<DentistApp
   const [showSortDropdown, setShowSortDropdown] = useState<boolean>(false);
   const [selectedDentist, setSelectedDentist] = useState<Dentist | null>(null);
   const [selectedDay, setSelectedDay] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [selectedSlot, setSelectedSlot] = useState<string>("");
   const [patientName, setPatientName] = useState<string>("");
   const [patientAge, setPatientAge] = useState<string>("");
@@ -175,10 +194,16 @@ export default function DentistAppointmentScreen({ onBack }: Readonly<DentistApp
     setSelectedDay(day);
     setSelectedSlot("");
     setShowBookingForm(false);
-    
+
     if (selectedDentist) {
       await fetchBookedSlots(selectedDentist.id, day);
     }
+  };
+
+  const handleDateSelect = async (dateStr: string) => {
+    setSelectedDate(dateStr);
+    const day = weekdayFromDate(dateStr);
+    await handleDaySelect(day);
   };
 
   if (loading) {
@@ -214,6 +239,7 @@ export default function DentistAppointmentScreen({ onBack }: Readonly<DentistApp
   const handleDentistSelect = (dentist: Dentist) => {
     setSelectedDentist(dentist);
     setSelectedDay("");
+    setSelectedDate("");
     setSelectedSlot("");
     setShowBookingForm(false);
     setBookedSlots([]);
@@ -265,6 +291,7 @@ export default function DentistAppointmentScreen({ onBack }: Readonly<DentistApp
         symptoms: symptoms.trim() || undefined,
         appointment_day: selectedDay,
         appointment_slot: selectedSlot,
+        appointment_date: selectedDate ? toApiDate(selectedDate) : undefined,
       });
 
       setAlert({
@@ -280,6 +307,7 @@ export default function DentistAppointmentScreen({ onBack }: Readonly<DentistApp
           // Reset form
           setSelectedDentist(null);
           setSelectedDay("");
+          setSelectedDate("");
           setSelectedSlot("");
           setPatientName("");
           setPatientAge("");
@@ -320,6 +348,14 @@ export default function DentistAppointmentScreen({ onBack }: Readonly<DentistApp
         <Text style={styles.serviceDescription}>
           Browse through our expert dentists and book an appointment that suits you best.
         </Text>
+
+        {/* Location Bar */}
+        <LocationBar
+          locationName={locationName}
+          loading={locationLoading}
+          onRequestGPS={requestLocation}
+          onSetManual={setManualName}
+        />
 
         {/* Filters */}
         {!selectedDentist && (
@@ -652,32 +688,33 @@ export default function DentistAppointmentScreen({ onBack }: Readonly<DentistApp
               </View>
             </View>
 
-            {/* Select Day */}
-            <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Select Day</Text>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
-              {selectedDentist.available_days.map((day) => (
-                <Pressable
-                  key={day}
-                  onPress={() => handleDaySelect(day)}
-                  style={{
-                    paddingHorizontal: 16,
-                    paddingVertical: 10,
-                    borderRadius: 12,
-                    backgroundColor: selectedDay === day ? "#1e3a8a" : "#f1f5f9",
-                    borderWidth: 1,
-                    borderColor: selectedDay === day ? "#1e3a8a" : "#e2e8f0"
-                  }}
-                >
-                  <Text style={{
-                    fontSize: 13,
-                    fontWeight: "600",
-                    color: selectedDay === day ? "#ffffff" : "#0f172a"
-                  }}>
-                    {day}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+            {/* Select Date */}
+            <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Select Date</Text>
+            <Pressable
+              onPress={() => setShowDatePicker(true)}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                backgroundColor: "#f1f5f9",
+                borderWidth: 1,
+                borderColor: selectedDate ? "#1e3a8a" : "#e2e8f0",
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                marginBottom: selectedDay ? 8 : 20
+              }}
+            >
+              <Text style={{ fontSize: 14, color: selectedDate ? "#0f172a" : "#94a3b8", fontWeight: "600" }}>
+                {selectedDate || "Select appointment date"}
+              </Text>
+              <Text style={{ fontSize: 16 }}>📅</Text>
+            </Pressable>
+            {Boolean(selectedDay) && (
+              <Text style={{ fontSize: 12, color: "#64748b", marginBottom: 20 }}>
+                {selectedDay} appointment
+              </Text>
+            )}
 
             {/* Select Time Slot */}
             {Boolean(selectedDay) && (
@@ -869,6 +906,14 @@ export default function DentistAppointmentScreen({ onBack }: Readonly<DentistApp
           setAlert({ ...alert, visible: false });
         }}
         primaryButtonText="OK"
+      />
+
+      <DatePickerModal
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        onSelect={handleDateSelect}
+        selectedDate={selectedDate}
+        allowedWeekdays={selectedDentist?.available_days}
       />
     </ScrollView>
   );

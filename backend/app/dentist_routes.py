@@ -51,34 +51,193 @@ def get_dentists(
     ]
 
 
-@router.get("/{dentist_id}", response_model=DentistResponse)
-def get_dentist(
-    dentist_id: int,
+# ── Appointment routes must be declared BEFORE /{dentist_id} so Starlette
+# ── doesn't treat the literal segment as a dentist_id path param (→ 405).
+
+@router.post("/dentist_appointments", response_model=DentistAppointmentResponse)
+def create_appointment(
+    appointment_data: DentistAppointmentCreate,
+    current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
-) -> DentistResponse:
-    """Get a specific dentist by ID."""
-    dentist = session.get(Dentist, dentist_id)
+) -> DentistAppointmentResponse:
+    """Book an appointment with a dentist."""
+    dentist = session.get(Dentist, appointment_data.dentist_id)
     if not dentist or not dentist.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dentist not found",
-        )
-    
-    return DentistResponse(
-        id=dentist.id,
-        name=dentist.name,
-        specialty=dentist.specialty,
-        qualification=dentist.qualification,
-        experience=dentist.experience,
-        rating=dentist.rating,
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dentist not found")
+    available_days = json.loads(dentist.available_days)
+    available_slots = json.loads(dentist.available_slots)
+    if appointment_data.appointment_day not in available_days:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Dentist is not available on {appointment_data.appointment_day}")
+    if appointment_data.appointment_slot not in available_slots:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Time slot {appointment_data.appointment_slot} is not available")
+    existing_appointment = session.exec(
+        select(DentistAppointment)
+        .where(DentistAppointment.dentist_id == appointment_data.dentist_id)
+        .where(DentistAppointment.appointment_day == appointment_data.appointment_day)
+        .where(DentistAppointment.appointment_slot == appointment_data.appointment_slot)
+        .where(DentistAppointment.status.in_(["confirmed", "pending"]))
+    ).first()
+    if existing_appointment:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This time slot is already booked. Please choose another time.")
+    appointment = DentistAppointment(
+        user_id=current_user.id,
+        dentist_id=appointment_data.dentist_id,
+        patient_name=appointment_data.patient_name,
+        patient_age=appointment_data.patient_age,
+        symptoms=appointment_data.symptoms,
+        appointment_day=appointment_data.appointment_day,
+        appointment_slot=appointment_data.appointment_slot,
+        appointment_date=appointment_data.appointment_date,
         consultation_fee=dentist.consultation_fee,
-        available_days=json.loads(dentist.available_days),
-        available_slots=json.loads(dentist.available_slots),
-        image=dentist.image,
-        address=dentist.address,
-        is_active=dentist.is_active,
+        status="pending",
+    )
+    session.add(appointment)
+    session.commit()
+    session.refresh(appointment)
+    return DentistAppointmentResponse(
+        id=appointment.id, user_id=appointment.user_id, dentist_id=appointment.dentist_id,
+        patient_name=appointment.patient_name, patient_age=appointment.patient_age,
+        symptoms=appointment.symptoms, appointment_day=appointment.appointment_day,
+        appointment_slot=appointment.appointment_slot, appointment_date=appointment.appointment_date,
+        consultation_fee=appointment.consultation_fee, status=appointment.status,
+        created_at=appointment.created_at,
     )
 
+
+@router.get("/appointments/all", response_model=List[DentistAppointmentWithDentist])
+def get_all_appointments_admin(
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> List[DentistAppointmentWithDentist]:
+    """Get all appointments (admin endpoint)."""
+    query = (
+        select(DentistAppointment, Dentist)
+        .join(Dentist, DentistAppointment.dentist_id == Dentist.id)
+        .order_by(DentistAppointment.created_at.desc())
+    )
+    results = session.exec(query).all()
+    return [
+        DentistAppointmentWithDentist(
+            id=a.id, user_id=a.user_id, dentist_id=a.dentist_id, patient_name=a.patient_name,
+            patient_age=a.patient_age, symptoms=a.symptoms, appointment_day=a.appointment_day,
+            appointment_slot=a.appointment_slot, appointment_date=a.appointment_date,
+            consultation_fee=a.consultation_fee, status=a.status, created_at=a.created_at,
+            dentist_name=d.name, dentist_specialty=d.specialty, dentist_image=d.image,
+        )
+        for a, d in results
+    ]
+
+
+@router.get("/appointments/my", response_model=List[DentistAppointmentWithDentist])
+async def get_my_appointments(
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> List[DentistAppointmentWithDentist]:
+    """Get all appointments for the current user."""
+    query = (
+        select(DentistAppointment, Dentist)
+        .where(DentistAppointment.user_id == current_user.id)
+        .join(Dentist, DentistAppointment.dentist_id == Dentist.id)
+        .order_by(DentistAppointment.created_at.desc())
+    )
+    results = session.exec(query).all()
+    return [
+        DentistAppointmentWithDentist(
+            id=a.id, user_id=a.user_id, dentist_id=a.dentist_id, patient_name=a.patient_name,
+            patient_age=a.patient_age, symptoms=a.symptoms, appointment_day=a.appointment_day,
+            appointment_slot=a.appointment_slot, appointment_date=a.appointment_date,
+            consultation_fee=a.consultation_fee, status=a.status, created_at=a.created_at,
+            dentist_name=d.name, dentist_specialty=d.specialty, dentist_image=d.image,
+        )
+        for a, d in results
+    ]
+
+
+@router.get("/dentist_appointments/{appointment_id}", response_model=DentistAppointmentWithDentist)
+def get_appointment(
+    appointment_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> DentistAppointmentWithDentist:
+    """Get a specific appointment by ID."""
+    query = (
+        select(DentistAppointment, Dentist)
+        .where(DentistAppointment.id == appointment_id)
+        .where(DentistAppointment.user_id == current_user.id)
+        .join(Dentist, DentistAppointment.dentist_id == Dentist.id)
+    )
+    result = session.exec(query).first()
+    if not result:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found")
+    a, d = result
+    return DentistAppointmentWithDentist(
+        id=a.id, user_id=a.user_id, dentist_id=a.dentist_id, patient_name=a.patient_name,
+        patient_age=a.patient_age, symptoms=a.symptoms, appointment_day=a.appointment_day,
+        appointment_slot=a.appointment_slot, appointment_date=a.appointment_date,
+        consultation_fee=a.consultation_fee, status=a.status, created_at=a.created_at,
+        dentist_name=d.name, dentist_specialty=d.specialty, dentist_image=d.image,
+    )
+
+
+@router.patch("/dentist_appointments/{appointment_id}/cancel")
+def cancel_appointment(
+    appointment_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> dict:
+    """Cancel an appointment."""
+    appointment = session.exec(
+        select(DentistAppointment)
+        .where(DentistAppointment.id == appointment_id)
+        .where(DentistAppointment.user_id == current_user.id)
+    ).first()
+    if not appointment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found")
+    if appointment.status == "cancelled":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Appointment is already cancelled")
+    appointment.status = "cancelled"
+    session.add(appointment)
+    session.commit()
+    return {"message": "Appointment cancelled successfully"}
+
+
+@router.patch("/appointments/{appointment_id}/confirm")
+def confirm_appointment(
+    appointment_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> dict:
+    """Confirm a pending appointment (admin)."""
+    appointment = session.get(DentistAppointment, appointment_id)
+    if not appointment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found")
+    if appointment.status != "pending":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Cannot confirm appointment with status: {appointment.status}")
+    appointment.status = "confirmed"
+    session.add(appointment)
+    session.commit()
+    return {"message": "Appointment confirmed successfully"}
+
+
+@router.patch("/appointments/{appointment_id}/reject")
+def reject_appointment(
+    appointment_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> dict:
+    """Reject a pending appointment (admin)."""
+    appointment = session.get(DentistAppointment, appointment_id)
+    if not appointment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found")
+    if appointment.status != "pending":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Cannot reject appointment with status: {appointment.status}")
+    appointment.status = "rejected"
+    session.add(appointment)
+    session.commit()
+    return {"message": "Appointment rejected successfully"}
+
+
+# ── Dentist CRUD (parameterised routes last) ─────────────────────────────────
 
 @router.get("/{dentist_id}/booked-slots", response_model=List[str])
 def get_booked_slots(
@@ -104,6 +263,25 @@ def get_booked_slots(
     ).all()
     
     return list(appointments)
+
+
+@router.get("/{dentist_id}", response_model=DentistResponse)
+def get_dentist(
+    dentist_id: int,
+    session: Session = Depends(get_session),
+) -> DentistResponse:
+    """Get a specific dentist by ID."""
+    dentist = session.get(Dentist, dentist_id)
+    if not dentist or not dentist.is_active:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dentist not found")
+    return DentistResponse(
+        id=dentist.id, name=dentist.name, specialty=dentist.specialty,
+        qualification=dentist.qualification, experience=dentist.experience,
+        rating=dentist.rating, consultation_fee=dentist.consultation_fee,
+        available_days=json.loads(dentist.available_days),
+        available_slots=json.loads(dentist.available_slots),
+        image=dentist.image, address=dentist.address, is_active=dentist.is_active,
+    )
 
 
 @router.post("", response_model=DentistResponse)
@@ -213,286 +391,3 @@ def delete_dentist(
     
     return {"message": "Dentist deleted successfully"}
 
-
-@router.post("/dentist_appointments", response_model=DentistAppointmentResponse)
-def create_appointment(
-    appointment_data: DentistAppointmentCreate,
-    current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
-) -> DentistAppointmentResponse:
-    """Book an appointment with a dentist."""
-    # Verify dentist exists and is active
-    dentist = session.get(Dentist, appointment_data.dentist_id)
-    if not dentist or not dentist.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dentist not found",
-        )
-    
-    # Verify the selected day and slot are available
-    available_days = json.loads(dentist.available_days)
-    available_slots = json.loads(dentist.available_slots)
-    
-    if appointment_data.appointment_day not in available_days:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Dentist is not available on {appointment_data.appointment_day}",
-        )
-    
-    if appointment_data.appointment_slot not in available_slots:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Time slot {appointment_data.appointment_slot} is not available",
-        )
-    
-    # Check if the slot is already booked
-    existing_appointment = session.exec(
-        select(DentistAppointment)
-        .where(DentistAppointment.dentist_id == appointment_data.dentist_id)
-        .where(DentistAppointment.appointment_day == appointment_data.appointment_day)
-        .where(DentistAppointment.appointment_slot == appointment_data.appointment_slot)
-        .where(DentistAppointment.status.in_(["confirmed", "pending"]))
-    ).first()
-    
-    if existing_appointment:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"This time slot is already booked. Please choose another time.",
-        )
-    
-    # Create appointment with pending status
-    appointment = DentistAppointment(
-        user_id=current_user.id,
-        dentist_id=appointment_data.dentist_id,
-        patient_name=appointment_data.patient_name,
-        patient_age=appointment_data.patient_age,
-        symptoms=appointment_data.symptoms,
-        appointment_day=appointment_data.appointment_day,
-        appointment_slot=appointment_data.appointment_slot,
-        appointment_date=appointment_data.appointment_date,
-        consultation_fee=dentist.consultation_fee,
-        status="pending",
-    )
-    
-    session.add(appointment)
-    session.commit()
-    session.refresh(appointment)
-    
-    return DentistAppointmentResponse(
-        id=appointment.id,
-        user_id=appointment.user_id,
-        dentist_id=appointment.dentist_id,
-        patient_name=appointment.patient_name,
-        patient_age=appointment.patient_age,
-        symptoms=appointment.symptoms,
-        appointment_day=appointment.appointment_day,
-        appointment_slot=appointment.appointment_slot,
-        appointment_date=appointment.appointment_date,
-        consultation_fee=appointment.consultation_fee,
-        status=appointment.status,
-        created_at=appointment.created_at,
-    )
-
-
-@router.get("/appointments/all", response_model=List[DentistAppointmentWithDentist])
-def get_all_appointments_admin(
-    current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
-) -> List[DentistAppointmentWithDentist]:
-    """Get all appointments (admin endpoint)."""
-    query = (
-        select(DentistAppointment, Dentist)
-        .join(Dentist, DentistAppointment.dentist_id == Dentist.id)
-        .order_by(DentistAppointment.created_at.desc())
-    )
-    
-    results = session.exec(query).all()
-    
-    return [
-        DentistAppointmentWithDentist(
-            id=appointment.id,
-            user_id=appointment.user_id,
-            dentist_id=appointment.dentist_id,
-            patient_name=appointment.patient_name,
-            patient_age=appointment.patient_age,
-            symptoms=appointment.symptoms,
-            appointment_day=appointment.appointment_day,
-            appointment_slot=appointment.appointment_slot,
-            appointment_date=appointment.appointment_date,
-            consultation_fee=appointment.consultation_fee,
-            status=appointment.status,
-            created_at=appointment.created_at,
-            dentist_name=dentist.name,
-            dentist_specialty=dentist.specialty,
-            dentist_image=dentist.image,
-        )
-        for appointment, dentist in results
-    ]
-
-
-@router.get("/appointments/my", response_model=List[DentistAppointmentWithDentist])
-async def get_my_appointments(
-    current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
-) -> List[DentistAppointmentWithDentist]:
-    """Get all appointments for the current user."""
-    query = (
-        select(DentistAppointment, Dentist)
-        .where(DentistAppointment.user_id == current_user.id)
-        .join(Dentist, DentistAppointment.dentist_id == Dentist.id)
-        .order_by(DentistAppointment.created_at.desc())
-    )
-    
-    results = session.exec(query).all()
-    
-    return [
-        DentistAppointmentWithDentist(
-            id=appointment.id,
-            user_id=appointment.user_id,
-            dentist_id=appointment.dentist_id,
-            patient_name=appointment.patient_name,
-            patient_age=appointment.patient_age,
-            symptoms=appointment.symptoms,
-            appointment_day=appointment.appointment_day,
-            appointment_slot=appointment.appointment_slot,
-            appointment_date=appointment.appointment_date,
-            consultation_fee=appointment.consultation_fee,
-            status=appointment.status,
-            created_at=appointment.created_at,
-            dentist_name=dentist.name,
-            dentist_specialty=dentist.specialty,
-            dentist_image=dentist.image,
-        )
-        for appointment, dentist in results
-    ]
-
-
-@router.get("/dentist_appointments/{appointment_id}", response_model=DentistAppointmentWithDentist)
-def get_appointment(
-    appointment_id: int,
-    current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
-) -> DentistAppointmentWithDentist:
-    """Get a specific appointment by ID."""
-    query = (
-        select(DentistAppointment, Dentist)
-        .where(DentistAppointment.id == appointment_id)
-        .where(DentistAppointment.user_id == current_user.id)
-        .join(Dentist, DentistAppointment.dentist_id == Dentist.id)
-    )
-    
-    result = session.exec(query).first()
-    
-    if not result:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Appointment not found",
-        )
-    
-    appointment, dentist = result
-    
-    return DentistAppointmentWithDentist(
-        id=appointment.id,
-        user_id=appointment.user_id,
-        dentist_id=appointment.dentist_id,
-        patient_name=appointment.patient_name,
-        patient_age=appointment.patient_age,
-        symptoms=appointment.symptoms,
-        appointment_day=appointment.appointment_day,
-        appointment_slot=appointment.appointment_slot,
-        appointment_date=appointment.appointment_date,
-        consultation_fee=appointment.consultation_fee,
-        status=appointment.status,
-        created_at=appointment.created_at,
-        dentist_name=dentist.name,
-        dentist_specialty=dentist.specialty,
-        dentist_image=dentist.image,
-    )
-
-
-@router.patch("/dentist_appointments/{appointment_id}/cancel")
-def cancel_appointment(
-    appointment_id: int,
-    current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
-) -> dict:
-    """Cancel an appointment."""
-    appointment = session.exec(
-        select(DentistAppointment)
-        .where(DentistAppointment.id == appointment_id)
-        .where(DentistAppointment.user_id == current_user.id)
-    ).first()
-    
-    if not appointment:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Appointment not found",
-        )
-    
-    if appointment.status == "cancelled":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Appointment is already cancelled",
-        )
-    
-    appointment.status = "cancelled"
-    session.add(appointment)
-    session.commit()
-    
-    return {"message": "Appointment cancelled successfully"}
-
-
-@router.patch("/appointments/{appointment_id}/confirm")
-def confirm_appointment(
-    appointment_id: int,
-    current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
-) -> dict:
-    """Confirm a pending appointment (admin)."""
-    appointment = session.get(DentistAppointment, appointment_id)
-    
-    if not appointment:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Appointment not found",
-        )
-    
-    if appointment.status != "pending":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot confirm appointment with status: {appointment.status}",
-        )
-    
-    appointment.status = "confirmed"
-    session.add(appointment)
-    session.commit()
-    
-    return {"message": "Appointment confirmed successfully"}
-
-
-@router.patch("/appointments/{appointment_id}/reject")
-def reject_appointment(
-    appointment_id: int,
-    current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
-) -> dict:
-    """Reject a pending appointment (admin)."""
-    appointment = session.get(DentistAppointment, appointment_id)
-    
-    if not appointment:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Appointment not found",
-        )
-    
-    if appointment.status != "pending":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot reject appointment with status: {appointment.status}",
-        )
-    
-    appointment.status = "rejected"
-    session.add(appointment)
-    session.commit()
-    
-    return {"message": "Appointment rejected successfully"}

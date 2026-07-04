@@ -382,7 +382,7 @@ export const styles = StyleSheet.create({
   },
   logoTagline: {
     fontSize: 12,
-    color: "#FF6B35",
+    color: "#1d4ed8",
     fontStyle: "italic",
     fontWeight: "500",
     marginTop: 6,

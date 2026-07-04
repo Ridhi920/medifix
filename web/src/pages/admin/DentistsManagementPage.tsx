@@ -29,6 +29,7 @@ import {
   Delete,
 } from '@mui/icons-material';
 import { dentistAPI, Dentist, DentistCreate } from '../../api/dentistApi';
+import LocationPicker from '../../components/LocationPicker';
 
 const SPECIALTIES = [
   'General Dentist',
@@ -390,33 +391,12 @@ export default function DentistsManagementPage() {
               />
             </Grid>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Address"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Latitude (optional)"
-                value={(formData as any).latitude ?? ''}
-                onChange={(e) => setFormData({ ...formData, latitude: e.target.value ? parseFloat(e.target.value) : undefined } as any)}
-                helperText="e.g. 28.6139 — for Nearest sort"
-                inputProps={{ step: 'any' }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Longitude (optional)"
-                value={(formData as any).longitude ?? ''}
-                onChange={(e) => setFormData({ ...formData, longitude: e.target.value ? parseFloat(e.target.value) : undefined } as any)}
-                helperText="e.g. 77.2090"
-                inputProps={{ step: 'any' }}
+              <LocationPicker
+                address={formData.address}
+                latitude={(formData as any).latitude}
+                longitude={(formData as any).longitude}
+                onAddressChange={(addr) => setFormData({ ...formData, address: addr })}
+                onLocationChange={(lat, lng) => setFormData({ ...formData, latitude: lat, longitude: lng } as any)}
               />
             </Grid>
             <Grid item xs={12}>

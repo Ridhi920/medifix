@@ -9,6 +9,7 @@ import CustomAlert from "../../components/CustomAlert";
 import LoadingScreen from "../../components/LoadingScreen";
 import { useLocation } from "../../hooks/useLocation";
 import { haversineKm, formatDistance } from "../../utils/locationUtils";
+import LocationBar from "../../components/LocationBar";
 
 type PhysiotherapistBookingScreenProps = {
   readonly onBack: () => void;
@@ -53,7 +54,7 @@ const PhysiotherapistImage = ({ image, size = 40 }: { image: string; size?: numb
 };
 
 export default function PhysiotherapistBookingScreen({ onBack }: Readonly<PhysiotherapistBookingScreenProps>) {
-  const { location } = useLocation();
+  const { location, locationName, locationLoading, requestLocation, setManualName } = useLocation();
   const [loading, setLoading] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [physiotherapists, setPhysiotherapists] = useState<Physiotherapist[]>([]);
@@ -375,12 +376,14 @@ export default function PhysiotherapistBookingScreen({ onBack }: Readonly<Physio
 
   if (showBookingForm && selectedPhysiotherapist) {
     return (
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 32, paddingBottom: 24 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+      <View style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={styles.homeScroll}>
+        <View style={styles.serviceScreenCard}>
+        <View style={styles.serviceHeaderRow}>
           <Pressable onPress={() => setShowBookingForm(false)} style={styles.backButton}>
-            <Text style={{ fontSize: 16, color: '#1e3a8a', fontWeight: '600' }}>← Back</Text>
+            <View style={styles.backIcon} />
           </Pressable>
-          <Text style={{ fontSize: 20, fontWeight: '700', color: '#0f172a', marginLeft: 12 }}>Book Physiotherapist</Text>
+          <Text style={styles.serviceHeaderTitle}>Book Physiotherapist</Text>
         </View>
 
         {/* Physiotherapist Info */}
@@ -540,10 +543,11 @@ export default function PhysiotherapistBookingScreen({ onBack }: Readonly<Physio
             multiline
             numberOfLines={2}
           />
-        </View>
 
-        {/* Services Required */}
-        <View style={styles.card}>
+          {/* ── divider ── */}
+          <View style={{ height: 1, backgroundColor: '#f1f5f9', marginVertical: 20 }} />
+
+          {/* Required Services */}
           <Text style={styles.sectionTitle}>Required Services *</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {selectedPhysiotherapist.services.map(service => (
@@ -562,10 +566,11 @@ export default function PhysiotherapistBookingScreen({ onBack }: Readonly<Physio
               </Pressable>
             ))}
           </View>
-        </View>
 
-        {/* Booking Details */}
-        <View style={styles.card}>
+          {/* ── divider ── */}
+          <View style={{ height: 1, backgroundColor: '#f1f5f9', marginVertical: 20 }} />
+
+          {/* Booking Details */}
           <Text style={styles.sectionTitle}>Booking Details</Text>
           
           <Text style={{ fontSize: 14, fontWeight: '600', color: '#0f172a', marginBottom: 6 }}>Booking Type *</Text>
@@ -698,28 +703,52 @@ export default function PhysiotherapistBookingScreen({ onBack }: Readonly<Physio
           )}
         </Pressable>
 
-        <CustomAlert
-          visible={alert.visible}
-          type={alert.type}
-          title={alert.title}
-          message={alert.message}
-          onClose={() => {
-            setAlert({ ...alert, visible: false });
-            alert.onConfirm?.();
-          }}
-        />
+        </View>
+
       </ScrollView>
+      <CustomAlert
+        visible={alert.visible}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onClose={() => {
+          setAlert({ ...alert, visible: false });
+          alert.onConfirm?.();
+        }}
+      />
+      <DatePickerModal
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        onSelect={(date) => {
+          setStartDate(date);
+          if (validationErrors.startDate) {
+            setValidationErrors({ ...validationErrors, startDate: undefined });
+          }
+        }}
+        selectedDate={startDate}
+      />
+      </View>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 32, paddingBottom: 24 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+    <View style={{ flex: 1 }}>
+    <ScrollView contentContainerStyle={styles.homeScroll}>
+      <View style={styles.serviceScreenCard}>
+      <View style={styles.serviceHeaderRow}>
         <Pressable onPress={onBack} style={styles.backButton}>
-          <Text style={{ fontSize: 16, color: '#1e3a8a', fontWeight: '600' }}>← Back</Text>
+          <View style={styles.backIcon} />
         </Pressable>
-        <Text style={{ fontSize: 20, fontWeight: '700', color: '#0f172a', marginLeft: 12 }}>Book Physiotherapist</Text>
+        <Text style={styles.serviceHeaderTitle}>Book Physiotherapist</Text>
       </View>
+
+      {/* Location Bar */}
+      <LocationBar
+        locationName={locationName}
+        loading={locationLoading}
+        onRequestGPS={requestLocation}
+        onSetManual={setManualName}
+      />
 
       {/* Search Bar */}
       <View style={{ marginBottom: 20 }}>
@@ -1105,25 +1134,27 @@ export default function PhysiotherapistBookingScreen({ onBack }: Readonly<Physio
         </View>
       )}
 
-      <CustomAlert
-        visible={alert.visible}
-        type={alert.type}
-        title={alert.title}
-        message={alert.message}
-        onClose={() => setAlert({ ...alert, visible: false })}
-      />
+      </View>
 
-      <DatePickerModal
-        visible={showDatePicker}
-        onClose={() => setShowDatePicker(false)}
-        onSelect={(date) => {
-          setStartDate(date);
-          if (validationErrors.startDate) {
-            setValidationErrors({ ...validationErrors, startDate: undefined });
-          }
-        }}
-        selectedDate={startDate}
-      />
     </ScrollView>
+    <CustomAlert
+      visible={alert.visible}
+      type={alert.type}
+      title={alert.title}
+      message={alert.message}
+      onClose={() => setAlert({ ...alert, visible: false })}
+    />
+    <DatePickerModal
+      visible={showDatePicker}
+      onClose={() => setShowDatePicker(false)}
+      onSelect={(date) => {
+        setStartDate(date);
+        if (validationErrors.startDate) {
+          setValidationErrors({ ...validationErrors, startDate: undefined });
+        }
+      }}
+      selectedDate={startDate}
+    />
+    </View>
   );
 }

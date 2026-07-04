@@ -5,6 +5,14 @@ from datetime import datetime, timezone
 from sqlmodel import Field, SQLModel
 
 
+class AppSettings(SQLModel, table=True):
+    __tablename__ = "app_settings"
+    id: int | None = Field(default=None, primary_key=True)
+    convenience_fee: float = Field(default=7.0)
+    delivery_fee: float = Field(default=20.0)
+    free_delivery_threshold: float = Field(default=400.0)
+
+
 class User(SQLModel, table=True):
     __tablename__ = "users"
 

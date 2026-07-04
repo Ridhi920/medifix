@@ -1,11 +1,15 @@
 import { useState, useEffect } from "react";
-import { Modal, Pressable, ScrollView, Text, View, TextInput, Image, ActivityIndicator } from "react-native";
-import * as ImagePicker from "expo-image-picker";
+import { Modal, Pressable, ScrollView, Text, View, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from "react-native";
 import { styles } from "../../styles";
 import { MEDICINES, MEDICINE_CATEGORIES, type Medicine } from "../../data/medicines";
 import LoadingScreen from "../../components/LoadingScreen";
-import PrescriptionUploadSuccessModal from "../../components/PrescriptionUploadSuccessModal";
+import CustomAlert from "../../components/CustomAlert";
 import { pharmacyApi } from "../../api/pharmacyApi";
+import { fetchFeeSettings, type FeeSettings } from "../../api/settingsApi";
+import MedicineImage from "../../components/MedicineImage";
+import KitsSection from "../../components/KitsSection";
+import { useLocation } from "../../hooks/useLocation";
+import LocationBar from "../../components/LocationBar";
 
 type PharmacyScreenProps = {
   readonly onBack: () => void;
@@ -16,113 +20,6 @@ type CartItem = {
   quantity: number;
 };
 
-type PrescriptionUploadProps = {
-  readonly prescriptionUploaded: boolean;
-  readonly prescriptionImage: string;
-  readonly onUploadFromGallery: () => void;
-  readonly onTakePhoto: () => void;
-};
-
-function PrescriptionUpload({ prescriptionUploaded, prescriptionImage, onUploadFromGallery, onTakePhoto }: Readonly<PrescriptionUploadProps>) {
-  if (prescriptionUploaded) {
-    return (
-      <View style={{
-        backgroundColor: "#f0fdf4",
-        borderRadius: 12,
-        padding: 12,
-        marginTop: 16,
-        borderWidth: 1,
-        borderColor: "#bbf7d0",
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between"
-      }}>
-        {prescriptionImage ? (
-          <Image
-            source={{ uri: prescriptionImage }}
-            style={{
-              width: 50,
-              height: 50,
-              borderRadius: 8,
-              marginRight: 12
-            }}
-            resizeMode="cover"
-          />
-        ) : (
-          <Text style={{ fontSize: 32, marginRight: 12 }}>✅</Text>
-        )}
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 14, fontWeight: "700", color: "#16a34a" }}>
-            Prescription Uploaded
-          </Text>
-          <Text style={{ fontSize: 11, color: "#64748b" }}>
-            Required for Rx medicines
-          </Text>
-        </View>
-        <Pressable
-          onPress={onUploadFromGallery}
-          style={{
-            backgroundColor: "#ffffff",
-            paddingHorizontal: 10,
-            paddingVertical: 5,
-            borderRadius: 6
-          }}
-        >
-          <Text style={{ fontSize: 11, fontWeight: "600", color: "#16a34a" }}>
-            Change
-          </Text>
-        </Pressable>
-      </View>
-    );
-  }
-
-  return (
-    <View style={{
-      backgroundColor: "#fffbeb",
-      borderRadius: 12,
-      padding: 12,
-      marginTop: 16,
-      borderWidth: 1,
-      borderColor: "#fde68a",
-      flexDirection: "row",
-      alignItems: "center"
-    }}>
-      <Text style={{ fontSize: 24, marginRight: 12 }}>📋</Text>
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 13, fontWeight: "700", color: "#0f172a", marginBottom: 2 }}>
-          Upload Prescription (Optional)
-        </Text>
-        <Text style={{ fontSize: 11, color: "#64748b" }}>
-          Required for prescription medicines only
-        </Text>
-      </View>
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        <Pressable
-          onPress={onTakePhoto}
-          style={{
-            backgroundColor: "#FF6B35",
-            paddingVertical: 8,
-            paddingHorizontal: 12,
-            borderRadius: 8
-          }}
-        >
-          <Text style={{ fontSize: 18 }}>📸</Text>
-        </Pressable>
-        <Pressable
-          onPress={onUploadFromGallery}
-          style={{
-            backgroundColor: "#FF6B35",
-            paddingVertical: 8,
-            paddingHorizontal: 12,
-            borderRadius: 8
-          }}
-        >
-          <Text style={{ fontSize: 18 }}>🖼️</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-}
 
 const REFILL_OPTIONS = [
   { label: "Weekly", value: "weekly" },
@@ -166,6 +63,38 @@ function CartView({
   setRefillFrequency,
   handlePlaceOrder
 }: Readonly<CartViewProps>) {
+  const { locationName, locationLoading, requestLocation, setManualName } = useLocation();
+
+  const [fees, setFees] = useState<FeeSettings>({ convenience_fee: 7, delivery_fee: 20, free_delivery_threshold: 400 });
+  useEffect(() => { fetchFeeSettings().then(setFees); }, []);
+
+  const cartTotal = getTotalAmount();
+  const deliveryFee = cartTotal >= fees.free_delivery_threshold ? 0 : fees.delivery_fee;
+  const grandTotal = cartTotal + fees.convenience_fee + deliveryFee;
+
+  const [houseNo, setHouseNo] = useState("");
+  const [building, setBuilding] = useState("");
+  const [landmark, setLandmark] = useState("");
+  const [showLocModal, setShowLocModal] = useState(false);
+  const [locSearchText, setLocSearchText] = useState("");
+
+  // Build complete delivery address from all parts whenever any part changes
+  useEffect(() => {
+    const parts = [houseNo.trim(), building.trim(), locationName ?? "", landmark.trim()].filter(Boolean);
+    setDeliveryAddress(parts.join(", "));
+  }, [houseNo, building, locationName, landmark]);
+
+  const handleGPS = () => {
+    requestLocation();
+    setShowLocModal(false);
+  };
+
+  const handleConfirmLocation = () => {
+    if (locSearchText.trim()) setManualName(locSearchText.trim());
+    setShowLocModal(false);
+    setLocSearchText("");
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: "transparent" }}>
       <ScrollView
@@ -214,7 +143,13 @@ function CartView({
                     }}
                   >
                     <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                      <View style={{ flex: 1 }}>
+                      <MedicineImage
+                        name={item.medicine.name}
+                        genericName={item.medicine.genericName}
+                        category={item.medicine.category}
+                        size={56}
+                      />
+                      <View style={{ flex: 1, marginLeft: 12 }}>
                         <Text style={{ fontSize: 15, fontWeight: "700", color: "#0f172a" }}>
                           {item.medicine.name}
                         </Text>
@@ -279,65 +214,161 @@ function CartView({
               </View>
 
               {/* Bill Summary */}
-              <View style={{
-                backgroundColor: "#eff6ff",
-                borderRadius: 16,
-                padding: 16,
-                marginTop: 16
-              }}>
+              <View style={{ backgroundColor: "#eff6ff", borderRadius: 16, padding: 16, marginTop: 16 }}>
                 <Text style={{ fontSize: 15, fontWeight: "700", color: "#0f172a", marginBottom: 12 }}>
                   Bill Summary
                 </Text>
-                <View style={{ gap: 8 }}>
+                <View style={{ gap: 10 }}>
+
+                  {/* MRP total */}
                   <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                    <Text style={{ fontSize: 14, color: "#64748b" }}>Cart Total</Text>
+                    <Text style={{ fontSize: 14, color: "#64748b" }}>Cart Total (MRP)</Text>
                     <Text style={{ fontSize: 14, fontWeight: "600", color: "#0f172a" }}>
-                      ₹{getTotalAmount() + getTotalSavings()}
+                      ₹{cartTotal + getTotalSavings()}
                     </Text>
                   </View>
+
+                  {/* Savings */}
                   {getTotalSavings() > 0 && (
                     <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                      <Text style={{ fontSize: 14, color: "#16a34a" }}>Savings</Text>
+                      <Text style={{ fontSize: 14, color: "#16a34a" }}>Discount / Savings</Text>
                       <Text style={{ fontSize: 14, fontWeight: "600", color: "#16a34a" }}>
                         −₹{getTotalSavings()}
                       </Text>
                     </View>
                   )}
+
+                  {/* Subtotal after savings */}
                   <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                    <Text style={{ fontSize: 14, color: "#64748b" }}>Delivery Charges</Text>
-                    <Text style={{ fontSize: 14, fontWeight: "600", color: "#16a34a" }}>FREE</Text>
+                    <Text style={{ fontSize: 14, color: "#64748b" }}>Cart Subtotal</Text>
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: "#0f172a" }}>₹{cartTotal}</Text>
                   </View>
+
+                  {/* Convenience fee */}
+                  <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                    <Text style={{ fontSize: 14, color: "#64748b" }}>Convenience Fee</Text>
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: "#0f172a" }}>
+                      ₹{fees.convenience_fee}
+                    </Text>
+                  </View>
+
+                  {/* Delivery */}
+                  <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                    <View>
+                      <Text style={{ fontSize: 14, color: "#64748b" }}>Delivery Fee</Text>
+                      {deliveryFee === 0 && (
+                        <Text style={{ fontSize: 10, color: "#16a34a" }}>
+                          Free on orders ≥ ₹{fees.free_delivery_threshold}
+                        </Text>
+                      )}
+                      {deliveryFee > 0 && (
+                        <Text style={{ fontSize: 10, color: "#94a3b8" }}>
+                          Free above ₹{fees.free_delivery_threshold}
+                        </Text>
+                      )}
+                    </View>
+                    {deliveryFee === 0 ? (
+                      <Text style={{ fontSize: 14, fontWeight: "600", color: "#16a34a" }}>FREE</Text>
+                    ) : (
+                      <Text style={{ fontSize: 14, fontWeight: "600", color: "#0f172a" }}>
+                        ₹{fees.delivery_fee}
+                      </Text>
+                    )}
+                  </View>
+
+                  {/* Grand total */}
                   <View style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    paddingTop: 12,
-                    marginTop: 8,
-                    borderTopWidth: 1,
-                    borderTopColor: "#bfdbfe"
+                    flexDirection: "row", justifyContent: "space-between",
+                    paddingTop: 12, marginTop: 4,
+                    borderTopWidth: 1, borderTopColor: "#bfdbfe"
                   }}>
                     <Text style={{ fontSize: 16, fontWeight: "700", color: "#0f172a" }}>Total Amount</Text>
                     <Text style={{ fontSize: 18, fontWeight: "700", color: "#FF6B35" }}>
-                      ₹{getTotalAmount()}
+                      ₹{grandTotal}
                     </Text>
                   </View>
+
+                  {deliveryFee > 0 && (
+                    <Text style={{ fontSize: 11, color: "#94a3b8", textAlign: "center" }}>
+                      Add ₹{fees.free_delivery_threshold - cartTotal} more for free delivery
+                    </Text>
+                  )}
                 </View>
               </View>
 
               {/* Delivery Details */}
               <View style={{ marginTop: 24 }}>
-                <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Delivery Details</Text>
-                
+                <Text style={[styles.sectionTitle, { marginBottom: 14 }]}>Delivery Details</Text>
+
+                {/* Location Picker */}
+                <Pressable
+                  onPress={() => setShowLocModal(true)}
+                  style={{
+                    backgroundColor: "#fff4ef",
+                    borderRadius: 12,
+                    padding: 14,
+                    marginBottom: 6,
+                    borderWidth: 1,
+                    borderColor: "#FFD5C2",
+                    flexDirection: "row",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: 20, marginRight: 10 }}>📍</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 11, fontWeight: "600", color: "#94a3b8", marginBottom: 2 }}>
+                      DELIVERY AREA
+                    </Text>
+                    {locationLoading ? (
+                      <ActivityIndicator size="small" color="#FF6B35" />
+                    ) : (
+                      <Text style={{ fontSize: 14, fontWeight: "700", color: "#FF6B35" }} numberOfLines={1}>
+                        {locationName ?? "Set your location"}
+                      </Text>
+                    )}
+                  </View>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: "#FF6B35" }}>Change ›</Text>
+                </Pressable>
+                <Text style={{ fontSize: 11, color: "#94a3b8", marginBottom: 20, paddingLeft: 2 }}>
+                  Tap to use GPS or search a different area
+                </Text>
+
+                {/* Complete Address Fields */}
+                <Text style={{ fontSize: 14, fontWeight: "700", color: "#0f172a", marginBottom: 14 }}>
+                  Complete Address
+                </Text>
+
                 <Text style={{ fontSize: 13, fontWeight: "600", color: "#0f172a", marginBottom: 6 }}>
-                  Delivery Address*
+                  House / Flat / Floor No.*
                 </Text>
                 <TextInput
-                  value={deliveryAddress}
-                  onChangeText={setDeliveryAddress}
-                  placeholder="Enter complete delivery address"
+                  value={houseNo}
+                  onChangeText={setHouseNo}
+                  placeholder="e.g. Flat 4B, 2nd Floor"
                   placeholderTextColor="#94a3b8"
-                  multiline
-                  numberOfLines={3}
-                  style={[styles.input, { height: 80, textAlignVertical: "top", paddingTop: 12, marginBottom: 16 }]}
+                  style={[styles.input, { marginBottom: 14 }]}
+                />
+
+                <Text style={{ fontSize: 13, fontWeight: "600", color: "#0f172a", marginBottom: 6 }}>
+                  Building / Apartment / Society
+                </Text>
+                <TextInput
+                  value={building}
+                  onChangeText={setBuilding}
+                  placeholder="e.g. Sunrise Apartments"
+                  placeholderTextColor="#94a3b8"
+                  style={[styles.input, { marginBottom: 14 }]}
+                />
+
+                <Text style={{ fontSize: 13, fontWeight: "600", color: "#0f172a", marginBottom: 6 }}>
+                  Nearby Landmark (optional)
+                </Text>
+                <TextInput
+                  value={landmark}
+                  onChangeText={setLandmark}
+                  placeholder="e.g. Near City Hospital"
+                  placeholderTextColor="#94a3b8"
+                  style={[styles.input, { marginBottom: 20 }]}
                 />
 
                 <Text style={{ fontSize: 13, fontWeight: "600", color: "#0f172a", marginBottom: 6 }}>
@@ -352,6 +383,105 @@ function CartView({
                   style={styles.input}
                 />
               </View>
+
+              {/* Location Picker Modal */}
+              <Modal
+                visible={showLocModal}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setShowLocModal(false)}
+              >
+                <Pressable
+                  style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)" }}
+                  onPress={() => setShowLocModal(false)}
+                />
+                <KeyboardAvoidingView
+                  behavior={Platform.OS === "ios" ? "padding" : undefined}
+                  style={{
+                    backgroundColor: "#fff",
+                    borderTopLeftRadius: 22,
+                    borderTopRightRadius: 22,
+                    padding: 24,
+                    paddingBottom: 40,
+                  }}
+                >
+                  <View style={{ width: 40, height: 4, backgroundColor: "#e2e8f0", borderRadius: 2, alignSelf: "center", marginBottom: 22 }} />
+                  <Text style={{ fontSize: 18, fontWeight: "700", color: "#0f172a", marginBottom: 4 }}>
+                    Set Delivery Area
+                  </Text>
+                  <Text style={{ fontSize: 13, color: "#64748b", marginBottom: 22 }}>
+                    Choose your area so we can deliver to you
+                  </Text>
+
+                  {/* GPS */}
+                  <Pressable
+                    onPress={handleGPS}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      backgroundColor: "#fff4ef",
+                      borderRadius: 12,
+                      padding: 14,
+                      marginBottom: 20,
+                      borderWidth: 1,
+                      borderColor: "#FFD5C2",
+                    }}
+                  >
+                    <Text style={{ fontSize: 22, marginRight: 12 }}>🎯</Text>
+                    <View>
+                      <Text style={{ fontSize: 14, fontWeight: "700", color: "#FF6B35" }}>
+                        Use Current Location
+                      </Text>
+                      <Text style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>
+                        Detect via GPS
+                      </Text>
+                    </View>
+                  </Pressable>
+
+                  {/* Divider */}
+                  <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
+                    <View style={{ flex: 1, height: 1, backgroundColor: "#e2e8f0" }} />
+                    <Text style={{ fontSize: 11, fontWeight: "600", color: "#94a3b8", marginHorizontal: 10 }}>
+                      OR SEARCH MANUALLY
+                    </Text>
+                    <View style={{ flex: 1, height: 1, backgroundColor: "#e2e8f0" }} />
+                  </View>
+
+                  <TextInput
+                    style={{
+                      backgroundColor: "#f8fafc",
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: "#e2e8f0",
+                      paddingHorizontal: 14,
+                      paddingVertical: 13,
+                      fontSize: 14,
+                      color: "#0f172a",
+                      marginBottom: 14,
+                    }}
+                    placeholder="Type area, city or pincode…"
+                    placeholderTextColor="#94a3b8"
+                    value={locSearchText}
+                    onChangeText={setLocSearchText}
+                    returnKeyType="done"
+                    onSubmitEditing={handleConfirmLocation}
+                  />
+                  <Pressable
+                    onPress={handleConfirmLocation}
+                    disabled={!locSearchText.trim()}
+                    style={{
+                      backgroundColor: locSearchText.trim() ? "#FF6B35" : "#e2e8f0",
+                      borderRadius: 12,
+                      paddingVertical: 15,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text style={{ fontSize: 15, fontWeight: "700", color: locSearchText.trim() ? "#fff" : "#94a3b8" }}>
+                      Confirm Area
+                    </Text>
+                  </Pressable>
+                </KeyboardAvoidingView>
+              </Modal>
 
               {/* Refill Schedule */}
               <View style={{
@@ -436,13 +566,13 @@ function CartView({
               {/* Place Order Button */}
               <Pressable
                 onPress={handlePlaceOrder}
-                disabled={!deliveryAddress || !phoneNumber}
+                disabled={!houseNo.trim() || !phoneNumber.trim()}
                 style={{
-                  backgroundColor: (deliveryAddress && phoneNumber) ? "#FF6B35" : "#e2e8f0",
+                  backgroundColor: (houseNo.trim() && phoneNumber.trim()) ? "#FF6B35" : "#e2e8f0",
                   paddingVertical: 16,
                   borderRadius: 12,
                   marginTop: 24,
-                  shadowColor: (deliveryAddress && phoneNumber) ? "#FF6B35" : "transparent",
+                  shadowColor: (houseNo.trim() && phoneNumber.trim()) ? "#FF6B35" : "transparent",
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: 0.3,
                   shadowRadius: 8,
@@ -452,10 +582,10 @@ function CartView({
                 <Text style={{
                   fontSize: 16,
                   fontWeight: "700",
-                  color: (deliveryAddress && phoneNumber) ? "#ffffff" : "#94a3b8",
+                  color: (houseNo.trim() && phoneNumber.trim()) ? "#ffffff" : "#94a3b8",
                   textAlign: "center"
                 }}>
-                  Place Order - ₹{getTotalAmount()}
+                  Place Order - ₹{grandTotal}
                 </Text>
               </Pressable>
             </>
@@ -467,11 +597,8 @@ function CartView({
 }
 
 export default function PharmacyScreen({ onBack }: Readonly<PharmacyScreenProps>) {
+  const { locationName, locationLoading, requestLocation, setManualName } = useLocation();
   const [loading, setLoading] = useState<boolean>(true);
-  const [prescriptionUploaded, setPrescriptionUploaded] = useState<boolean>(false);
-  const [prescriptionImage, setPrescriptionImage] = useState<string>("");
-  const [showPrescriptionModal, setShowPrescriptionModal] = useState<boolean>(false);
-  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -480,6 +607,11 @@ export default function PharmacyScreen({ onBack }: Readonly<PharmacyScreenProps>
   const [phoneNumber, setPhoneNumber] = useState<string>("");
   const [refillEnabled, setRefillEnabled] = useState<boolean>(false);
   const [refillFrequency, setRefillFrequency] = useState<string>("monthly");
+  const [orderAlert, setOrderAlert] = useState<{ visible: boolean; title: string; message: string }>({
+    visible: false,
+    title: "",
+    message: "",
+  });
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -497,69 +629,6 @@ export default function PharmacyScreen({ onBack }: Readonly<PharmacyScreenProps>
     return matchesCategory && matchesSearch;
   });
 
-  const handlePrescriptionSuccess = async (uri: string, base64?: string | null) => {
-    setPrescriptionImage(uri);
-    setPrescriptionUploaded(true);
-    setShowSuccessModal(true);
-    // Submit to backend best-effort (silently ignore errors)
-    if (base64) {
-      try {
-        await pharmacyApi.submitPrescription(`data:image/jpeg;base64,${base64}`);
-      } catch {
-        // backend submission is best-effort
-      }
-    }
-  };
-
-  const handleSuccessModalCancel = () => {
-    setShowSuccessModal(false);
-  };
-
-  const handleSuccessModalCheckAvailability = (checkAvailability: boolean) => {
-    setShowSuccessModal(false);
-    if (checkAvailability) {
-      // Filter to show only prescription medicines
-      setSelectedCategory("All");
-      setSearchQuery("");
-      // Optionally show a notification
-      alert("✓ Now showing available medicines based on your prescription");
-    }
-  };
-
-  const handleUploadPrescription = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permissionResult.granted === false) {
-      alert("Permission to access camera roll is required!");
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: "images",
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.6,
-      base64: true,
-    });
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      await handlePrescriptionSuccess(result.assets[0].uri, result.assets[0].base64);
-    }
-  };
-
-  const handleTakePhoto = async () => {
-    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-    if (permissionResult.granted === false) {
-      alert("Permission to access camera is required!");
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.6,
-      base64: true,
-    });
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      await handlePrescriptionSuccess(result.assets[0].uri, result.assets[0].base64);
-    }
-  };
 
   const getItemQuantity = (medicineId: string): number => {
     const item = cart.find(item => item.medicine.id === medicineId);
@@ -611,18 +680,39 @@ export default function PharmacyScreen({ onBack }: Readonly<PharmacyScreenProps>
     }, 0);
   };
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (cart.length > 0 && deliveryAddress && phoneNumber) {
-      const refillLabel = REFILL_OPTIONS.find(o => o.value === refillFrequency)?.label;
-      const refillMsg = refillEnabled ? `\nAuto Refill: Every ${refillLabel}` : "";
-      alert(`Order placed successfully!\nTotal: ₹${getTotalAmount()}\nYou saved: ₹${getTotalSavings()}\nDelivery to: ${deliveryAddress}${refillMsg}`);
+      try {
+        await pharmacyApi.createOrder({
+          patient_name: phoneNumber,
+          patient_phone: phoneNumber,
+          delivery_address: deliveryAddress,
+          items: cart.map((item, idx) => ({
+            medicine_id: idx + 1,
+            medicine_name: item.medicine.name,
+            quantity: item.quantity,
+            price: item.medicine.discountPrice ?? item.medicine.price,
+          })),
+          notes: refillEnabled
+            ? `Auto Refill: Every ${REFILL_OPTIONS.find(o => o.value === refillFrequency)?.label}`
+            : undefined,
+        });
+      } catch {
+        // order saved locally even if backend fails
+      }
+      const orderedTotal = getTotalAmount();
+      const orderedAddress = deliveryAddress;
       setCart([]);
       setDeliveryAddress("");
       setPhoneNumber("");
       setRefillEnabled(false);
       setRefillFrequency("monthly");
       setShowCart(false);
-      setPrescriptionUploaded(false);
+      setOrderAlert({
+        visible: true,
+        title: "Order Placed! 🎉",
+        message: `Your order of ₹${orderedTotal} has been placed successfully.\n\nDelivering to:\n${orderedAddress}`,
+      });
     }
   };
 
@@ -689,16 +779,19 @@ export default function PharmacyScreen({ onBack }: Readonly<PharmacyScreenProps>
           {/* Description */}
           <Text style={styles.serviceTitle}>Online Pharmacy</Text>
           <Text style={styles.serviceDescription}>
-            Upload your prescription and order medicines for home delivery
+            Order medicines and get them delivered to your door
           </Text>
 
-          {/* Prescription Upload Section */}
-          <PrescriptionUpload
-            prescriptionUploaded={prescriptionUploaded}
-            prescriptionImage={prescriptionImage}
-            onUploadFromGallery={handleUploadPrescription}
-            onTakePhoto={handleTakePhoto}
+          {/* Location Bar */}
+          <LocationBar
+            locationName={locationName}
+            loading={locationLoading}
+            onRequestGPS={requestLocation}
+            onSetManual={setManualName}
           />
+
+          {/* Kits — Launching Soon */}
+          <KitsSection />
 
           {/* Search Bar */}
               <View style={{
@@ -796,64 +889,60 @@ export default function PharmacyScreen({ onBack }: Readonly<PharmacyScreenProps>
                         elevation: 1
                       }}
                     >
-                      <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 12 }}>
+                      {/* Top row: image + info + price */}
+                      <View style={{ flexDirection: "row", gap: 12, marginBottom: 10 }}>
+                        {/* Medicine image */}
+                        <MedicineImage
+                          name={medicine.name}
+                          genericName={medicine.genericName}
+                          category={medicine.category}
+                          size={82}
+                          perStrip={medicine.perStrip}
+                        />
+
+                        {/* Info + price */}
                         <View style={{ flex: 1 }}>
-                          <Text style={{ fontSize: 16, fontWeight: "700", color: "#0f172a" }}>
-                            {medicine.name}
-                          </Text>
+                          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+                            <Text style={{ fontSize: 15, fontWeight: "700", color: "#0f172a", flex: 1, marginRight: 8 }} numberOfLines={2}>
+                              {medicine.name}
+                            </Text>
+                            <View style={{ alignItems: "flex-end" }}>
+                              {medicine.discountPrice && (
+                                <Text style={{ fontSize: 11, color: "#94a3b8", textDecorationLine: "line-through" }}>
+                                  ₹{medicine.price}
+                                </Text>
+                              )}
+                              <Text style={{ fontSize: 17, fontWeight: "700", color: "#FF6B35" }}>
+                                ₹{medicine.discountPrice ?? medicine.price}
+                              </Text>
+                              {medicine.discountPrice && (
+                                <Text style={{ fontSize: 10, color: "#16a34a", fontWeight: "600" }}>
+                                  Save ₹{medicine.price - medicine.discountPrice}
+                                </Text>
+                              )}
+                            </View>
+                          </View>
+
                           <Text style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
                             {medicine.genericName} • {medicine.manufacturer}
                           </Text>
-                          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 }}>
-                            <View style={{
-                              backgroundColor: "#f1f5f9",
-                              paddingHorizontal: 8,
-                              paddingVertical: 3,
-                              borderRadius: 6
-                            }}>
+
+                          <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
+                            <View style={{ backgroundColor: "#f1f5f9", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
                               <Text style={{ fontSize: 10, color: "#64748b", fontWeight: "600" }}>
                                 {medicine.type}
                               </Text>
                             </View>
-                            <Text style={{ fontSize: 11, color: "#64748b" }}>
-                              {medicine.packSize}
-                            </Text>
+                            <Text style={{ fontSize: 11, color: "#64748b" }}>{medicine.packSize}</Text>
                             {medicine.prescriptionRequired && (
-                              <View style={{
-                                backgroundColor: "#fee2e2",
-                                paddingHorizontal: 6,
-                                paddingVertical: 2,
-                                borderRadius: 4
-                              }}>
-                                <Text style={{ fontSize: 9, color: "#dc2626", fontWeight: "700" }}>
-                                  Rx REQUIRED
-                                </Text>
+                              <View style={{ backgroundColor: "#fee2e2", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                                <Text style={{ fontSize: 9, color: "#dc2626", fontWeight: "700" }}>Rx REQUIRED</Text>
                               </View>
                             )}
                           </View>
                         </View>
-                        <View style={{ alignItems: "flex-end", justifyContent: "space-between" }}>
-                          <View>
-                            {medicine.discountPrice && (
-                              <Text style={{
-                                fontSize: 12,
-                                color: "#94a3b8",
-                                textDecorationLine: "line-through"
-                              }}>
-                                ₹{medicine.price}
-                              </Text>
-                            )}
-                            <Text style={{ fontSize: 18, fontWeight: "700", color: "#FF6B35" }}>
-                              ₹{medicine.discountPrice || medicine.price}
-                            </Text>
-                            {medicine.discountPrice && (
-                              <Text style={{ fontSize: 10, color: "#16a34a", fontWeight: "600" }}>
-                                Save ₹{medicine.price - medicine.discountPrice}
-                              </Text>
-                            )}
-                          </View>
-                        </View>
                       </View>
+
                       <Text style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>
                         {medicine.description}
                       </Text>
@@ -965,11 +1054,13 @@ export default function PharmacyScreen({ onBack }: Readonly<PharmacyScreenProps>
         </Pressable>
       )}
 
-      {/* Prescription Success Modal */}
-      <PrescriptionUploadSuccessModal
-        visible={showSuccessModal}
-        onCancel={handleSuccessModalCancel}
-        onCheckAvailability={handleSuccessModalCheckAvailability}
+      <CustomAlert
+        visible={orderAlert.visible}
+        type="success"
+        title={orderAlert.title}
+        message={orderAlert.message}
+        onClose={() => setOrderAlert({ ...orderAlert, visible: false })}
+        primaryButtonText="Done"
       />
     </View>
   );

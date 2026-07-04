@@ -4,6 +4,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import DashboardLayout from "./layouts/DashboardLayout";
 import AdminLoginPage from "./pages/admin/AdminLoginPage";
 import DashboardHomePage from "./pages/admin/DashboardHomePage";
+import FeeSettingsPage from "./pages/admin/FeeSettingsPage";
 import DoctorsManagementPage from "./pages/admin/DoctorsManagementPage";
 import DentistsManagementPage from "./pages/admin/DentistsManagementPage";
 import AppointmentsManagementPage from "./pages/admin/AppointmentsManagementPage";
@@ -67,6 +68,7 @@ export default function App() {
             <Route path="pharmacy" element={<PharmacyManagementPage />} />
             <Route path="pharmacy-orders" element={<PharmacyBookingsManagementPage />} />
             <Route path="prescriptions" element={<PrescriptionsManagementPage />} />
+            <Route path="fee-settings" element={<FeeSettingsPage />} />
           </Route>
 
           {/* Catch all - redirect to admin login */}
