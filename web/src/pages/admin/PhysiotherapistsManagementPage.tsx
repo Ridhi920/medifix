@@ -32,10 +32,14 @@ import {
   Delete,
 } from '@mui/icons-material';
 import { physiotherapistAPI, Physiotherapist, PhysiotherapistCreate } from '../../api/physiotherapistApi';
+import ImportExcelButton, { makeGetter, toNum, toFloat, toList } from '../../components/ImportExcelButton';
+import SelectWithOther from '../../components/SelectWithOther';
+import SearchBar from '../../components/SearchBar';
 import LocationPicker from '../../components/LocationPicker';
 
 export default function PhysiotherapistsManagementPage() {
   const [physiotherapists, setPhysiotherapists] = useState<Physiotherapist[]>([]);
+  const [search, setSearch] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingPhysiotherapist, setEditingPhysiotherapist] = useState<Physiotherapist | null>(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
@@ -228,14 +232,65 @@ export default function PhysiotherapistsManagementPage() {
         <Typography variant="h4" component="h1">
           Physiotherapists Management
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => handleOpenDialog()}
-        >
-          Add Physiotherapist
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <ImportExcelButton<PhysiotherapistCreate>
+            entityLabel="physiotherapist"
+            fileBaseName="physiotherapists"
+            sample={{
+              Name: 'Dr. R Nair',
+              Qualification: 'BPT, MPT',
+              Specialization: 'Sports Injury',
+              Experience: 7,
+              Rating: 4.6,
+              Services: 'Rehab, Manual Therapy, Dry Needling',
+              'Hourly Rate': 300,
+              'Daily Rate': 1800,
+              'Available Shifts': 'Morning, Evening',
+              Languages: 'English, Hindi',
+              Gender: 'Male',
+              Image: '',
+            }}
+            createItem={physiotherapistAPI.createPhysiotherapist}
+            onComplete={fetchPhysiotherapists}
+            mapRow={(r) => {
+              const g = makeGetter(r);
+              const name = g('name')?.toString().trim();
+              const qualification = g('qualification', 'qualifications')?.toString().trim();
+              const specialization = g('specialization', 'specialisation', 'specialty')?.toString().trim();
+              if (!name || !qualification || !specialization) return null;
+              return {
+                name,
+                qualification,
+                specialization,
+                experience: toNum(g('experience')),
+                rating: toFloat(g('rating')),
+                services: toList(g('services')),
+                hourly_rate: toNum(g('hourlyrate')),
+                daily_rate: toNum(g('dailyrate')),
+                available_shifts: toList(g('availableshifts', 'shifts')),
+                languages: toList(g('languages')),
+                image: g('image')?.toString() ?? '',
+                gender: g('gender')?.toString() ?? '',
+                latitude: toFloat(g('latitude', 'lat')),
+                longitude: toFloat(g('longitude', 'lng', 'long')),
+              };
+            }}
+          />
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => handleOpenDialog()}
+          >
+            Add Physiotherapist
+          </Button>
+        </Stack>
       </Box>
+
+      <SearchBar
+        value={search}
+        onChange={setSearch}
+        placeholder="Search by name, specialization or qualification…"
+      />
 
       <TableContainer component={Paper}>
         <Table>
@@ -255,7 +310,14 @@ export default function PhysiotherapistsManagementPage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {physiotherapists.map((physiotherapist) => (
+            {physiotherapists
+              .filter((p) =>
+                [p.name, p.specialization, p.qualification]
+                  .join(' ')
+                  .toLowerCase()
+                  .includes(search.toLowerCase())
+              )
+              .map((physiotherapist) => (
               <TableRow key={physiotherapist.id}>
                 <TableCell>
                   {physiotherapist.image && (physiotherapist.image.startsWith('data:') || physiotherapist.image.startsWith('http')) ? (
@@ -330,18 +392,12 @@ export default function PhysiotherapistsManagementPage() {
               placeholder="e.g., BPT, MPT"
             />
 
-            <FormControl fullWidth>
-              <InputLabel>Specialization</InputLabel>
-              <Select
-                value={formData.specialization}
-                onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
-                label="Specialization"
-              >
-                {['Sports', 'Orthopedic', 'Neurological', 'Pediatric', 'Geriatric'].map(spec => (
-                  <MenuItem key={spec} value={spec}>{spec}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <SelectWithOther
+              label="Specialization"
+              value={formData.specialization}
+              options={['Sports', 'Orthopedic', 'Neurological', 'Pediatric', 'Geriatric']}
+              onChange={(val) => setFormData({ ...formData, specialization: val })}
+            />
 
             <FormControl fullWidth>
               <InputLabel>Gender</InputLabel>

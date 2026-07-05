@@ -77,12 +77,6 @@ export default function ProfileScreen({ onBack, onLogout }: Readonly<ProfileScre
         userAPI.getAllBookings(),
       ]);
 
-      console.log('User data loaded:', userData);
-      console.log('Bookings data loaded:', {
-        appointments: bookingsData.appointments.length,
-        labBookings: bookingsData.labBookings.length,
-        ambulanceBookings: bookingsData.ambulanceBookings.length,
-      });
 
       setUser(userData);
       setFullName(userData.full_name);
@@ -92,7 +86,6 @@ export default function ProfileScreen({ onBack, onLogout }: Readonly<ProfileScre
       // Combine and format all bookings
       const allBookings: BookingItem[] = [
         ...bookingsData.appointments.map((apt) => {
-          console.log('Appointment:', apt);
           return {
             id: apt.id,
             type: "doctor" as const,
@@ -104,7 +97,6 @@ export default function ProfileScreen({ onBack, onLogout }: Readonly<ProfileScre
           };
         }),
         ...bookingsData.labBookings.map((lab) => {
-          console.log('Lab booking:', lab);
           return {
             id: lab.id,
             type: "lab" as const,
@@ -116,7 +108,6 @@ export default function ProfileScreen({ onBack, onLogout }: Readonly<ProfileScre
           };
         }),
         ...bookingsData.ambulanceBookings.map((amb) => {
-          console.log('Ambulance booking:', amb);
           return {
             id: amb.id,
             type: "ambulance" as const,
@@ -131,7 +122,6 @@ export default function ProfileScreen({ onBack, onLogout }: Readonly<ProfileScre
 
       // Sort by date descending
       allBookings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      console.log('Total bookings formatted:', allBookings.length);
       setBookings(allBookings);
     } catch (error: any) {
       console.error("Error loading profile data:", error);

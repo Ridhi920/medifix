@@ -17,20 +17,39 @@ export function useLocation() {
     try {
       setLocationLoading(true);
       setLocationError(null);
+
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         setLocationError("Location permission denied");
         return;
       }
-      const pos = await Location.getCurrentPositionAsync({
+
+      // Permission can be granted while the device's location services are off.
+      const servicesOn = await Location.hasServicesEnabledAsync();
+      if (!servicesOn) {
+        setLocationError("Location services are turned off");
+        return;
+      }
+
+      // Try a fresh fix; fall back to the last known position if that times out
+      // or returns nothing (common indoors or right after enabling GPS).
+      let pos = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
-      });
+      }).catch(() => null);
+      if (!pos) {
+        pos = await Location.getLastKnownPositionAsync();
+      }
+      if (!pos) {
+        setLocationError("Unable to get location");
+        return;
+      }
+
       const { latitude, longitude } = pos.coords;
       setLocation({ latitude, longitude });
       try {
         const res = await fetch(
           `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
-          { headers: { "Accept-Language": "en" } }
+          { headers: { "Accept-Language": "en", "User-Agent": "Medifix/0.1 (medifix app)" } }
         );
         const data = await res.json();
         if (data.address) {

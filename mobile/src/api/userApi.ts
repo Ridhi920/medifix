@@ -184,9 +184,7 @@ export const userAPI = {
 
   // Get all user bookings
   getAllBookings: async (): Promise<AllBookings> => {
-    try {
-      console.log('Fetching all bookings...');
-      
+    try {      
       const [appointmentsRes, labBookingsRes, ambulanceBookingsRes, nurseBookingsRes, physiotherapistBookingsRes] = await Promise.allSettled([
         api.get<DoctorAppointment[]>('/doctors/appointments/my'),
         api.get<LabBooking[]>('/lab-tests/bookings/my'),
@@ -218,12 +216,6 @@ export const userAPI = {
       if (physiotherapistBookingsRes.status === 'rejected') {
         console.error('Error fetching physiotherapist bookings:', physiotherapistBookingsRes.reason);
       }
-
-      console.log('Appointments fetched:', appointments.length);
-      console.log('Lab bookings fetched:', labBookings.length);
-      console.log('Ambulance bookings fetched:', ambulanceBookings.length);
-      console.log('Nurse bookings fetched:', nurseBookings.length);
-      console.log('Physiotherapist bookings fetched:', physiotherapistBookings.length);
 
       return {
         appointments,

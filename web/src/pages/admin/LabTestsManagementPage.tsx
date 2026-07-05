@@ -30,6 +30,9 @@ import {
   Delete,
 } from '@mui/icons-material';
 import { labTestAPI, LabTest, LabTestCreate } from '../../api/labTestApi';
+import ImportExcelButton, { makeGetter, toNum, toBool, toList } from '../../components/ImportExcelButton';
+import SelectWithOther from '../../components/SelectWithOther';
+import SearchBar from '../../components/SearchBar';
 
 const CATEGORIES = [
   'Blood Test',
@@ -42,6 +45,7 @@ const CATEGORIES = [
 
 export default function LabTestsManagementPage() {
   const [tests, setTests] = useState<LabTest[]>([]);
+  const [search, setSearch] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingTest, setEditingTest] = useState<LabTest | null>(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
@@ -173,14 +177,54 @@ export default function LabTestsManagementPage() {
         <Typography variant="h4">
           Lab Tests Management ({tests.length})
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => handleOpenDialog()}
-        >
-          Add Lab Test
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <ImportExcelButton<LabTestCreate>
+            entityLabel="lab test"
+            fileBaseName="lab_tests"
+            sample={{
+              Name: 'Complete Blood Count (CBC)',
+              Category: 'Hematology',
+              Description: 'Measures different components of blood.',
+              Parameters: 'Hemoglobin, RBC, WBC, Platelets',
+              Price: 350,
+              'Report Time': '24 hours',
+              'Fasting Required': 'No',
+              Popular: 'Yes',
+            }}
+            createItem={labTestAPI.createLabTest}
+            onComplete={fetchTests}
+            mapRow={(r) => {
+              const g = makeGetter(r);
+              const name = g('name')?.toString().trim();
+              const category = g('category')?.toString().trim();
+              if (!name || !category) return null;
+              return {
+                name,
+                category,
+                description: g('description')?.toString() ?? '',
+                parameters: toList(g('parameters')),
+                price: toNum(g('price')),
+                report_time: g('reporttime', 'time')?.toString() ?? '',
+                fasting_required: toBool(g('fastingrequired', 'fasting')),
+                popular: toBool(g('popular')),
+              };
+            }}
+          />
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => handleOpenDialog()}
+          >
+            Add Lab Test
+          </Button>
+        </Stack>
       </Stack>
+
+      <SearchBar
+        value={search}
+        onChange={setSearch}
+        placeholder="Search by name or category…"
+      />
 
       {/* Tests Table */}
       <TableContainer component={Paper}>
@@ -198,7 +242,14 @@ export default function LabTestsManagementPage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {tests.map((test) => (
+            {tests
+              .filter((t) =>
+                [t.name, t.category]
+                  .join(' ')
+                  .toLowerCase()
+                  .includes(search.toLowerCase())
+              )
+              .map((test) => (
               <TableRow key={test.id} hover>
                 <TableCell>
                   <Typography fontWeight={600}>{test.name}</Typography>
@@ -276,21 +327,13 @@ export default function LabTestsManagementPage() {
             />
 
             {/* Category */}
-            <TextField
+            <SelectWithOther
               label="Category"
               value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              select
-              SelectProps={{ native: true }}
-              fullWidth
+              options={CATEGORIES}
+              onChange={(val) => setFormData({ ...formData, category: val })}
               required
-            >
-              {CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </TextField>
+            />
 
             {/* Parameters */}
             <Box>

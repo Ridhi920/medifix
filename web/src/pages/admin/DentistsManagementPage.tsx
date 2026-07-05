@@ -29,6 +29,9 @@ import {
   Delete,
 } from '@mui/icons-material';
 import { dentistAPI, Dentist, DentistCreate } from '../../api/dentistApi';
+import ImportExcelButton, { makeGetter, toNum, toFloat, toList } from '../../components/ImportExcelButton';
+import SelectWithOther from '../../components/SelectWithOther';
+import SearchBar from '../../components/SearchBar';
 import LocationPicker from '../../components/LocationPicker';
 
 const SPECIALTIES = [
@@ -50,6 +53,7 @@ const TIME_SLOTS = [
 
 export default function DentistsManagementPage() {
   const [dentists, setDentists] = useState<Dentist[]>([]);
+  const [search, setSearch] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingDentist, setEditingDentist] = useState<Dentist | null>(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
@@ -208,14 +212,61 @@ export default function DentistsManagementPage() {
         <Typography variant="h4">
           Dentists Management ({dentists.length})
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => handleOpenDialog()}
-        >
-          Add Dentist
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <ImportExcelButton<DentistCreate>
+            entityLabel="dentist"
+            fileBaseName="dentists"
+            sample={{
+              Name: 'Dr. B Rao',
+              Specialty: 'Orthodontist',
+              Qualification: 'BDS, MDS',
+              Experience: 8,
+              Rating: 4.6,
+              'Consultation Fee': 400,
+              'Available Days': 'Mon, Wed, Fri',
+              'Available Slots': '10:00 AM, 11:00 AM, 12:00 PM',
+              Address: 'MG Road, Bangalore',
+              Image: '',
+            }}
+            createItem={dentistAPI.createDentist}
+            onComplete={fetchDentists}
+            mapRow={(r) => {
+              const g = makeGetter(r);
+              const name = g('name')?.toString().trim();
+              const specialty = g('specialty', 'speciality')?.toString().trim();
+              const qualification = g('qualification', 'qualifications')?.toString().trim();
+              if (!name || !specialty || !qualification) return null;
+              return {
+                name,
+                specialty,
+                qualification,
+                experience: toNum(g('experience')),
+                rating: toFloat(g('rating')),
+                consultation_fee: toNum(g('consultationfee', 'fee')),
+                available_days: toList(g('availabledays', 'days')),
+                available_slots: toList(g('availableslots', 'slots')),
+                image: g('image')?.toString() ?? '',
+                address: g('address')?.toString() ?? '',
+                latitude: toFloat(g('latitude', 'lat')),
+                longitude: toFloat(g('longitude', 'lng', 'long')),
+              };
+            }}
+          />
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => handleOpenDialog()}
+          >
+            Add Dentist
+          </Button>
+        </Stack>
       </Stack>
+
+      <SearchBar
+        value={search}
+        onChange={setSearch}
+        placeholder="Search by name, specialty or qualification…"
+      />
 
       {/* Dentists Table */}
       <TableContainer component={Paper} sx={{ overflow: 'auto' }}>
@@ -233,7 +284,14 @@ export default function DentistsManagementPage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {dentists.map((dentist) => (
+            {dentists
+              .filter((d) =>
+                [d.name, d.specialty, d.qualification]
+                  .join(' ')
+                  .toLowerCase()
+                  .includes(search.toLowerCase())
+              )
+              .map((dentist) => (
               <TableRow key={dentist.id} hover>
                 <TableCell>
                   {dentist.image && (dentist.image.startsWith('data:') || dentist.image.startsWith('http')) ? (
@@ -303,19 +361,12 @@ export default function DentistsManagementPage() {
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                select
+              <SelectWithOther
                 label="Specialty"
                 value={formData.specialty}
-                onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
-                SelectProps={{ native: true }}
-              >
-                <option value=""></option>
-                {SPECIALTIES.map((spec) => (
-                  <option key={spec} value={spec}>{spec}</option>
-                ))}
-              </TextField>
+                options={SPECIALTIES}
+                onChange={(val) => setFormData({ ...formData, specialty: val })}
+              />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField

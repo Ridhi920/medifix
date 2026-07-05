@@ -28,6 +28,9 @@ import {
   Delete,
 } from '@mui/icons-material';
 import { ambulanceAPI, Ambulance, AmbulanceCreate } from '../../api/ambulanceApi';
+import ImportExcelButton, { makeGetter, toNum, toFloat, toList } from '../../components/ImportExcelButton';
+import SelectWithOther from '../../components/SelectWithOther';
+import SearchBar from '../../components/SearchBar';
 import LocationPicker from '../../components/LocationPicker';
 
 const AMBULANCE_TYPES = [
@@ -40,6 +43,7 @@ const AMBULANCE_TYPES = [
 
 export default function AmbulancesManagementPage() {
   const [ambulances, setAmbulances] = useState<Ambulance[]>([]);
+  const [search, setSearch] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingAmbulance, setEditingAmbulance] = useState<Ambulance | null>(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
@@ -190,14 +194,54 @@ export default function AmbulancesManagementPage() {
         <Typography variant="h4">
           Ambulances Management ({ambulances.length})
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => handleOpenDialog()}
-        >
-          Add Ambulance
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <ImportExcelButton<AmbulanceCreate>
+            entityLabel="ambulance"
+            fileBaseName="ambulances"
+            sample={{
+              Name: 'Basic Life Support',
+              'Ambulance Type': 'BLS',
+              Description: 'Ambulance with basic medical equipment and trained staff.',
+              Features: 'Oxygen, Stretcher, First Aid',
+              'Estimated Time': '15-20 mins',
+              'Base Price': 1500,
+              Image: '',
+            }}
+            createItem={ambulanceAPI.createAmbulance}
+            onComplete={fetchAmbulances}
+            mapRow={(r) => {
+              const g = makeGetter(r);
+              const name = g('name')?.toString().trim();
+              const ambulance_type = g('ambulancetype', 'type')?.toString().trim();
+              if (!name || !ambulance_type) return null;
+              return {
+                name,
+                ambulance_type,
+                description: g('description')?.toString() ?? '',
+                features: toList(g('features')),
+                estimated_time: g('estimatedtime', 'eta', 'time')?.toString() ?? '',
+                base_price: toNum(g('baseprice', 'price')),
+                image: g('image')?.toString() ?? '',
+                latitude: toFloat(g('latitude', 'lat')),
+                longitude: toFloat(g('longitude', 'lng', 'long')),
+              };
+            }}
+          />
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => handleOpenDialog()}
+          >
+            Add Ambulance
+          </Button>
+        </Stack>
       </Stack>
+
+      <SearchBar
+        value={search}
+        onChange={setSearch}
+        placeholder="Search by name or type…"
+      />
 
       {/* Ambulances Table */}
       <TableContainer component={Paper}>
@@ -215,7 +259,14 @@ export default function AmbulancesManagementPage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {ambulances.map((ambulance) => (
+            {ambulances
+              .filter((a) =>
+                [a.name, a.ambulance_type]
+                  .join(' ')
+                  .toLowerCase()
+                  .includes(search.toLowerCase())
+              )
+              .map((ambulance) => (
               <TableRow key={ambulance.id} hover>
                 <TableCell>
                   {ambulance.image && (ambulance.image.startsWith('data:') || ambulance.image.startsWith('http')) ? (
@@ -298,21 +349,15 @@ export default function AmbulancesManagementPage() {
 
             {/* Type and Image */}
             <Stack direction="row" spacing={2}>
-              <TextField
-                label="Type"
-                value={formData.ambulance_type}
-                onChange={(e) => setFormData({ ...formData, ambulance_type: e.target.value })}
-                select
-                SelectProps={{ native: true }}
-                fullWidth
-                required
-              >
-                {AMBULANCE_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </TextField>
+              <Box sx={{ width: '100%' }}>
+                <SelectWithOther
+                  label="Type"
+                  value={formData.ambulance_type}
+                  options={AMBULANCE_TYPES}
+                  onChange={(val) => setFormData({ ...formData, ambulance_type: val })}
+                  required
+                />
+              </Box>
               <Box sx={{ width: '100%' }}>
                 <input
                   accept="image/*"

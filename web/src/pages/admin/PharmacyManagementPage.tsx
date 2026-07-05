@@ -32,11 +32,20 @@ import {
   Add,
   Edit,
   Delete,
+  UploadFile,
+  Download,
 } from '@mui/icons-material';
+import * as XLSX from 'xlsx';
 import { pharmacyAPI, Medicine, MedicineCreate } from '../../api/pharmacyApi';
+import MedicineImage from '../../components/MedicineImage';
+import SearchBar from '../../components/SearchBar';
+
+// Preset categories shown in the dropdown; "Others" reveals a free-text field.
+const PRESET_CATEGORIES = ['Pain Relief', 'Antibiotics', 'Vitamins', 'First Aid', 'Diabetes', 'Cardiac', 'Respiratory', 'Gastrointestinal'];
 
 export default function PharmacyManagementPage() {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
+  const [search, setSearch] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
@@ -55,8 +64,10 @@ export default function PharmacyManagementPage() {
     image: '',
   });
 
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
+  const [importing, setImporting] = useState(false);
+  // True when "Others" is chosen — shows a text field for a custom category.
+  const [customCategory, setCustomCategory] = useState(false);
 
   useEffect(() => {
     fetchMedicines();
@@ -92,7 +103,8 @@ export default function PharmacyManagementPage() {
         image: medicine.image || '',
       });
       setImagePreview(medicine.image || '');
-      setImageFile(null);
+      // Existing category not in the presets → treat as a custom "Others" value.
+      setCustomCategory(!!medicine.category && !PRESET_CATEGORIES.includes(medicine.category));
     } else {
       setEditingMedicine(null);
       setFormData({
@@ -109,7 +121,7 @@ export default function PharmacyManagementPage() {
         image: '',
       });
       setImagePreview('');
-      setImageFile(null);
+      setCustomCategory(false);
     }
     setOpenDialog(true);
   };
@@ -117,14 +129,12 @@ export default function PharmacyManagementPage() {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingMedicine(null);
-    setImageFile(null);
     setImagePreview('');
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result as string;
@@ -173,28 +183,162 @@ export default function PharmacyManagementPage() {
     }
   };
 
+  // ── Excel import ──────────────────────────────────────────────────────────
+  // Match a spreadsheet header to a field regardless of spacing/case, e.g.
+  // "Generic Name", "generic_name" and "GENERICNAME" all resolve the same.
+  const normalizeHeader = (h: string) => h.toLowerCase().replace(/[\s_]+/g, '');
+
+  const parseBool = (v: any): boolean => {
+    const s = String(v).trim().toLowerCase();
+    return s === 'yes' || s === 'true' || s === '1' || s === 'required';
+  };
+
+  const rowToMedicine = (row: Record<string, any>): MedicineCreate | null => {
+    const get = (...keys: string[]) => {
+      for (const k of keys) {
+        const found = Object.keys(row).find((rk) => normalizeHeader(rk) === k);
+        if (found && row[found] !== '' && row[found] != null) return row[found];
+      }
+      return undefined;
+    };
+    const name = get('name', 'medicinename')?.toString().trim();
+    const generic = get('genericname', 'generic')?.toString().trim();
+    const manufacturer = get('manufacturer')?.toString().trim();
+    const category = get('category')?.toString().trim();
+    // Skip rows missing any required field.
+    if (!name || !generic || !manufacturer || !category) return null;
+    return {
+      name,
+      generic_name: generic,
+      manufacturer,
+      category,
+      price: Math.round(Number(get('price', 'priceinr', 'mrp'))) || 0,
+      stock: Math.round(Number(get('stock', 'stockquantity'))) || 0,
+      requires_prescription: parseBool(get('requiresprescription', 'prescription')),
+      description: get('description')?.toString() ?? '',
+      dosage_form: get('dosageform', 'form', 'type')?.toString() ?? '',
+      strength: get('strength')?.toString() ?? '',
+      image: '',
+    };
+  };
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // let the same file be re-selected later
+    if (!file) return;
+    setImporting(true);
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '' });
+      if (rows.length === 0) {
+        showSnackbar('The file has no rows', 'error');
+        return;
+      }
+      let created = 0;
+      let skipped = 0;
+      for (const row of rows) {
+        const med = rowToMedicine(row);
+        if (!med) {
+          skipped++;
+          continue;
+        }
+        try {
+          await pharmacyAPI.createMedicine(med);
+          created++;
+        } catch {
+          skipped++;
+        }
+      }
+      await fetchMedicines();
+      showSnackbar(
+        `Imported ${created} medicine${created !== 1 ? 's' : ''}` +
+          (skipped ? `, skipped ${skipped} invalid/duplicate row${skipped !== 1 ? 's' : ''}` : ''),
+        created > 0 ? 'success' : 'error'
+      );
+    } catch {
+      showSnackbar('Failed to read the Excel file', 'error');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    const sample = [
+      {
+        Name: 'Crocin 500mg',
+        'Generic Name': 'Paracetamol',
+        Manufacturer: 'GSK Pharma',
+        Category: 'Pain Relief',
+        'Dosage Form': 'Tablet',
+        Strength: '500mg',
+        Price: 28,
+        Stock: 200,
+        'Requires Prescription': 'No',
+        Description: 'Relieves mild to moderate pain and reduces fever.',
+      },
+    ];
+    const ws = XLSX.utils.json_to_sheet(sample);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Medicines');
+    XLSX.writeFile(wb, 'medicines_template.xlsx');
+  };
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" component="h1">
           Pharmacy Management
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => handleOpenDialog()}
-        >
-          Add Medicine
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="contained"
+            startIcon={<Download />}
+            onClick={handleDownloadTemplate}
+          >
+            Template
+          </Button>
+          <input
+            accept=".xlsx,.xls,.csv"
+            style={{ display: 'none' }}
+            id="import-excel-input"
+            type="file"
+            onChange={handleImportExcel}
+          />
+          <label htmlFor="import-excel-input">
+            <Button
+              variant="contained"
+              component="span"
+              startIcon={<UploadFile />}
+              disabled={importing}
+            >
+              {importing ? 'Importing…' : 'Import from Excel'}
+            </Button>
+          </label>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => handleOpenDialog()}
+          >
+            Add Medicine
+          </Button>
+        </Stack>
       </Box>
 
+      <SearchBar
+        value={search}
+        onChange={setSearch}
+        placeholder="Search by name, generic, manufacturer or category…"
+      />
+
       <TableContainer component={Paper} sx={{ overflow: 'auto' }}>
-        <Table sx={{ minWidth: 800 }}>
+        <Table sx={{ minWidth: 800, width: 'max-content' }}>
           <TableHead>
             <TableRow>
               <TableCell>Icon</TableCell>
               <TableCell>Name</TableCell>
-              <TableCell>Generic Name</TableCell>
+              <TableCell sx={{ whiteSpace: 'nowrap' }}>Generic Name</TableCell>
               <TableCell>Category</TableCell>
               <TableCell>Manufacturer</TableCell>
               <TableCell>Strength</TableCell>
@@ -206,21 +350,34 @@ export default function PharmacyManagementPage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {medicines.map((medicine) => (
+            {medicines
+              .filter((m) =>
+                [m.name, m.generic_name, m.manufacturer, m.category]
+                  .join(' ')
+                  .toLowerCase()
+                  .includes(search.toLowerCase())
+              )
+              .map((medicine) => (
               <TableRow key={medicine.id}>
                 <TableCell>
                   {medicine.image && (medicine.image.startsWith('data:') || medicine.image.startsWith('http')) ? (
-                    <img 
-                      src={medicine.image} 
+                    <img
+                      src={medicine.image}
                       alt={medicine.name}
                       style={{ width: 40, height: 40, borderRadius: '8px', objectFit: 'cover' }}
                     />
                   ) : (
-                    <Typography fontSize={32}>{medicine.image || '💊'}</Typography>
+                    <MedicineImage
+                      name={medicine.name}
+                      genericName={medicine.generic_name}
+                      category={medicine.category}
+                      dosageForm={medicine.dosage_form}
+                      size={40}
+                    />
                   )}
                 </TableCell>
                 <TableCell>{medicine.name}</TableCell>
-                <TableCell>{medicine.generic_name}</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>{medicine.generic_name}</TableCell>
                 <TableCell>
                   <Chip label={medicine.category} size="small" color="primary" />
                 </TableCell>
@@ -303,15 +460,35 @@ export default function PharmacyManagementPage() {
             <FormControl fullWidth>
               <InputLabel>Category</InputLabel>
               <Select
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                value={customCategory ? 'Others' : formData.category}
+                onChange={(e) => {
+                  if (e.target.value === 'Others') {
+                    setCustomCategory(true);
+                    setFormData({ ...formData, category: '' });
+                  } else {
+                    setCustomCategory(false);
+                    setFormData({ ...formData, category: e.target.value });
+                  }
+                }}
                 label="Category"
               >
-                {['Pain Relief', 'Antibiotics', 'Vitamins', 'First Aid', 'Diabetes', 'Cardiac', 'Respiratory', 'Gastrointestinal', 'Others'].map(cat => (
+                {[...PRESET_CATEGORIES, 'Others'].map(cat => (
                   <MenuItem key={cat} value={cat}>{cat}</MenuItem>
                 ))}
               </Select>
             </FormControl>
+
+            {customCategory && (
+              <TextField
+                label="Custom Category"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                fullWidth
+                required
+                autoFocus
+                placeholder="Enter category name"
+              />
+            )}
 
             <Box sx={{ display: 'flex', gap: 2 }}>
               <FormControl fullWidth>

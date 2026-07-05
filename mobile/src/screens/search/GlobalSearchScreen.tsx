@@ -8,7 +8,7 @@ import { nurseAPI, type Nurse } from "../../api/nurseApi";
 import { physiotherapistAPI, type Physiotherapist } from "../../api/physiotherapistApi";
 import { getLabTests, type LabTest } from "../../api/labTestApi";
 import { ambulanceAPI, type Ambulance } from "../../api/ambulanceApi";
-import { MEDICINES } from "../../data/medicines";
+import { pharmacyApi, type BackendMedicine } from "../../api/pharmacyApi";
 import { SERVICES } from "../../data/services";
 import type { Doctor, Dentist } from "../../services/api";
 
@@ -70,6 +70,7 @@ export default function GlobalSearchScreen({
   const [physios, setPhysios] = useState<Physiotherapist[]>([]);
   const [labTests, setLabTests] = useState<LabTest[]>([]);
   const [ambulances, setAmbulances] = useState<Ambulance[]>([]);
+  const [medicines, setMedicines] = useState<BackendMedicine[]>([]);
 
   useEffect(() => {
     Promise.allSettled([
@@ -79,6 +80,7 @@ export default function GlobalSearchScreen({
       physiotherapistAPI.getPhysiotherapists().then(setPhysios),
       getLabTests().then(setLabTests),
       ambulanceAPI.getAmbulances().then(setAmbulances),
+      pharmacyApi.getMedicines().then(setMedicines),
     ]).finally(() => setLoading(false));
   }, []);
 
@@ -96,12 +98,12 @@ export default function GlobalSearchScreen({
       })
     );
 
-    MEDICINES.forEach((m) =>
+    medicines.forEach((m) =>
       results.push({
         id: `med-${m.id}`,
         category: "Medicines",
         title: m.name,
-        subtitle: `${m.category} · ₹${m.price}${m.prescriptionRequired ? " · Rx" : ""}`,
+        subtitle: `${m.category} · ₹${m.price}${m.requires_prescription ? " · Rx" : ""}`,
         icon: "💊",
         actionKey: "pharmacy",
       })
@@ -174,7 +176,7 @@ export default function GlobalSearchScreen({
     );
 
     return results;
-  }, [doctors, dentists, nurses, physios, labTests, ambulances]);
+  }, [doctors, dentists, nurses, physios, labTests, ambulances, medicines]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

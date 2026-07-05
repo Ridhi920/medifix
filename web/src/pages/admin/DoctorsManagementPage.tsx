@@ -30,6 +30,9 @@ import {
 } from '@mui/icons-material';
 import { doctorAPI, Doctor, DoctorCreate } from '../../api/doctorApi';
 import LocationPicker from '../../components/LocationPicker';
+import ImportExcelButton, { makeGetter, toNum, toFloat, toList } from '../../components/ImportExcelButton';
+import SelectWithOther from '../../components/SelectWithOther';
+import SearchBar from '../../components/SearchBar';
 
 const SPECIALTIES = [
   'Cardiologist',
@@ -50,6 +53,7 @@ const TIME_SLOTS = [
 
 export default function DoctorsManagementPage() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [search, setSearch] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
@@ -68,7 +72,6 @@ export default function DoctorsManagementPage() {
     latitude: undefined,
     longitude: undefined,
   });
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
 
   useEffect(() => {
@@ -106,7 +109,6 @@ export default function DoctorsManagementPage() {
         longitude: doctor.longitude ?? undefined,
       });
       setImagePreview(doctor.image);
-      setImageFile(null);
     } else {
       setEditingDoctor(null);
       setFormData({
@@ -124,21 +126,18 @@ export default function DoctorsManagementPage() {
         longitude: undefined,
       });
       setImagePreview('');
-      setImageFile(null);
     }
     setOpenDialog(true);
   };
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
-    setImageFile(null);
     setImagePreview('');
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result as string;
@@ -212,14 +211,61 @@ export default function DoctorsManagementPage() {
         <Typography variant="h4">
           Doctors Management ({doctors.length})
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => handleOpenDialog()}
-        >
-          Add Doctor
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <ImportExcelButton<DoctorCreate>
+            entityLabel="doctor"
+            fileBaseName="doctors"
+            sample={{
+              Name: 'Dr. A Sharma',
+              Specialty: 'Cardiologist',
+              Qualification: 'MBBS, MD',
+              Experience: 10,
+              Rating: 4.5,
+              'Consultation Fee': 500,
+              'Available Days': 'Mon, Tue, Wed',
+              'Available Slots': '10:00 AM, 11:00 AM, 12:00 PM',
+              Address: 'MG Road, Bangalore',
+              Image: '',
+            }}
+            createItem={doctorAPI.createDoctor}
+            onComplete={fetchDoctors}
+            mapRow={(r) => {
+              const g = makeGetter(r);
+              const name = g('name')?.toString().trim();
+              const specialty = g('specialty', 'speciality')?.toString().trim();
+              const qualification = g('qualification', 'qualifications')?.toString().trim();
+              if (!name || !specialty || !qualification) return null;
+              return {
+                name,
+                specialty,
+                qualification,
+                experience: toNum(g('experience')),
+                rating: toFloat(g('rating')),
+                consultation_fee: toNum(g('consultationfee', 'fee')),
+                available_days: toList(g('availabledays', 'days')),
+                available_slots: toList(g('availableslots', 'slots')),
+                image: g('image')?.toString() ?? '',
+                address: g('address')?.toString() ?? '',
+                latitude: toFloat(g('latitude', 'lat')),
+                longitude: toFloat(g('longitude', 'lng', 'long')),
+              };
+            }}
+          />
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => handleOpenDialog()}
+          >
+            Add Doctor
+          </Button>
+        </Stack>
       </Stack>
+
+      <SearchBar
+        value={search}
+        onChange={setSearch}
+        placeholder="Search by name, specialty or qualification…"
+      />
 
       {/* Doctors Table */}
       <TableContainer component={Paper} sx={{ overflow: 'auto' }}>
@@ -238,7 +284,14 @@ export default function DoctorsManagementPage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {doctors.map((doctor) => (
+            {doctors
+              .filter((d) =>
+                [d.name, d.specialty, d.qualification]
+                  .join(' ')
+                  .toLowerCase()
+                  .includes(search.toLowerCase())
+              )
+              .map((doctor) => (
               <TableRow key={doctor.id} hover>
                 <TableCell>
                   {doctor.image && (doctor.image.startsWith('data:') || doctor.image.startsWith('http')) ? (
@@ -313,19 +366,12 @@ export default function DoctorsManagementPage() {
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                select
+              <SelectWithOther
                 label="Specialty"
                 value={formData.specialty}
-                onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
-                SelectProps={{ native: true }}
-              >
-                <option value=""></option>
-                {SPECIALTIES.map((spec) => (
-                  <option key={spec} value={spec}>{spec}</option>
-                ))}
-              </TextField>
+                options={SPECIALTIES}
+                onChange={(val) => setFormData({ ...formData, specialty: val })}
+              />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField

@@ -52,7 +52,32 @@ export interface CreateOrderPayload {
   notes?: string;
 }
 
+export interface BackendMedicine {
+  id: number;
+  name: string;
+  generic_name: string;
+  manufacturer: string;
+  category: string;
+  price: number;
+  stock: number;
+  requires_prescription: boolean;
+  description: string | null;
+  dosage_form: string | null;
+  strength: string | null;
+  image: string | null;
+  is_active: boolean;
+}
+
 export const pharmacyApi = {
+  // The medicine catalogue from the backend — the single source of truth so
+  // medicines added/edited in the admin portal show up in the app too.
+  getMedicines: async (): Promise<BackendMedicine[]> => {
+    const res = await api.get<BackendMedicine[]>('/pharmacy/medicines', {
+      params: { active_only: true },
+    });
+    return res.data;
+  },
+
   submitPrescription: async (imageBase64: string): Promise<PrescriptionSubmission> => {
     const res = await api.post<PrescriptionSubmission>('/pharmacy/prescriptions', {
       image_data: imageBase64,

@@ -27,4 +27,3 @@ EXPO_PUBLIC_API_URL=http://${ip}:8000
 `;
 
 fs.writeFileSync(envPath, content);
-console.log(`✅ API URL updated to: http://${ip}:8000`);

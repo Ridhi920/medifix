@@ -20,6 +20,7 @@
       "infoPlist": {
         "NSCameraUsageDescription": "This app needs access to the camera to take photos for medical records.",
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select photos for medical records.",
+        "NSLocationWhenInUseUsageDescription": "This app uses your location to show nearby pharmacies, services and delivery options.",
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true,
           "NSExceptionDomains": {
@@ -36,8 +37,18 @@
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
       ]
-    }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "This app uses your location to show nearby pharmacies, services and delivery options."
+        }
+      ]
+    ]
   }
 }

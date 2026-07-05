@@ -53,7 +53,6 @@ function CartView({
   updateQuantity,
   getTotalAmount,
   getTotalSavings,
-  deliveryAddress,
   setDeliveryAddress,
   phoneNumber,
   setPhoneNumber,
@@ -147,6 +146,8 @@ function CartView({
                         name={item.medicine.name}
                         genericName={item.medicine.genericName}
                         category={item.medicine.category}
+                        type={item.medicine.type}
+                        imageUri={item.medicine.image}
                         size={56}
                       />
                       <View style={{ flex: 1, marginLeft: 12 }}>
@@ -620,8 +621,37 @@ export default function PharmacyScreen({ onBack }: Readonly<PharmacyScreenProps>
     return () => clearTimeout(timer);
   }, []);
 
+  // The medicine catalogue comes from the backend so anything added/edited in
+  // the admin portal appears here too. Falls back to the bundled list only if
+  // the backend is unreachable (offline).
+  const [medicines, setMedicines] = useState<Medicine[]>(MEDICINES);
+  useEffect(() => {
+    pharmacyApi
+      .getMedicines()
+      .then((list) => {
+        const mapped: Medicine[] = list.map((m) => ({
+          id: String(m.id),
+          name: m.name,
+          genericName: m.generic_name,
+          manufacturer: m.manufacturer,
+          category: m.category,
+          type: m.dosage_form || "Tablet",
+          packSize: m.strength || "",
+          price: m.price,
+          stock: m.stock,
+          description: m.description || "",
+          prescriptionRequired: m.requires_prescription,
+          image: m.image || undefined,
+        }));
+        setMedicines(mapped);
+      })
+      .catch((e) => {
+        console.warn("💊 Could not load medicines from backend, using bundled list:", e?.message ?? e);
+      });
+  }, []);
+
   // Filter medicines based on search and category
-  const filteredMedicines = MEDICINES.filter((medicine) => {
+  const filteredMedicines = medicines.filter((medicine) => {
     const matchesCategory = selectedCategory === "All" || medicine.category === selectedCategory;
     const matchesSearch = searchQuery === "" ||
       medicine.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -896,6 +926,8 @@ export default function PharmacyScreen({ onBack }: Readonly<PharmacyScreenProps>
                           name={medicine.name}
                           genericName={medicine.genericName}
                           category={medicine.category}
+                          type={medicine.type}
+                          imageUri={medicine.image}
                           size={82}
                           perStrip={medicine.perStrip}
                         />

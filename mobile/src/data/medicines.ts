@@ -12,6 +12,7 @@ export type Medicine = {
   stock: number;
   description: string;
   prescriptionRequired: boolean;
+  image?: string;      // stored product photo (from the backend catalogue)
 };
 
 export const MEDICINE_CATEGORIES = [

@@ -32,10 +32,14 @@ import {
   Delete,
 } from '@mui/icons-material';
 import { nurseAPI, Nurse, NurseCreate } from '../../api/nurseApi';
+import ImportExcelButton, { makeGetter, toNum, toFloat, toList } from '../../components/ImportExcelButton';
+import SelectWithOther from '../../components/SelectWithOther';
+import SearchBar from '../../components/SearchBar';
 import LocationPicker from '../../components/LocationPicker';
 
 export default function NursesManagementPage() {
   const [nurses, setNurses] = useState<Nurse[]>([]);
+  const [search, setSearch] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingNurse, setEditingNurse] = useState<Nurse | null>(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
@@ -228,14 +232,65 @@ export default function NursesManagementPage() {
         <Typography variant="h4" component="h1">
           Nurses Management
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => handleOpenDialog()}
-        >
-          Add Nurse
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <ImportExcelButton<NurseCreate>
+            entityLabel="nurse"
+            fileBaseName="nurses"
+            sample={{
+              Name: 'Nurse S Devi',
+              Qualification: 'GNM',
+              Specialization: 'Elderly Care',
+              Experience: 6,
+              Rating: 4.7,
+              Services: 'Injection, Wound Dressing, Vitals',
+              'Hourly Rate': 200,
+              'Daily Rate': 1200,
+              'Available Shifts': 'Morning, Evening',
+              Languages: 'English, Hindi, Kannada',
+              Gender: 'Female',
+              Image: '',
+            }}
+            createItem={nurseAPI.createNurse}
+            onComplete={fetchNurses}
+            mapRow={(r) => {
+              const g = makeGetter(r);
+              const name = g('name')?.toString().trim();
+              const qualification = g('qualification', 'qualifications')?.toString().trim();
+              const specialization = g('specialization', 'specialisation', 'specialty')?.toString().trim();
+              if (!name || !qualification || !specialization) return null;
+              return {
+                name,
+                qualification,
+                specialization,
+                experience: toNum(g('experience')),
+                rating: toFloat(g('rating')),
+                services: toList(g('services')),
+                hourly_rate: toNum(g('hourlyrate')),
+                daily_rate: toNum(g('dailyrate')),
+                available_shifts: toList(g('availableshifts', 'shifts')),
+                languages: toList(g('languages')),
+                image: g('image')?.toString() ?? '',
+                gender: g('gender')?.toString() ?? '',
+                latitude: toFloat(g('latitude', 'lat')),
+                longitude: toFloat(g('longitude', 'lng', 'long')),
+              };
+            }}
+          />
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => handleOpenDialog()}
+          >
+            Add Nurse
+          </Button>
+        </Stack>
       </Box>
+
+      <SearchBar
+        value={search}
+        onChange={setSearch}
+        placeholder="Search by name, specialization or qualification…"
+      />
 
       <TableContainer component={Paper} sx={{ overflow: 'auto' }}>
         <Table sx={{ minWidth: 800 }}>
@@ -255,7 +310,14 @@ export default function NursesManagementPage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {nurses.map((nurse) => (
+            {nurses
+              .filter((n) =>
+                [n.name, n.specialization, n.qualification]
+                  .join(' ')
+                  .toLowerCase()
+                  .includes(search.toLowerCase())
+              )
+              .map((nurse) => (
               <TableRow key={nurse.id}>
                 <TableCell>
                   {nurse.image && (nurse.image.startsWith('data:') || nurse.image.startsWith('http')) ? (
@@ -330,18 +392,12 @@ export default function NursesManagementPage() {
               placeholder="e.g., BSc Nursing, GNM"
             />
 
-            <FormControl fullWidth>
-              <InputLabel>Specialization</InputLabel>
-              <Select
-                value={formData.specialization}
-                onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
-                label="Specialization"
-              >
-                {['ICU', 'Pediatric', 'Geriatric', 'General', 'Post-operative', 'Palliative'].map(spec => (
-                  <MenuItem key={spec} value={spec}>{spec}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <SelectWithOther
+              label="Specialization"
+              value={formData.specialization}
+              options={['ICU', 'Pediatric', 'Geriatric', 'General', 'Post-operative', 'Palliative']}
+              onChange={(val) => setFormData({ ...formData, specialization: val })}
+            />
 
             <FormControl fullWidth>
               <InputLabel>Gender</InputLabel>

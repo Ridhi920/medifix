@@ -7,23 +7,12 @@ import {
   Typography,
   CardActionArea,
   Container,
-  Stack,
   IconButton,
   Tooltip
 } from '@mui/material';
-import medEfixLogo from '../../assets/medEfix.png';
 import {
-  MedicalServices as DoctorsIcon,
-  CalendarMonth as AppointmentsIcon,
-  Science as LabIcon,
-  Biotech as LabTestIcon,
-  AirportShuttle as AmbulanceIcon,
-  HealthAndSafety as NurseIcon,
-  FitnessCenter as PhysiotherapistIcon,
-  LocalPharmacy as PharmacyIcon,
   AddCircleOutline as AddIcon,
   BookmarkBorder as ManageIcon,
-  People as UsersIcon,
   Logout as LogoutIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
