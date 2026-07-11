@@ -62,6 +62,11 @@ const STATUS_OPTIONS = [
   { value: 'cancelled', label: 'Cancelled', icon: <Close fontSize="small" /> },
 ] as const;
 
+const PRESCRIPTION_STATUS_OPTIONS = [
+  { value: 'pending', label: 'Pending Review', icon: <Schedule fontSize="small" /> },
+  { value: 'reviewed', label: 'Reviewed', icon: <CheckCircle fontSize="small" /> },
+] as const;
+
 export default function PharmacyBookingsManagementPage() {
   const [activeTab, setActiveTab] = useState(0);
   const [orders, setOrders] = useState<MedicineOrder[]>([]);
@@ -73,6 +78,8 @@ export default function PharmacyBookingsManagementPage() {
   const [prescriptions, setPrescriptions] = useState<PrescriptionSubmission[]>([]);
   const [selectedPrescription, setSelectedPrescription] = useState<PrescriptionSubmission | null>(null);
   const [openPrescriptionDialog, setOpenPrescriptionDialog] = useState(false);
+  const [prescMenuAnchor, setPrescMenuAnchor] = useState<null | HTMLElement>(null);
+  const [statusChangePrescription, setStatusChangePrescription] = useState<PrescriptionSubmission | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -100,11 +107,45 @@ export default function PharmacyBookingsManagementPage() {
   const handleMarkReviewed = async (id: number) => {
     try {
       await pharmacyAPI.updatePrescriptionStatus(id, 'reviewed');
-      showSnackbar('Prescription marked as reviewed', 'success');
+      showSnackbar('Prescription reviewed and moved to Orders', 'success');
       fetchPrescriptions();
+      fetchOrders();
       setOpenPrescriptionDialog(false);
     } catch {
       showSnackbar('Failed to update prescription', 'error');
+    }
+  };
+
+  const handleOpenPrescMenu = (event: React.MouseEvent<HTMLElement>, prescription: PrescriptionSubmission) => {
+    setPrescMenuAnchor(event.currentTarget);
+    setStatusChangePrescription(prescription);
+  };
+
+  const handleClosePrescMenu = () => {
+    setPrescMenuAnchor(null);
+    setStatusChangePrescription(null);
+  };
+
+  const handleChangePrescriptionStatus = async (newStatus: string) => {
+    if (!statusChangePrescription) return;
+
+    try {
+      await pharmacyAPI.updatePrescriptionStatus(statusChangePrescription.id, newStatus);
+      showSnackbar(
+        newStatus === 'reviewed'
+          ? 'Prescription reviewed and moved to Orders'
+          : 'Prescription marked as pending review',
+        'success',
+      );
+      fetchPrescriptions();
+      if (newStatus === 'reviewed') fetchOrders();
+      handleClosePrescMenu();
+      if (selectedPrescription && selectedPrescription.id === statusChangePrescription.id) {
+        setSelectedPrescription({ ...selectedPrescription, status: newStatus as PrescriptionSubmission['status'] });
+      }
+    } catch {
+      showSnackbar('Failed to update prescription status', 'error');
+      handleClosePrescMenu();
     }
   };
 
@@ -196,6 +237,9 @@ export default function PharmacyBookingsManagementPage() {
     return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
+  // Reviewed prescriptions become orders, so only pending ones stay in this tab.
+  const pendingPrescriptions = prescriptions.filter((p) => p.status === 'pending');
+
   return (
     <Box>
       <Typography variant="h4" component="h1" sx={{ mb: 3 }}>
@@ -205,9 +249,9 @@ export default function PharmacyBookingsManagementPage() {
       <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
         <Tab label={`Orders (${orders.length})`} />
         <Tab
-          label={`Prescriptions (${prescriptions.length})`}
-          icon={prescriptions.filter(p => p.status === 'pending').length > 0
-            ? <Chip label={prescriptions.filter(p => p.status === 'pending').length} color="warning" size="small" />
+          label={`Prescriptions (${pendingPrescriptions.length})`}
+          icon={pendingPrescriptions.length > 0
+            ? <Chip label={pendingPrescriptions.length} color="warning" size="small" />
             : undefined}
           iconPosition="end"
         />
@@ -228,14 +272,14 @@ export default function PharmacyBookingsManagementPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {prescriptions.length === 0 ? (
+                {pendingPrescriptions.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                      No prescription submissions yet
+                      No pending prescriptions
                     </TableCell>
                   </TableRow>
                 ) : (
-                  prescriptions.map((p) => (
+                  pendingPrescriptions.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell>#{p.id}</TableCell>
                       <TableCell>{p.user_id ?? '—'}</TableCell>
@@ -260,11 +304,9 @@ export default function PharmacyBookingsManagementPage() {
                         <IconButton size="small" color="primary" onClick={() => { setSelectedPrescription(p); setOpenPrescriptionDialog(true); }}>
                           <Visibility />
                         </IconButton>
-                        {p.status === 'pending' && (
-                          <IconButton size="small" color="success" onClick={() => handleMarkReviewed(p.id)}>
-                            <CheckCircle />
-                          </IconButton>
-                        )}
+                        <IconButton size="small" onClick={(e) => handleOpenPrescMenu(e, p)}>
+                          <MoreVert />
+                        </IconButton>
                       </TableCell>
                     </TableRow>
                   ))
@@ -415,6 +457,24 @@ export default function PharmacyBookingsManagementPage() {
             key={option.value}
             onClick={() => handleChangeStatus(option.value)}
             disabled={statusChangeOrder?.status === option.value}
+          >
+            <ListItemIcon>{option.icon}</ListItemIcon>
+            <ListItemText>{option.label}</ListItemText>
+          </MenuItem>
+        ))}
+      </Menu>
+
+      {/* Prescription Status Change Menu */}
+      <Menu
+        anchorEl={prescMenuAnchor}
+        open={Boolean(prescMenuAnchor)}
+        onClose={handleClosePrescMenu}
+      >
+        {PRESCRIPTION_STATUS_OPTIONS.map((option) => (
+          <MenuItem
+            key={option.value}
+            onClick={() => handleChangePrescriptionStatus(option.value)}
+            disabled={statusChangePrescription?.status === option.value}
           >
             <ListItemIcon>{option.icon}</ListItemIcon>
             <ListItemText>{option.label}</ListItemText>

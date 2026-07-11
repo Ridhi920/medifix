@@ -35,7 +35,10 @@ import {
   Logout as LogoutIcon,
   Home as HomeIcon,
   LocalHospital as DentistIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  ToggleOn as AvailabilityIcon,
+  RateReview as ReviewIcon,
+  Stars as WhyChooseIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 
@@ -50,7 +53,10 @@ const serviceItems = [
   { text: 'Nurses', icon: <NurseIcon />, path: '/admin/nurses' },
   { text: 'Physiotherapists', icon: <PhysiotherapistIcon />, path: '/admin/physiotherapists' },
   { text: 'Pharmacy', icon: <PharmacyIcon />, path: '/admin/pharmacy' },
-  { text: 'Fee Settings', icon: <SettingsIcon />, path: '/admin/fee-settings' }
+  { text: 'Fee Settings', icon: <SettingsIcon />, path: '/admin/fee-settings' },
+  { text: 'Service Availability', icon: <AvailabilityIcon />, path: '/admin/service-availability' },
+  { text: 'User Reviews', icon: <ReviewIcon />, path: '/admin/reviews' },
+  { text: 'Why Choose MedEfix', icon: <WhyChooseIcon />, path: '/admin/why-choose' }
 ];
 
 const bookingItems = [
@@ -90,7 +96,7 @@ export default function DashboardLayout() {
   };
 
   // Determine which menu items to show based on current path
-  const isServicePath = location.pathname.match(/\/(users|doctors|dentists|lab-tests|ambulances|nurses|physiotherapists|pharmacy|fee-settings)$/);
+  const isServicePath = location.pathname.match(/\/(users|doctors|dentists|lab-tests|ambulances|nurses|physiotherapists|pharmacy|fee-settings|service-availability|reviews|why-choose)$/);
   const isBookingPath = location.pathname.match(/\/(appointments|dentist-appointments|lab-bookings|ambulance-bookings|nurse-bookings|physiotherapist-bookings|pharmacy-orders|prescriptions)$/);
   
   let menuItems = [];
@@ -116,7 +122,7 @@ export default function DashboardLayout() {
       >
         <img 
           src={medEfixLogo} 
-          alt="Medifix Logo" 
+          alt="MedEfix Logo" 
           style={{ height: '50px', width: 'auto' }}
         />
       </Toolbar>

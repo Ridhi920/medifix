@@ -13,6 +13,7 @@ from .physiotherapist_routes import router as physiotherapist_router
 from .pharmacy_routes import router as pharmacy_router
 from .user_routes import router as user_router
 from .settings_routes import router as settings_router
+from .content_routes import router as content_router
 
 app = FastAPI(title="Medifix API", version="0.1.0")
 
@@ -34,6 +35,7 @@ app.include_router(nurse_router)
 app.include_router(physiotherapist_router)
 app.include_router(pharmacy_router)
 app.include_router(settings_router)
+app.include_router(content_router)
 app.include_router(router)
 
 

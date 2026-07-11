@@ -51,7 +51,7 @@ export default function AdminLoginPage() {
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
             <img 
               src={medEfixLogo} 
-              alt="Medifix Logo" 
+              alt="MedEfix Logo" 
               style={{ height: '80px', width: 'auto' }}
             />
           </Box>

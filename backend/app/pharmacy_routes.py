@@ -548,15 +548,49 @@ def update_prescription_status(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_admin_user),
 ) -> PrescriptionSubmissionResponse:
-    """Update prescription submission status (admin only)."""
+    """Update prescription submission status (admin only).
+
+    When a prescription is moved to ``reviewed`` it is converted into a
+    medicine order (visible in the Orders tab) so the pharmacy can fulfil it.
+    """
     submission = session.get(PrescriptionSubmission, submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail="Prescription not found")
 
-    if "status" in status_update:
-        submission.status = status_update["status"]
+    new_status = status_update.get("status")
+    was_reviewed = submission.status == "reviewed"
+
     if "admin_notes" in status_update:
         submission.admin_notes = status_update["admin_notes"]
+
+    # Convert to an order the first time it is reviewed.
+    if new_status == "reviewed" and not was_reviewed:
+        if submission.user_id is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot create an order for an anonymous prescription.",
+            )
+
+        customer = session.get(User, submission.user_id)
+        note = f"Created from prescription #{submission.id}"
+        if submission.admin_notes:
+            note = f"{note}. {submission.admin_notes}"
+
+        order = MedicineOrder(
+            user_id=submission.user_id,
+            patient_name=customer.full_name if customer else "Prescription Customer",
+            patient_phone=(customer.phone if customer and customer.phone else ""),
+            delivery_address="To be confirmed with customer",
+            items=json.dumps([]),
+            total_amount=0,
+            prescription_image=submission.image_data,
+            notes=note,
+            status="confirmed",
+        )
+        session.add(order)
+
+    if new_status is not None:
+        submission.status = new_status
 
     session.add(submission)
     session.commit()

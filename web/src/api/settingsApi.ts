@@ -9,6 +9,11 @@ export interface FeeSettings {
   free_delivery_threshold: number;
 }
 
+export interface AvailabilitySettings {
+  known_services: string[];
+  unavailable_services: string[];
+}
+
 export const settingsAPI = {
   getFees: async (): Promise<FeeSettings> => {
     const res = await api.get('/settings/fees');
@@ -19,6 +24,23 @@ export const settingsAPI = {
     const res = await api.put('/settings/fees', data, {
       headers: { Authorization: `Bearer ${token}` },
     });
+    return res.data;
+  },
+
+  getAvailability: async (): Promise<AvailabilitySettings> => {
+    const res = await api.get('/settings/availability');
+    return res.data;
+  },
+
+  updateAvailability: async (
+    unavailable_services: string[],
+    token: string,
+  ): Promise<AvailabilitySettings> => {
+    const res = await api.put(
+      '/settings/availability',
+      { unavailable_services },
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
     return res.data;
   },
 };

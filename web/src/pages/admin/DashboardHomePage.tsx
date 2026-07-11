@@ -57,7 +57,7 @@ export default function DashboardHomePage() {
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 3 }}>
             {/* <img 
               src={medEfixLogo} 
-              alt="Medifix Logo" 
+              alt="MedEfix Logo" 
               style={{ height: '140px', width: 'auto' }}
             /> */}
           </Box>

@@ -5,6 +5,9 @@ import DashboardLayout from "./layouts/DashboardLayout";
 import AdminLoginPage from "./pages/admin/AdminLoginPage";
 import DashboardHomePage from "./pages/admin/DashboardHomePage";
 import FeeSettingsPage from "./pages/admin/FeeSettingsPage";
+import ServiceAvailabilityPage from "./pages/admin/ServiceAvailabilityPage";
+import ReviewsManagementPage from "./pages/admin/ReviewsManagementPage";
+import WhyChooseManagementPage from "./pages/admin/WhyChooseManagementPage";
 import DoctorsManagementPage from "./pages/admin/DoctorsManagementPage";
 import DentistsManagementPage from "./pages/admin/DentistsManagementPage";
 import AppointmentsManagementPage from "./pages/admin/AppointmentsManagementPage";
@@ -69,6 +72,9 @@ export default function App() {
             <Route path="pharmacy-orders" element={<PharmacyBookingsManagementPage />} />
             <Route path="prescriptions" element={<PrescriptionsManagementPage />} />
             <Route path="fee-settings" element={<FeeSettingsPage />} />
+            <Route path="service-availability" element={<ServiceAvailabilityPage />} />
+            <Route path="reviews" element={<ReviewsManagementPage />} />
+            <Route path="why-choose" element={<WhyChooseManagementPage />} />
           </Route>
 
           {/* Catch all - redirect to admin login */}

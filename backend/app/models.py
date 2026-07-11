@@ -11,6 +11,45 @@ class AppSettings(SQLModel, table=True):
     convenience_fee: float = Field(default=7.0)
     delivery_fee: float = Field(default=20.0)
     free_delivery_threshold: float = Field(default=400.0)
+    # JSON array of service keys that are currently marked unavailable,
+    # e.g. ["pharmacy", "lab"]. Consumed by the mobile app to show
+    # "Store/Service unavailable" on the corresponding service.
+    unavailable_services: str = Field(default="[]")
+
+
+class Testimonial(SQLModel, table=True):
+    """A user review shown in the mobile app's "What Our Users Say" carousel."""
+
+    __tablename__ = "testimonials"
+
+    id: int | None = Field(default=None, primary_key=True)
+    name: str
+    role: str  # shown as location, e.g. "Mumbai"
+    avatar: str = Field(default="👤")  # emoji
+    quote: str
+    accent: str = Field(default="#FF6B35")  # accent colour (hex)
+    bg: str = Field(default="#ffedd5")  # card background colour (hex)
+    display_order: int = Field(default=0)
+    is_active: bool = Field(default=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+
+
+class HomeFeature(SQLModel, table=True):
+    """A card in the mobile app's "Why Choose MedEfix" carousel."""
+
+    __tablename__ = "home_features"
+
+    id: int | None = Field(default=None, primary_key=True)
+    icon: str = Field(default="✅")  # emoji
+    title: str
+    subtitle: str
+    bg: str = Field(default="#ecfdf5")  # card background colour (hex)
+    icon_bg: str = Field(default="#bbf7d0")  # icon circle colour (hex)
+    display_order: int = Field(default=0)
+    is_active: bool = Field(default=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
 
 
 class User(SQLModel, table=True):
