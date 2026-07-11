@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, Dimensions,
   type NativeSyntheticEvent, type NativeScrollEvent,
 } from "react-native";
+import { fetchTestimonials } from "../api/contentApi";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
@@ -15,7 +16,8 @@ type Testimonial = {
   bg: string;
 };
 
-const TESTIMONIALS: Testimonial[] = [
+// Used until the API responds (and as a fallback if it fails).
+const DEFAULT_TESTIMONIALS: Testimonial[] = [
   {
     name: "Rahul Sharma", role: "Mumbai", avatar: "👨",
     quote: "Excellent service, got connected to a doctor within minutes! The whole process was seamless.",
@@ -40,17 +42,31 @@ const TESTIMONIALS: Testimonial[] = [
 
 export default function TestimonialsCarousel() {
   const [index, setIndex] = useState(0);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>(DEFAULT_TESTIMONIALS);
   const scrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    fetchTestimonials().then((data) => {
+      if (data.length > 0) {
+        setTestimonials(data.map((t) => ({
+          name: t.name, role: t.role, avatar: t.avatar,
+          quote: t.quote, accent: t.accent, bg: t.bg,
+        })));
+        setIndex(0);
+      }
+    });
+  }, []);
 
   // Auto-advance every 4s
   useEffect(() => {
+    if (testimonials.length === 0) return;
     const timer = setInterval(() => {
-      const next = (index + 1) % TESTIMONIALS.length;
+      const next = (index + 1) % testimonials.length;
       scrollRef.current?.scrollTo({ x: next * SCREEN_W, animated: true });
       setIndex(next);
     }, 4000);
     return () => clearInterval(timer);
-  }, [index]);
+  }, [index, testimonials]);
 
   const onScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const newIndex = Math.round(e.nativeEvent.contentOffset.x / SCREEN_W);
@@ -70,7 +86,7 @@ export default function TestimonialsCarousel() {
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={onScrollEnd}
       >
-        {TESTIMONIALS.map((t, i) => (
+        {testimonials.map((t, i) => (
           <View key={i} style={{ width: SCREEN_W, paddingHorizontal: 20 }}>
             <View style={{
               backgroundColor: t.bg,
@@ -110,7 +126,7 @@ export default function TestimonialsCarousel() {
 
       {/* Pagination dots */}
       <View style={{ flexDirection: "row", justifyContent: "center", gap: 6, marginTop: 18 }}>
-        {TESTIMONIALS.map((_, i) => (
+        {testimonials.map((_, i) => (
           <View
             key={i}
             style={{

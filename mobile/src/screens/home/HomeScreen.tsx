@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View, Image } from "react-native";
 import { styles } from "../../styles";
 import { type ServiceItem, type ServiceKey } from "../../data/services";
 import { useAuth } from "../../context/AuthContext";
+import { fetchServiceAvailability } from "../../api/settingsApi";
 import { useLocation } from "../../hooks/useLocation";
 import LocationBar from "../../components/LocationBar";
 import WhyChooseCarousel from "../../components/WhyChooseCarousel";
@@ -48,6 +49,53 @@ export default function HomeScreen({
   const { user, logout } = useAuth();
   const { locationName, locationLoading, requestLocation, setManualName } = useLocation();
   const [heroTextHeight, setHeroTextHeight] = useState(0);
+  const [unavailableServices, setUnavailableServices] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetchServiceAvailability().then(setUnavailableServices);
+  }, []);
+
+  const isUnavailable = (key: string) => unavailableServices.includes(key);
+
+  // Wrap a service card's press handler: block navigation and show a message
+  // when the service has been turned off from the admin panel.
+  const guardService = (
+    key: string,
+    name: string,
+    handler: () => void,
+  ) => () => {
+    if (isUnavailable(key)) {
+      const isStore = key === "pharmacy";
+      Alert.alert(
+        isStore ? "Store Unavailable" : "Service Unavailable",
+        isStore
+          ? "Our pharmacy is currently unavailable. Please check back later."
+          : `${name} is currently unavailable. Please check back later.`,
+      );
+      return;
+    }
+    handler();
+  };
+
+  const renderUnavailableBadge = (key: string) =>
+    isUnavailable(key) ? (
+      <View
+        style={{
+          position: "absolute",
+          top: 8,
+          right: 8,
+          backgroundColor: "#ef4444",
+          paddingHorizontal: 8,
+          paddingVertical: 3,
+          borderRadius: 8,
+          zIndex: 2,
+        }}
+      >
+        <Text style={{ color: "#fff", fontSize: 9, fontWeight: "700" }}>
+          {key === "pharmacy" ? "Store Unavailable" : "Unavailable"}
+        </Text>
+      </View>
+    ) : null;
 
   const handleLogout = () => {
     Alert.alert(
@@ -141,7 +189,11 @@ export default function HomeScreen({
 
         {/* Service Cards Grid */}
         <View style={styles.servicesGrid}>
-          <Pressable style={styles.serviceCard} onPress={onOpenAppointments}>
+          <Pressable
+            style={[styles.serviceCard, isUnavailable("doctor") && { opacity: 0.6 }]}
+            onPress={guardService("doctor", "Doctor consultation", onOpenAppointments)}
+          >
+            {renderUnavailableBadge("doctor")}
             <Image
               source={require("../../../assets/doctor.png")}
               style={styles.serviceCardIcon}
@@ -151,7 +203,11 @@ export default function HomeScreen({
             <Text style={styles.serviceCardTagline}>Book Instant Appointment</Text>
           </Pressable>
 
-          <Pressable style={styles.serviceCard} onPress={onOpenPharmacy}>
+          <Pressable
+            style={[styles.serviceCard, isUnavailable("pharmacy") && { opacity: 0.6 }]}
+            onPress={guardService("pharmacy", "Pharmacy", onOpenPharmacy)}
+          >
+            {renderUnavailableBadge("pharmacy")}
             <Image
               source={require("../../../assets/pharmacy.png")}
               style={styles.serviceCardIcon}
@@ -161,7 +217,11 @@ export default function HomeScreen({
             <Text style={styles.serviceCardTagline}>Delivered in 27 Mins</Text>
           </Pressable>
 
-          <Pressable style={styles.serviceCard} onPress={onOpenAmbulance}>
+          <Pressable
+            style={[styles.serviceCard, isUnavailable("ambulance") && { opacity: 0.6 }]}
+            onPress={guardService("ambulance", "Ambulance booking", onOpenAmbulance)}
+          >
+            {renderUnavailableBadge("ambulance")}
             <Image
               source={require("../../../assets/ambulance.png")}
               style={styles.serviceCardIcon}
@@ -171,7 +231,11 @@ export default function HomeScreen({
             <Text style={styles.serviceCardTagline}>Emergency and Scheduled</Text>
           </Pressable>
 
-          <Pressable style={styles.serviceCard} onPress={onOpenLab}>
+          <Pressable
+            style={[styles.serviceCard, isUnavailable("lab") && { opacity: 0.6 }]}
+            onPress={guardService("lab", "Lab tests", onOpenLab)}
+          >
+            {renderUnavailableBadge("lab")}
             <Image
               source={require("../../../assets/Lab.png")}
               style={styles.serviceCardIcon}
@@ -181,7 +245,11 @@ export default function HomeScreen({
             <Text style={styles.serviceCardTagline}>Sample Collection at Home</Text>
           </Pressable>
 
-          <Pressable style={styles.serviceCard} onPress={onOpenNurse}>
+          <Pressable
+            style={[styles.serviceCard, isUnavailable("nurse") && { opacity: 0.6 }]}
+            onPress={guardService("nurse", "Nurse booking", onOpenNurse)}
+          >
+            {renderUnavailableBadge("nurse")}
             <Image
               source={require("../../../assets/home_nurse.png")}
               style={styles.serviceCardIcon}
@@ -191,7 +259,11 @@ export default function HomeScreen({
             <Text style={styles.serviceCardTagline}>Care at Home</Text>
           </Pressable>
 
-          <Pressable style={styles.serviceCard} onPress={onOpenPhysiotherapist}>
+          <Pressable
+            style={[styles.serviceCard, isUnavailable("physiotherapist") && { opacity: 0.6 }]}
+            onPress={guardService("physiotherapist", "Physiotherapy", onOpenPhysiotherapist)}
+          >
+            {renderUnavailableBadge("physiotherapist")}
             <Image
               source={require("../../../assets/doctor.png")}
               style={styles.serviceCardIcon}
@@ -201,7 +273,11 @@ export default function HomeScreen({
             <Text style={styles.serviceCardTagline}>Recovery at Home</Text>
           </Pressable>
 
-          <Pressable style={styles.serviceCard} onPress={onOpenDental}>
+          <Pressable
+            style={[styles.serviceCard, isUnavailable("dentist") && { opacity: 0.6 }]}
+            onPress={guardService("dentist", "Dentist booking", onOpenDental)}
+          >
+            {renderUnavailableBadge("dentist")}
             <Image
               source={require("../../../assets/dental-checkup.png")}
               style={styles.serviceCardIcon}

@@ -21,3 +21,19 @@ export async function fetchFeeSettings(): Promise<FeeSettings> {
     return DEFAULT_FEES;
   }
 }
+
+export interface AvailabilitySettings {
+  known_services: string[];
+  unavailable_services: string[];
+}
+
+export async function fetchServiceAvailability(): Promise<string[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/settings/availability`);
+    if (!res.ok) return [];
+    const data: AvailabilitySettings = await res.json();
+    return Array.isArray(data.unavailable_services) ? data.unavailable_services : [];
+  } catch {
+    return [];
+  }
+}

@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { View, Text, ScrollView } from "react-native";
+import { fetchHomeFeatures } from "../api/contentApi";
 
 type Feature = {
   icon: string;
@@ -8,7 +10,8 @@ type Feature = {
   iconBg: string;
 };
 
-const FEATURES: Feature[] = [
+// Used until the API responds (and as a fallback if it fails).
+const DEFAULT_FEATURES: Feature[] = [
   { icon: "✅", title: "Verified Doctors",   subtitle: "Certified & trusted experts",   bg: "#ecfdf5", iconBg: "#bbf7d0" },
   { icon: "⚡", title: "27-Min Response",    subtitle: "Care when you need it most",    bg: "#fff7ed", iconBg: "#fed7aa" },
   { icon: "💰", title: "Affordable Pricing", subtitle: "Transparent, no hidden fees",   bg: "#eff6ff", iconBg: "#bfdbfe" },
@@ -17,6 +20,19 @@ const FEATURES: Feature[] = [
 ];
 
 export default function WhyChooseCarousel() {
+  const [features, setFeatures] = useState<Feature[]>(DEFAULT_FEATURES);
+
+  useEffect(() => {
+    fetchHomeFeatures().then((data) => {
+      if (data.length > 0) {
+        setFeatures(data.map((f) => ({
+          icon: f.icon, title: f.title, subtitle: f.subtitle,
+          bg: f.bg, iconBg: f.icon_bg,
+        })));
+      }
+    });
+  }, []);
+
   return (
     <View style={{ paddingVertical: 24 }}>
       <Text style={{ fontSize: 20, fontWeight: "700", color: "#0f172a", textAlign: "center", marginBottom: 20 }}>
@@ -28,7 +44,7 @@ export default function WhyChooseCarousel() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ gap: 14, paddingHorizontal: 20 }}
       >
-        {FEATURES.map((f, i) => (
+        {features.map((f, i) => (
           <View
             key={i}
             style={{

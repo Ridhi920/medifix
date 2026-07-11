@@ -8,11 +8,10 @@ type SupportScreenProps = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TODO: Fill these in once the WhatsApp business details are available.
-//   WHATSAPP_NUMBER → country code + number, digits only (e.g. "919876543210")
+// WhatsApp business line — country code + number, digits only, no "+".
 //   Leave WHATSAPP_NUMBER empty ("") to show a "coming soon" message instead.
 // ─────────────────────────────────────────────────────────────────────────────
-const WHATSAPP_NUMBER = "";
+const WHATSAPP_NUMBER = "918498077740";
 const WHATSAPP_DEFAULT_MESSAGE = "Hi MedEfix team, I need some help.";
 
 const QUICK_TOPICS: { icon: string; label: string; message: string }[] = [

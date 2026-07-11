@@ -34,6 +34,14 @@ const IMAGE_USER_AGENT = "MedifixApp/1.0 (https://medifix.app; support@medifix.a
 // Module-level cache — one lookup per brand name for the whole session.
 const cache = new Map<string, string | null>();
 
+// The stored `image` field often holds an emoji placeholder (e.g. "💊") rather
+// than a real URL. Rendering an emoji as an <Image> uri shows a blank box, so
+// only treat the stored value as an image when it's an actual URL / data URI —
+// otherwise fall through to the live photo lookup (matches the web admin).
+function isUsableImageUri(uri?: string): uri is string {
+  return !!uri && /^(https?:|data:|file:|content:)\S/i.test(uri.trim());
+}
+
 // Reject anything that isn't a real product photo: chemical-structure /
 // skeletal-formula / 3D molecular-model diagrams (Wikipedia leads drug articles
 // with these), plus non-photo media a search may return (PDFs, videos, book
@@ -158,15 +166,15 @@ interface Props {
 export default function MedicineImage({ genericName, category, type = "Tablet", name, imageUri, size = 80, perStrip }: Props) {
   const brand = name ?? genericName;
   const [url, setUrl] = useState<string | null | undefined>(() => {
-    if (imageUri) return imageUri;
+    if (isUsableImageUri(imageUri)) return imageUri;
     const key = brand.toLowerCase().trim();
     return cache.has(key) ? cache.get(key) : undefined;
   });
 
   useEffect(() => {
-    // Prefer the stored backend image so the app matches the admin portal;
-    // only fall back to a live lookup when no stored image is available.
-    if (imageUri) {
+    // Prefer a stored backend image URL so the app matches the admin portal;
+    // fall back to a live lookup when there's no real image (e.g. emoji seed).
+    if (isUsableImageUri(imageUri)) {
       setUrl(imageUri);
       return;
     }
