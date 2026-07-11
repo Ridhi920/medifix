@@ -15,7 +15,7 @@
       "backgroundColor": "#F8F5F0"
     },
     "ios": {
-      "bundleIdentifier": "com.ridhi26.medifix",
+      "bundleIdentifier": "com.akash.medefix",
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "This app needs access to the camera to take photos for medical records.",
@@ -32,7 +32,8 @@
       }
     },
     "android": {
-      "package": "com.ridhi26.medifix",
+      "package": "com.akash.medefix",
+      "versionCode": 1,
       "usesCleartextTraffic": true,
       "permissions": [
         "CAMERA",
