@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
-from .auth import get_current_admin_user
-from .db import get_session
-from .models import AppSettings, User
+from ..core.auth import get_current_admin_user
+from ..core.db import get_session
+from ..models import AppSettings, User
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 

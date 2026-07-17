@@ -9,8 +9,8 @@ from passlib.context import CryptContext
 from sqlmodel import Session, select
 
 from .db import get_session
-from .models import User
-from .schemas import TokenData
+from ..models import User
+from ..schemas import TokenData
 
 load_dotenv()
 
@@ -18,6 +18,18 @@ load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-this-in-production")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+
+# Vendor roles. Each vendor type gets its own role; vendors can only log in
+# on the web portal, and only after an admin approves their account.
+VENDOR_ROLES = {
+    "doctor",
+    "dentist",
+    "lab",
+    "ambulance",
+    "nurse",
+    "physiotherapist",
+    "pharmacy",
+}
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -108,5 +120,22 @@ async def get_current_admin_user(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
+        )
+    return current_user
+
+
+async def get_current_vendor_user(
+    current_user: User = Depends(get_current_active_user),
+) -> User:
+    """Get the current approved vendor user. Raises 403 otherwise."""
+    if current_user.role not in VENDOR_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Vendor access required",
+        )
+    if current_user.approval_status != "approved":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your vendor account is awaiting admin approval",
         )
     return current_user

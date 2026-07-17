@@ -1,9 +1,17 @@
+# OS
+.DS_Store
+
 # Python
 __pycache__/
 *.pyc
 .env
 .venv/
 backend/medefix
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
 
 # Node
 node_modules/

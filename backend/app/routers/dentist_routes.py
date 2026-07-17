@@ -4,10 +4,10 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
-from .auth import get_current_user
-from .db import get_session
-from .models import DentistAppointment, Dentist, User
-from .schemas import DentistAppointmentCreate, DentistAppointmentResponse, DentistAppointmentWithDentist, DentistCreate, DentistUpdate, DentistResponse
+from ..core.auth import get_current_admin_user, get_current_user
+from ..core.db import get_session
+from ..models import DentistAppointment, Dentist, User
+from ..schemas import DentistAppointmentCreate, DentistAppointmentResponse, DentistAppointmentWithDentist, DentistCreate, DentistUpdate, DentistResponse
 
 router = APIRouter(prefix="/dentists", tags=["dentists"])
 
@@ -106,7 +106,7 @@ def create_appointment(
 
 @router.get("/appointments/all", response_model=List[DentistAppointmentWithDentist])
 def get_all_appointments_admin(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
     session: Session = Depends(get_session),
 ) -> List[DentistAppointmentWithDentist]:
     """Get all appointments (admin endpoint)."""
@@ -204,7 +204,7 @@ def cancel_appointment(
 @router.patch("/appointments/{appointment_id}/confirm")
 def confirm_appointment(
     appointment_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
     session: Session = Depends(get_session),
 ) -> dict:
     """Confirm a pending appointment (admin)."""
@@ -222,7 +222,7 @@ def confirm_appointment(
 @router.patch("/appointments/{appointment_id}/reject")
 def reject_appointment(
     appointment_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
     session: Session = Depends(get_session),
 ) -> dict:
     """Reject a pending appointment (admin)."""

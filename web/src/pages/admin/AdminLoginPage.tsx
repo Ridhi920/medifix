@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
   Container,
   Paper,
@@ -7,9 +7,10 @@ import {
   Button,
   Typography,
   Box,
-  Alert
+  Alert,
+  Link
 } from '@mui/material';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, isVendorRole } from '../../context/AuthContext';
 import medEfixLogo from '../../assets/medEfix.png';
 
 export default function AdminLoginPage() {
@@ -26,8 +27,9 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
-      await login(email, password);
-      navigate('/admin');
+      const userData = await login(email, password);
+      // Vendors (doctor, dentist, lab, ...) go to their own dashboard
+      navigate(isVendorRole(userData?.role) ? '/vendor' : '/admin');
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
@@ -55,8 +57,12 @@ export default function AdminLoginPage() {
               style={{ height: '80px', width: 'auto' }}
             />
           </Box>
-          <Typography variant="h4" gutterBottom align="center" sx={{ mb: 3, fontWeight: 600 }}>
-            Admin Login
+          <Typography variant="h4" gutterBottom align="center" sx={{ mb: 1, fontWeight: 600 }}>
+            Portal Login
+          </Typography>
+          <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 3 }}>
+            For admins and service providers (doctors, dentists, labs, ambulances, nurses,
+            physiotherapists, pharmacies)
           </Typography>
 
           {error && (
@@ -104,6 +110,13 @@ export default function AdminLoginPage() {
               {loading ? 'Logging in...' : 'Login'}
             </Button>
           </form>
+
+          <Typography variant="body2" align="center" sx={{ mt: 2 }}>
+            Are you a service provider?{' '}
+            <Link component={RouterLink} to="/vendor/signup">
+              Register here
+            </Link>
+          </Typography>
         </Paper>
       </Container>
     </Box>

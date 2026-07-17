@@ -14,6 +14,34 @@ class UserSignup(BaseModel):
     role: str | None = Field(default="user")  # 'user' or 'admin'
 
 
+class VendorSignup(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=6, max_length=72)
+    full_name: str = Field(..., min_length=2)
+    phone: str | None = None
+    # Vendor role: doctor, dentist, lab, ambulance, nurse, physiotherapist, pharmacy
+    role: str
+
+    # Doctor / Dentist profile fields
+    specialty: str | None = None
+    qualification: str | None = None
+    experience: int | None = None
+    consultation_fee: int | None = None
+    address: str | None = None
+
+    # Ambulance profile fields
+    ambulance_type: str | None = None
+    base_price: int | None = None
+    estimated_time: str | None = None
+    description: str | None = None
+
+    # Nurse / Physiotherapist profile fields
+    specialization: str | None = None
+    hourly_rate: int | None = None
+    daily_rate: int | None = None
+    gender: str | None = None
+
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
@@ -25,6 +53,8 @@ class UserResponse(BaseModel):
     full_name: str
     phone: str | None = None
     role: str
+    vendor_id: int | None = None
+    approval_status: str = "approved"
     is_active: bool
     created_at: datetime
 

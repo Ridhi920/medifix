@@ -60,7 +60,15 @@ class User(SQLModel, table=True):
     full_name: str
     phone: str | None = None
     hashed_password: str
-    role: str = Field(default="user")  # 'user' or 'admin'
+    # 'user', 'admin', or a vendor role: 'doctor', 'dentist', 'lab',
+    # 'ambulance', 'nurse', 'physiotherapist', 'pharmacy'
+    role: str = Field(default="user")
+    # For vendor roles: id of the linked record in the matching table
+    # (doctors, dentists, nurses, physiotherapists, ambulances).
+    vendor_id: int | None = Field(default=None)
+    # 'pending', 'approved', 'rejected'. Vendors start as 'pending' and can
+    # only log in after an admin approves them.
+    approval_status: str = Field(default="approved")
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))

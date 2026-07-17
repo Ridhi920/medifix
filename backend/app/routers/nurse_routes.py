@@ -4,10 +4,10 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
-from .auth import get_current_user
-from .db import get_session
-from .models import Nurse, NurseBooking, User
-from .schemas import (
+from ..core.auth import get_current_admin_user, get_current_user
+from ..core.db import get_session
+from ..models import Nurse, NurseBooking, User
+from ..schemas import (
     NurseBookingCreate,
     NurseBookingResponse,
     NurseBookingStatusUpdate,
@@ -142,7 +142,7 @@ def get_my_nurse_bookings(
 @router.get("/bookings", response_model=List[NurseBookingWithNurse])
 def get_all_nurse_bookings(
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
 ) -> List[NurseBookingWithNurse]:
     """Get all nurse bookings (admin only)."""
     query = select(NurseBooking, Nurse).join(

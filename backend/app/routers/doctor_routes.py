@@ -4,10 +4,10 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
-from .auth import get_current_user
-from .db import get_session
-from .models import Appointment, Doctor, User
-from .schemas import AppointmentCreate, AppointmentResponse, AppointmentWithDoctor, DoctorCreate, DoctorUpdate, DoctorResponse
+from ..core.auth import get_current_admin_user, get_current_user
+from ..core.db import get_session
+from ..models import Appointment, Doctor, User
+from ..schemas import AppointmentCreate, AppointmentResponse, AppointmentWithDoctor, DoctorCreate, DoctorUpdate, DoctorResponse
 
 router = APIRouter(prefix="/doctors", tags=["doctors"])
 
@@ -271,7 +271,7 @@ def delete_doctor(
 
 @router.get("/appointments/all", response_model=List[AppointmentWithDoctor])
 def get_all_appointments_admin(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
     session: Session = Depends(get_session),
 ) -> List[AppointmentWithDoctor]:
     """Get all appointments (admin endpoint)."""
@@ -420,7 +420,7 @@ def cancel_appointment(
 @router.patch("/appointments/{appointment_id}/confirm")
 def confirm_appointment(
     appointment_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
     session: Session = Depends(get_session),
 ) -> dict:
     """Confirm a pending appointment (admin)."""
@@ -448,7 +448,7 @@ def confirm_appointment(
 @router.patch("/appointments/{appointment_id}/reject")
 def reject_appointment(
     appointment_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
     session: Session = Depends(get_session),
 ) -> dict:
     """Reject a pending appointment (admin)."""

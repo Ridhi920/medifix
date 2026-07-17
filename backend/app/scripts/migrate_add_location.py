@@ -4,10 +4,10 @@ Run once: python -m app.migrate_add_location
 """
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from sqlmodel import Session, text
-from app.db import engine
+from app.core.db import engine
 
 TABLES = ["doctors", "dentists", "nurses", "physiotherapists", "ambulances"]
 

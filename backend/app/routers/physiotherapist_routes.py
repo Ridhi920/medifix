@@ -4,10 +4,10 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
-from .auth import get_current_admin_user, get_current_user
-from .db import get_session
-from .models import Physiotherapist, PhysiotherapistBooking, User
-from .schemas import (
+from ..core.auth import get_current_admin_user, get_current_user
+from ..core.db import get_session
+from ..models import Physiotherapist, PhysiotherapistBooking, User
+from ..schemas import (
     PhysiotherapistBookingCreate,
     PhysiotherapistBookingResponse,
     PhysiotherapistBookingStatusUpdate,

@@ -38,7 +38,8 @@ import {
   Settings as SettingsIcon,
   ToggleOn as AvailabilityIcon,
   RateReview as ReviewIcon,
-  Stars as WhyChooseIcon
+  Stars as WhyChooseIcon,
+  HowToReg as VendorApprovalIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 
@@ -46,6 +47,7 @@ const drawerWidth = 240;
 
 const serviceItems = [
   { text: 'Users', icon: <UsersIcon />, path: '/admin/users' },
+  { text: 'Vendor Approvals', icon: <VendorApprovalIcon />, path: '/admin/vendor-approvals' },
   { text: 'Doctors', icon: <DoctorsIcon />, path: '/admin/doctors' },
   { text: 'Dentists', icon: <DentistIcon />, path: '/admin/dentists' },
   { text: 'Lab Tests', icon: <LabTestIcon />, path: '/admin/lab-tests' },
@@ -96,7 +98,7 @@ export default function DashboardLayout() {
   };
 
   // Determine which menu items to show based on current path
-  const isServicePath = location.pathname.match(/\/(users|doctors|dentists|lab-tests|ambulances|nurses|physiotherapists|pharmacy|fee-settings|service-availability|reviews|why-choose)$/);
+  const isServicePath = location.pathname.match(/\/(users|vendor-approvals|doctors|dentists|lab-tests|ambulances|nurses|physiotherapists|pharmacy|fee-settings|service-availability|reviews|why-choose)$/);
   const isBookingPath = location.pathname.match(/\/(appointments|dentist-appointments|lab-bookings|ambulance-bookings|nurse-bookings|physiotherapist-bookings|pharmacy-orders|prescriptions)$/);
   
   let menuItems = [];

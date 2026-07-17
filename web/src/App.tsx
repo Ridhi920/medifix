@@ -24,6 +24,9 @@ import PharmacyManagementPage from "./pages/admin/PharmacyManagementPage";
 import PharmacyBookingsManagementPage from "./pages/admin/PharmacyBookingsManagementPage";
 import PrescriptionsManagementPage from "./pages/admin/PrescriptionsManagementPage";
 import UsersManagementPage from "./pages/admin/UsersManagementPage";
+import VendorApprovalsPage from "./pages/admin/VendorApprovalsPage";
+import VendorSignupPage from "./pages/vendor/VendorSignupPage";
+import VendorDashboardPage from "./pages/vendor/VendorDashboardPage";
 
 export default function App() {
   return (
@@ -33,8 +36,21 @@ export default function App() {
           {/* Redirect root to admin login */}
           <Route path="/" element={<Navigate to="/admin/login" replace />} />
 
-          {/* Admin Login (not protected) */}
+          {/* Portal Login for admins and vendors (not protected) */}
           <Route path="/admin/login" element={<AdminLoginPage />} />
+
+          {/* Vendor signup (not protected) */}
+          <Route path="/vendor/signup" element={<VendorSignupPage />} />
+
+          {/* Vendor dashboard - vendors only see their own bookings */}
+          <Route
+            path="/vendor"
+            element={
+              <ProtectedRoute allow={["vendor"]}>
+                <VendorDashboardPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Admin Dashboard Home (protected, no sidebar) */}
           <Route
@@ -75,6 +91,7 @@ export default function App() {
             <Route path="service-availability" element={<ServiceAvailabilityPage />} />
             <Route path="reviews" element={<ReviewsManagementPage />} />
             <Route path="why-choose" element={<WhyChooseManagementPage />} />
+            <Route path="vendor-approvals" element={<VendorApprovalsPage />} />
           </Route>
 
           {/* Catch all - redirect to admin login */}

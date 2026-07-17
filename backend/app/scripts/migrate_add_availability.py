@@ -3,10 +3,10 @@ Migration script to add unavailable_services column to app_settings table.
 """
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from sqlmodel import Session, text
-from app.db import engine
+from app.core.db import engine
 
 
 def add_unavailable_services_column():

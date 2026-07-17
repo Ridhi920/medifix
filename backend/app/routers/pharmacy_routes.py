@@ -4,10 +4,10 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel import Session, select
 
-from .auth import get_current_user, get_current_admin_user
-from .db import get_session
-from .models import Medicine, MedicineOrder, PrescriptionSubmission, User
-from .schemas import (
+from ..core.auth import get_current_user, get_current_admin_user
+from ..core.db import get_session
+from ..models import Medicine, MedicineOrder, PrescriptionSubmission, User
+from ..schemas import (
     MedicineCreate,
     MedicineOrderCreate,
     MedicineOrderResponse,

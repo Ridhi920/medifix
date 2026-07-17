@@ -31,8 +31,10 @@ import {
   Delete,
 } from '@mui/icons-material';
 import { userAPI, User } from '../../api/userApi';
+import { VENDOR_ROLES } from '../../api/vendorApi';
 
-const USER_ROLES = ['user', 'admin'];
+const USER_ROLES = ['user', 'admin', ...VENDOR_ROLES.map((r) => r.value)];
+const VENDOR_ROLE_VALUES = VENDOR_ROLES.map((r) => r.value);
 
 export default function UsersManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -214,7 +216,13 @@ export default function UsersManagementPage() {
                   <Chip
                     label={user.role}
                     size="small"
-                    color={user.role === 'admin' ? 'error' : 'default'}
+                    color={
+                      user.role === 'admin'
+                        ? 'error'
+                        : VENDOR_ROLE_VALUES.includes(user.role)
+                          ? 'primary'
+                          : 'default'
+                    }
                     variant="outlined"
                   />
                 </TableCell>
@@ -298,6 +306,14 @@ export default function UsersManagementPage() {
             {formData.role === 'admin' && (
               <Alert severity="warning">
                 Admin users have full access to the admin dashboard and can manage all data.
+              </Alert>
+            )}
+
+            {VENDOR_ROLE_VALUES.includes(formData.role) && (
+              <Alert severity="info">
+                This makes the account a {formData.role} vendor: web-portal login only, and
+                they only see their own bookings. Link it to a {formData.role} profile from
+                the Vendor Approvals page so the right bookings show up.
               </Alert>
             )}
           </Stack>
