@@ -3,23 +3,29 @@ import { createTheme } from '@mui/material/styles';
 export const theme = createTheme({
   palette: {
     primary: {
-      main: '#FF6B35',
-      dark: '#E85A28',
-      light: '#FF8A5C',
+      main: '#0D9488',
+      dark: '#0F766E',
+      light: '#2DD4BF',
       contrastText: '#FFFFFF',
     },
     secondary: {
-      main: '#2196F3',
-      dark: '#1976D2',
-      light: '#64B5F6',
+      main: '#3B82F6',
+      dark: '#1D4ED8',
+      light: '#93C5FD',
     },
     background: {
-      default: '#F5F7FA',
+      default: '#F1F5F9',
       paper: '#FFFFFF',
     },
     text: {
-      primary: '#1E3A5F',
+      primary: '#0F172A',
       secondary: '#64748B',
+    },
+    success: {
+      main: '#10B981',
+    },
+    error: {
+      main: '#EF4444',
     },
   },
   typography: {
@@ -55,9 +61,9 @@ export const theme = createTheme({
           borderRadius: 12,
         },
         contained: {
-          boxShadow: '0 4px 12px rgba(255, 107, 53, 0.25)',
+          boxShadow: '0 4px 12px rgba(13, 148, 136, 0.25)',
           '&:hover': {
-            boxShadow: '0 6px 16px rgba(255, 107, 53, 0.35)',
+            boxShadow: '0 6px 16px rgba(13, 148, 136, 0.35)',
           },
         },
       },

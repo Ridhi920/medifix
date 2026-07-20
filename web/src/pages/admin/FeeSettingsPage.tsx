@@ -140,7 +140,7 @@ export default function FeeSettingsPage() {
           <Divider />
 
           {/* Preview */}
-          <Box sx={{ backgroundColor: '#fff4ef', borderRadius: 2, p: 2 }}>
+          <Box sx={{ backgroundColor: '#ecfdfa', borderRadius: 2, p: 2 }}>
             <Typography variant="subtitle2" fontWeight={700} mb={1} color="primary">
               Preview
             </Typography>

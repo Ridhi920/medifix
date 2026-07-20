@@ -45,6 +45,12 @@ import { useAuth } from '../context/AuthContext';
 
 const drawerWidth = 240;
 
+const SIDEBAR_BG = '#0F172A';
+const SIDEBAR_HOVER = 'rgba(255,255,255,0.08)';
+const SIDEBAR_SELECTED = 'rgba(13,148,136,0.35)';
+const SIDEBAR_SELECTED_HOVER = 'rgba(13,148,136,0.45)';
+const SIDEBAR_TEXT = 'rgba(255,255,255,0.75)';
+
 const serviceItems = [
   { text: 'Users', icon: <UsersIcon />, path: '/admin/users' },
   { text: 'Vendor Approvals', icon: <VendorApprovalIcon />, path: '/admin/vendor-approvals' },
@@ -113,56 +119,59 @@ export default function DashboardLayout() {
 
   const drawer = (
     <div>
-      <Toolbar 
-        sx={{ 
+      <Toolbar
+        sx={{
           cursor: 'pointer',
-          '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
+          bgcolor: '#fff',
+          '&:hover': { bgcolor: '#fff' },
           display: 'flex',
           justifyContent: 'center'
         }}
         onClick={() => navigate('/admin')}
       >
-        <img 
-          src={medEfixLogo} 
-          alt="MedEfix Logo" 
+        <img
+          src={medEfixLogo}
+          alt="MedEfix Logo"
           style={{ height: '50px', width: 'auto' }}
         />
       </Toolbar>
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.3)' }} />
+      <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)' }} />
       <List>
         <ListItem disablePadding>
           <ListItemButton
             selected={location.pathname === '/admin'}
             onClick={() => navigate('/admin')}
             sx={{
-              bgcolor: location.pathname === '/admin' ? 'rgba(255,255,255,0.3)' : 'transparent',
+              borderLeft: '3px solid transparent',
+              bgcolor: location.pathname === '/admin' ? SIDEBAR_SELECTED : 'transparent',
               '&:hover': {
-                bgcolor: location.pathname === '/admin' ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)'
+                bgcolor: location.pathname === '/admin' ? SIDEBAR_SELECTED_HOVER : SIDEBAR_HOVER
               },
               '&.Mui-selected': {
-                bgcolor: 'rgba(255,255,255,0.3)',
+                borderLeft: '3px solid #2DD4BF',
+                bgcolor: SIDEBAR_SELECTED,
                 '&:hover': {
-                  bgcolor: 'rgba(255,255,255,0.4)'
+                  bgcolor: SIDEBAR_SELECTED_HOVER
                 }
               }
             }}
           >
             <ListItemIcon>
-              <HomeIcon sx={{ color: location.pathname === '/admin' ? '#fff' : 'rgba(0,0,0,0.7)' }} />
+              <HomeIcon sx={{ color: location.pathname === '/admin' ? '#fff' : SIDEBAR_TEXT }} />
             </ListItemIcon>
-            <ListItemText 
-              primary="Dashboard Home" 
-              sx={{ 
-                '& .MuiTypography-root': { 
+            <ListItemText
+              primary="Dashboard Home"
+              sx={{
+                '& .MuiTypography-root': {
                   fontWeight: location.pathname === '/admin' ? 700 : 500,
-                  color: location.pathname === '/admin' ? '#fff' : 'rgba(0,0,0,0.8)'
-                } 
+                  color: location.pathname === '/admin' ? '#fff' : SIDEBAR_TEXT
+                }
               }}
             />
           </ListItemButton>
         </ListItem>
       </List>
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.3)' }} />
+      <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)' }} />
       <List>
         {menuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
@@ -170,24 +179,26 @@ export default function DashboardLayout() {
               selected={location.pathname === item.path}
               onClick={() => navigate(item.path)}
               sx={{
+                borderLeft: '3px solid transparent',
                 '&:hover': {
-                  bgcolor: 'rgba(255,255,255,0.2)'
+                  bgcolor: SIDEBAR_HOVER
                 },
                 '&.Mui-selected': {
-                  bgcolor: 'rgba(255,255,255,0.3)',
+                  borderLeft: '3px solid #2DD4BF',
+                  bgcolor: SIDEBAR_SELECTED,
                   '&:hover': {
-                    bgcolor: 'rgba(255,255,255,0.4)'
+                    bgcolor: SIDEBAR_SELECTED_HOVER
                   }
                 }
               }}
             >
-              <ListItemIcon sx={{ color: location.pathname === item.path ? '#fff' : 'rgba(0,0,0,0.7)' }}>{item.icon}</ListItemIcon>
-              <ListItemText 
-                primary={item.text} 
+              <ListItemIcon sx={{ color: location.pathname === item.path ? '#fff' : SIDEBAR_TEXT }}>{item.icon}</ListItemIcon>
+              <ListItemText
+                primary={item.text}
                 sx={{
                   '& .MuiTypography-root': {
                     fontWeight: location.pathname === item.path ? 600 : 500,
-                    color: location.pathname === item.path ? '#fff' : 'rgba(0,0,0,0.8)'
+                    color: location.pathname === item.path ? '#fff' : SIDEBAR_TEXT
                   }
                 }}
               />
@@ -199,18 +210,21 @@ export default function DashboardLayout() {
   );
 
   return (
-    <Box sx={{ 
+    <Box sx={{
       display: 'flex',
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #FFA07A 0%, #FFE4B5 100%)'
+      bgcolor: 'background.default'
     }}>
       <AppBar
         position="fixed"
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
-          background: 'linear-gradient(90deg, #FFA07A 0%, #FFD700 100%)',
-          boxShadow: 2
+          bgcolor: '#fff',
+          color: 'text.primary',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          boxShadow: 'none'
         }}
       >
         <Toolbar>
@@ -222,11 +236,11 @@ export default function DashboardLayout() {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 700 }}>
             Management Dashboard
           </Typography>
           <IconButton onClick={handleMenuClick} sx={{ p: 0 }}>
-            <Avatar sx={{ bgcolor: 'secondary.main' }}>
+            <Avatar sx={{ bgcolor: 'primary.main' }}>
               {user?.email?.[0]?.toUpperCase() || 'A'}
             </Avatar>
           </IconButton>
@@ -260,10 +274,10 @@ export default function DashboardLayout() {
           ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { 
-              boxSizing: 'border-box', 
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
               width: drawerWidth,
-              background: 'linear-gradient(180deg, #FFA07A 0%, #FFE4B5 100%)'
+              bgcolor: SIDEBAR_BG
             }
           }}
         >
@@ -273,10 +287,10 @@ export default function DashboardLayout() {
           variant="permanent"
           sx={{
             display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { 
-              boxSizing: 'border-box', 
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
               width: drawerWidth,
-              background: 'linear-gradient(180deg, #FFA07A 0%, #FFE4B5 100%)',
+              bgcolor: SIDEBAR_BG,
               borderRight: 'none'
             }
           }}

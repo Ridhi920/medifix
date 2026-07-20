@@ -50,12 +50,22 @@ export default function HomeScreen({
   const { locationName, locationLoading, requestLocation, setManualName } = useLocation();
   const [heroTextHeight, setHeroTextHeight] = useState(0);
   const [unavailableServices, setUnavailableServices] = useState<string[]>([]);
+  const [returnDates, setReturnDates] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    fetchServiceAvailability().then(setUnavailableServices);
+    fetchServiceAvailability().then(({ unavailableServices, returnDates }) => {
+      setUnavailableServices(unavailableServices);
+      setReturnDates(returnDates);
+    });
   }, []);
 
   const isUnavailable = (key: string) => unavailableServices.includes(key);
+
+  const formatReturnDate = (iso: string) => {
+    const date = new Date(`${iso}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  };
 
   // Wrap a service card's press handler: block navigation and show a message
   // when the service has been turned off from the admin panel.
@@ -66,11 +76,13 @@ export default function HomeScreen({
   ) => () => {
     if (isUnavailable(key)) {
       const isStore = key === "pharmacy";
+      const backOn = returnDates[key] ? formatReturnDate(returnDates[key]) : null;
+      const baseMessage = isStore
+        ? "Our pharmacy is currently unavailable."
+        : `${name} is currently unavailable.`;
       Alert.alert(
         isStore ? "Store Unavailable" : "Service Unavailable",
-        isStore
-          ? "Our pharmacy is currently unavailable. Please check back later."
-          : `${name} is currently unavailable. Please check back later.`,
+        backOn ? `${baseMessage} Expected back on ${backOn}.` : `${baseMessage} Please check back later.`,
       );
       return;
     }

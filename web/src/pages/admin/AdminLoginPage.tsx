@@ -41,7 +41,7 @@ export default function AdminLoginPage() {
     <Box
       sx={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #FFA07A 0%, #FFE4B5 100%)',
+        background: 'linear-gradient(135deg, #0F172A 0%, #0D9488 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -99,11 +99,11 @@ export default function AdminLoginPage() {
               size="large"
               disabled={loading}
               sx={{
-                background: 'linear-gradient(45deg, #FFA07A 30%, #FFD700 90%)',
+                background: 'linear-gradient(45deg, #0D9488 30%, #3B82F6 90%)',
                 color: '#fff',
                 fontWeight: 600,
                 '&:hover': {
-                  background: 'linear-gradient(45deg, #FF8C69 30%, #FFC700 90%)'
+                  background: 'linear-gradient(45deg, #0F766E 30%, #1D4ED8 90%)'
                 }
               }}
             >

@@ -27,15 +27,15 @@ export default function DashboardHomePage() {
   };
 
   return (
-    <Box sx={{ 
-      minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #FFA07A 0%, #FFE4B5 100%)',
+    <Box sx={{
+      minHeight: '100vh',
+      bgcolor: 'background.default',
       py: 6
     }}>
       {/* Logout Button */}
       <Box sx={{ position: 'absolute', top: 20, right: 20 }}>
         <Tooltip title="Logout">
-          <IconButton 
+          <IconButton
             onClick={handleLogout}
             sx={{
               bgcolor: 'white',
@@ -46,7 +46,7 @@ export default function DashboardHomePage() {
               }
             }}
           >
-            <LogoutIcon sx={{ color: '#FFA07A' }} />
+            <LogoutIcon sx={{ color: 'primary.main' }} />
           </IconButton>
         </Tooltip>
       </Box>
@@ -55,18 +55,17 @@ export default function DashboardHomePage() {
         {/* Logo */}
         <Box sx={{ textAlign: 'center', mb: 6 }}>
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 3 }}>
-            {/* <img 
-              src={medEfixLogo} 
-              alt="MedEfix Logo" 
+            {/* <img
+              src={medEfixLogo}
+              alt="MedEfix Logo"
               style={{ height: '140px', width: 'auto' }}
             /> */}
           </Box>
-          <Typography 
-            variant="h3" 
-            sx={{ 
+          <Typography
+            variant="h3"
+            sx={{
               fontWeight: 800,
-              color: '#fff',
-              textShadow: '2px 2px 4px rgba(0,0,0,0.2)'
+              color: 'text.primary'
             }}
           >
             Admin Dashboard
@@ -81,7 +80,7 @@ export default function DashboardHomePage() {
               elevation={3}
               sx={{ 
                 height: '300px',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                background: 'linear-gradient(135deg, #0D9488 0%, #0F172A 100%)',
                 color: 'white',
                 cursor: 'pointer',
                 transition: 'transform 0.3s ease-in-out',
@@ -114,7 +113,7 @@ export default function DashboardHomePage() {
               elevation={3}
               sx={{ 
                 height: '300px',
-                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                background: 'linear-gradient(135deg, #3B82F6 0%, #0F172A 100%)',
                 color: 'white',
                 cursor: 'pointer',
                 transition: 'transform 0.3s ease-in-out',

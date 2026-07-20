@@ -33,6 +33,10 @@ class FeeUpdate(BaseModel):
 
 class AvailabilityUpdate(BaseModel):
     unavailable_services: list[str]
+    # Optional map of service key -> ISO date string ("YYYY-MM-DD") for when
+    # the service is expected to be back. Only kept for keys that are also
+    # in unavailable_services.
+    return_dates: dict[str, str | None] = {}
 
 
 def _parse_unavailable(row: AppSettings | None) -> list[str]:
@@ -45,6 +49,18 @@ def _parse_unavailable(row: AppSettings | None) -> list[str]:
     except (ValueError, TypeError):
         pass
     return []
+
+
+def _parse_return_dates(row: AppSettings | None, unavailable: list[str]) -> dict[str, str]:
+    if not row or not getattr(row, "service_return_dates", None):
+        return {}
+    try:
+        value = json.loads(row.service_return_dates)
+        if isinstance(value, dict):
+            return {k: v for k, v in value.items() if k in unavailable and v}
+    except (ValueError, TypeError):
+        pass
+    return {}
 
 
 @router.get("/fees")
@@ -89,9 +105,11 @@ def update_fees(
 @router.get("/availability")
 def get_availability(session: Session = Depends(get_session)):
     row = session.exec(select(AppSettings)).first()
+    unavailable = _parse_unavailable(row)
     return {
         "known_services": KNOWN_SERVICES,
-        "unavailable_services": _parse_unavailable(row),
+        "unavailable_services": unavailable,
+        "return_dates": _parse_return_dates(row, unavailable),
     }
 
 
@@ -103,15 +121,24 @@ def update_availability(
 ):
     # Ignore anything that isn't a recognised service key.
     unavailable = [s for s in data.unavailable_services if s in KNOWN_SERVICES]
+    return_dates = {
+        k: v for k, v in data.return_dates.items() if k in unavailable and v
+    }
     row = session.exec(select(AppSettings)).first()
     if not row:
-        row = AppSettings(unavailable_services=json.dumps(unavailable))
+        row = AppSettings(
+            unavailable_services=json.dumps(unavailable),
+            service_return_dates=json.dumps(return_dates),
+        )
         session.add(row)
     else:
         row.unavailable_services = json.dumps(unavailable)
+        row.service_return_dates = json.dumps(return_dates)
     session.commit()
     session.refresh(row)
+    unavailable = _parse_unavailable(row)
     return {
         "known_services": KNOWN_SERVICES,
-        "unavailable_services": _parse_unavailable(row),
+        "unavailable_services": unavailable,
+        "return_dates": _parse_return_dates(row, unavailable),
     }

@@ -15,6 +15,11 @@ class AppSettings(SQLModel, table=True):
     # e.g. ["pharmacy", "lab"]. Consumed by the mobile app to show
     # "Store/Service unavailable" on the corresponding service.
     unavailable_services: str = Field(default="[]")
+    # JSON object mapping a service key to an optional ISO date string
+    # (e.g. {"pharmacy": "2026-08-01"}) indicating when that service is
+    # expected to be back. Only meaningful for keys also present in
+    # unavailable_services.
+    service_return_dates: str = Field(default="{}")
 
 
 class Testimonial(SQLModel, table=True):

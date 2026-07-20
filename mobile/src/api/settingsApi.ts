@@ -25,15 +25,24 @@ export async function fetchFeeSettings(): Promise<FeeSettings> {
 export interface AvailabilitySettings {
   known_services: string[];
   unavailable_services: string[];
+  return_dates: Record<string, string>;
 }
 
-export async function fetchServiceAvailability(): Promise<string[]> {
+export interface ServiceAvailability {
+  unavailableServices: string[];
+  returnDates: Record<string, string>;
+}
+
+export async function fetchServiceAvailability(): Promise<ServiceAvailability> {
   try {
     const res = await fetch(`${API_BASE_URL}/settings/availability`);
-    if (!res.ok) return [];
+    if (!res.ok) return { unavailableServices: [], returnDates: {} };
     const data: AvailabilitySettings = await res.json();
-    return Array.isArray(data.unavailable_services) ? data.unavailable_services : [];
+    return {
+      unavailableServices: Array.isArray(data.unavailable_services) ? data.unavailable_services : [],
+      returnDates: data.return_dates ?? {},
+    };
   } catch {
-    return [];
+    return { unavailableServices: [], returnDates: {} };
   }
 }

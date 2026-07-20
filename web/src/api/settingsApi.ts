@@ -12,6 +12,7 @@ export interface FeeSettings {
 export interface AvailabilitySettings {
   known_services: string[];
   unavailable_services: string[];
+  return_dates: Record<string, string>;
 }
 
 export const settingsAPI = {
@@ -35,10 +36,11 @@ export const settingsAPI = {
   updateAvailability: async (
     unavailable_services: string[],
     token: string,
+    return_dates: Record<string, string> = {},
   ): Promise<AvailabilitySettings> => {
     const res = await api.put(
       '/settings/availability',
-      { unavailable_services },
+      { unavailable_services, return_dates },
       { headers: { Authorization: `Bearer ${token}` } },
     );
     return res.data;
