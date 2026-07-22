@@ -488,6 +488,15 @@ def delete_physiotherapist(
     physiotherapist = session.get(Physiotherapist, physiotherapist_id)
     if not physiotherapist:
         raise HTTPException(status_code=404, detail="Physiotherapist not found")
-    
+
+    # Remove dependent bookings first — the FK has no ON DELETE CASCADE.
+    bookings = session.exec(
+        select(PhysiotherapistBooking).where(
+            PhysiotherapistBooking.physiotherapist_id == physiotherapist_id
+        )
+    ).all()
+    for booking in bookings:
+        session.delete(booking)
+
     session.delete(physiotherapist)
     session.commit()

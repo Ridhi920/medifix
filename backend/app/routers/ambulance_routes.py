@@ -170,7 +170,14 @@ def delete_ambulance(
     ambulance = session.get(Ambulance, ambulance_id)
     if not ambulance:
         raise HTTPException(status_code=404, detail="Ambulance not found")
-    
+
+    # Remove dependent bookings first — the FK has no ON DELETE CASCADE.
+    bookings = session.exec(
+        select(AmbulanceBooking).where(AmbulanceBooking.ambulance_id == ambulance_id)
+    ).all()
+    for booking in bookings:
+        session.delete(booking)
+
     session.delete(ambulance)
     session.commit()
     

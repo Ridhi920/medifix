@@ -262,10 +262,19 @@ def delete_doctor(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Doctor not found",
         )
-    
+
+    # Remove dependent appointments first — the doctor_appointments FK has no
+    # ON DELETE CASCADE, so deleting a doctor with existing appointments would
+    # otherwise raise an IntegrityError.
+    appointments = session.exec(
+        select(Appointment).where(Appointment.doctor_id == doctor_id)
+    ).all()
+    for appointment in appointments:
+        session.delete(appointment)
+
     session.delete(doctor)
     session.commit()
-    
+
     return {"message": "Doctor deleted successfully"}
 
 

@@ -167,7 +167,14 @@ def delete_lab_test(
     test = session.get(LabTest, test_id)
     if not test:
         raise HTTPException(status_code=404, detail="Lab test not found")
-    
+
+    # Remove dependent bookings first — the FK has no ON DELETE CASCADE.
+    bookings = session.exec(
+        select(LabBooking).where(LabBooking.lab_test_id == test_id)
+    ).all()
+    for booking in bookings:
+        session.delete(booking)
+
     session.delete(test)
     session.commit()
     

@@ -385,7 +385,14 @@ def delete_dentist(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dentist not found",
         )
-    
+
+    # Remove dependent appointments first — the FK has no ON DELETE CASCADE.
+    appointments = session.exec(
+        select(DentistAppointment).where(DentistAppointment.dentist_id == dentist_id)
+    ).all()
+    for appointment in appointments:
+        session.delete(appointment)
+
     session.delete(dentist)
     session.commit()
     
