@@ -6,6 +6,8 @@ from sqlmodel import Session, select
 
 from ..core.auth import get_current_admin_user, get_current_user
 from ..core.db import get_session
+from ..core.logbook import log_activity
+from ..core.service_requests import create_service_request
 from ..models import LabBooking, LabTest, User
 from ..schemas import (
     LabBookingCreate,
@@ -222,6 +224,35 @@ def create_lab_booking(
     )
     
     session.add(db_booking)
+    session.flush()  # assign db_booking.id before logging
+    log_activity(
+        session,
+        action="Lab Test Booked",
+        module="Lab",
+        actor=current_user.full_name,
+        actor_user_id=current_user.id,
+        entity_type="LabBooking",
+        entity_id=db_booking.id,
+        patient_id=current_user.id,
+        meta={
+            "test": lab_test.name,
+            "home_collection": db_booking.home_collection,
+            "date": str(db_booking.collection_date),
+        },
+    )
+    create_service_request(
+        session,
+        patient_name=db_booking.patient_name,
+        patient_id=current_user.id,
+        service="lab",
+        request_type="Home Collection" if db_booking.home_collection else "Diagnostic",
+        provider_name=lab_test.name,
+        scheduled_date=db_booking.collection_date,
+        amount=db_booking.test_price,
+        source_type="lab_booking",
+        source_id=db_booking.id,
+        notes=lab_test.name,
+    )
     session.commit()
     session.refresh(db_booking)
     

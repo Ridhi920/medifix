@@ -6,6 +6,8 @@ from sqlmodel import Session, select
 
 from ..core.auth import get_current_admin_user, get_current_user
 from ..core.db import get_session
+from ..core.logbook import log_activity
+from ..core.service_requests import create_service_request
 from ..models import Physiotherapist, PhysiotherapistBooking, User
 from ..schemas import (
     PhysiotherapistBookingCreate,
@@ -67,8 +69,38 @@ def create_physiotherapist_booking(
         total_price=total_price,
         special_instructions=booking_data.special_instructions,
     )
-    
+
     session.add(booking)
+    session.flush()  # assign booking.id before logging
+    log_activity(
+        session,
+        action="Physiotherapy Booked",
+        module="Physiotherapy",
+        actor=current_user.full_name,
+        actor_user_id=current_user.id,
+        entity_type="PhysiotherapistBooking",
+        entity_id=booking.id,
+        provider_id=booking.physiotherapist_id,
+        patient_id=current_user.id,
+        meta={
+            "physiotherapist": physiotherapist.name,
+            "booking_type": booking.booking_type,
+            "start_date": str(booking.start_date),
+        },
+    )
+    create_service_request(
+        session,
+        patient_name=booking.patient_name,
+        patient_id=current_user.id,
+        service="physiotherapist",
+        request_type="Home Care",
+        provider_id=physiotherapist.id,
+        provider_name=physiotherapist.name,
+        scheduled_date=booking.start_date,
+        amount=booking.total_price,
+        source_type="physiotherapist_booking",
+        source_id=booking.id,
+    )
     session.commit()
     session.refresh(booking)
     

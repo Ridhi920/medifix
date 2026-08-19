@@ -409,6 +409,7 @@ def get_vendor_profile(
         "vendor_id": vendor.vendor_id,
         "approval_status": vendor.approval_status,
         "entity_name": entity_name,
+        "logo": vendor.logo,
     }
 
 

@@ -6,6 +6,8 @@ from sqlmodel import Session, select
 
 from ..core.auth import get_current_admin_user, get_current_user
 from ..core.db import get_session
+from ..core.logbook import log_activity
+from ..core.service_requests import create_service_request
 from ..models import Appointment, Doctor, User
 from ..schemas import AppointmentCreate, AppointmentResponse, AppointmentWithDoctor, DoctorCreate, DoctorUpdate, DoctorResponse
 
@@ -85,6 +87,36 @@ def create_appointment_early(
         consultation_fee=doctor.consultation_fee, status="pending",
     )
     session.add(appointment)
+    session.flush()  # assign appointment.id before logging
+    log_activity(
+        session,
+        action="Appointment Booked",
+        module="Appointments",
+        actor=current_user.full_name,
+        actor_user_id=current_user.id,
+        entity_type="Appointment",
+        entity_id=appointment.id,
+        provider_id=appointment.doctor_id,
+        patient_id=current_user.id,
+        meta={
+            "doctor": doctor.name,
+            "day": appointment.appointment_day,
+            "slot": appointment.appointment_slot,
+        },
+    )
+    create_service_request(
+        session,
+        patient_name=appointment.patient_name,
+        patient_id=current_user.id,
+        service="doctor",
+        request_type="Consultation",
+        provider_id=doctor.id,
+        provider_name=doctor.name,
+        scheduled_date=appointment.appointment_date,
+        amount=appointment.consultation_fee,
+        source_type="doctor_appointment",
+        source_id=appointment.id,
+    )
     session.commit()
     session.refresh(appointment)
     return AppointmentResponse(

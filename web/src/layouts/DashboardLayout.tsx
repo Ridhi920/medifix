@@ -39,7 +39,10 @@ import {
   ToggleOn as AvailabilityIcon,
   RateReview as ReviewIcon,
   Stars as WhyChooseIcon,
-  HowToReg as VendorApprovalIcon
+  HowToReg as VendorApprovalIcon,
+  Timeline as TimelineIcon,
+  AccountTree as ServiceRequestIcon,
+  LocalHospital as InpatientIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 
@@ -52,6 +55,9 @@ const SIDEBAR_SELECTED_HOVER = 'rgba(13,148,136,0.45)';
 const SIDEBAR_TEXT = 'rgba(255,255,255,0.75)';
 
 const serviceItems = [
+  { text: 'Service Requests', icon: <ServiceRequestIcon />, path: '/admin/service-requests' },
+  { text: 'Inpatients', icon: <InpatientIcon />, path: '/admin/inpatients' },
+  { text: 'Digital Logbook', icon: <TimelineIcon />, path: '/admin/logbook' },
   { text: 'Users', icon: <UsersIcon />, path: '/admin/users' },
   { text: 'Vendor Approvals', icon: <VendorApprovalIcon />, path: '/admin/vendor-approvals' },
   { text: 'Doctors', icon: <DoctorsIcon />, path: '/admin/doctors' },
@@ -104,7 +110,7 @@ export default function DashboardLayout() {
   };
 
   // Determine which menu items to show based on current path
-  const isServicePath = location.pathname.match(/\/(users|vendor-approvals|doctors|dentists|lab-tests|ambulances|nurses|physiotherapists|pharmacy|fee-settings|service-availability|reviews|why-choose)$/);
+  const isServicePath = location.pathname.match(/\/(service-requests|inpatients|logbook|users|vendor-approvals|doctors|dentists|lab-tests|ambulances|nurses|physiotherapists|pharmacy|fee-settings|service-availability|reviews|why-choose)$/);
   const isBookingPath = location.pathname.match(/\/(appointments|dentist-appointments|lab-bookings|ambulance-bookings|nurse-bookings|physiotherapist-bookings|pharmacy-orders|prescriptions)$/);
   
   let menuItems = [];

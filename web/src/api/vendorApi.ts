@@ -105,6 +105,7 @@ export interface VendorProfile {
   vendor_id: number | null;
   approval_status: string;
   entity_name: string | null;
+  logo: string | null;
 }
 
 export interface VendorProfileReview {
@@ -112,6 +113,167 @@ export interface VendorProfileReview {
   // Full entity record (Doctor/Dentist/Ambulance/Nurse/Physiotherapist row),
   // or null for roles without one (lab, pharmacy) or if it's missing.
   profile: Record<string, any> | null;
+}
+
+// ── Clinical workspace types ──────────────────────────────────────────────
+
+export interface ClinicalNote {
+  id: number;
+  vendor_role: string;
+  provider_id: number | null;
+  patient_user_id: number | null;
+  patient_name: string;
+  source_type: string | null;
+  source_id: number | null;
+  diagnosis: string | null;
+  remark: string | null;
+  prescription_file: string | null;
+  prescription_filename: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VendorPatient {
+  patient_name: string;
+  total_bookings: number;
+  last_visit: string | null;
+  condition: string | null;
+  contact: string | null;
+  notes_count: number;
+  bookings: Array<{
+    id: number;
+    booking_kind: string;
+    status: string;
+    price: number;
+    created_at: string;
+    details: Record<string, any>;
+  }>;
+  clinical_notes: Array<{
+    id: number;
+    diagnosis: string | null;
+    remark: string | null;
+    prescription_file: string | null;
+    prescription_filename: string | null;
+    source_type: string | null;
+    source_id: number | null;
+    created_at: string;
+  }>;
+}
+
+export interface VendorReport {
+  id: number;
+  vendor_role: string;
+  provider_id: number | null;
+  patient_name: string;
+  source_type: string | null;
+  source_id: number | null;
+  title: string;
+  report_type: string;
+  file: string | null;
+  filename: string | null;
+  status: string;
+  created_at: string;
+}
+
+export interface BillItem {
+  description: string;
+  quantity: number;
+  price: number;
+}
+
+export interface VendorBill {
+  id: number;
+  vendor_role: string;
+  provider_id: number | null;
+  patient_name: string;
+  source_type: string | null;
+  source_id: number | null;
+  items: BillItem[];
+  subtotal: number;
+  tax: number;
+  discount: number;
+  total: number;
+  status: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClinicalNoteCreate {
+  patient_name: string;
+  patient_user_id?: number | null;
+  source_type?: string | null;
+  source_id?: number | null;
+  diagnosis?: string;
+  remark?: string;
+  prescription_file?: string;
+  prescription_filename?: string;
+}
+
+export interface ReportCreate {
+  patient_name: string;
+  patient_user_id?: number | null;
+  source_type?: string | null;
+  source_id?: number | null;
+  title: string;
+  report_type?: string;
+  file?: string;
+  filename?: string;
+  status?: string;
+}
+
+export interface BillCreate {
+  patient_name: string;
+  patient_user_id?: number | null;
+  source_type?: string | null;
+  source_id?: number | null;
+  items: BillItem[];
+  tax?: number;
+  discount?: number;
+  notes?: string;
+  status?: string;
+}
+
+export interface TestEntry {
+  name: string;
+  result?: string | null;
+  date?: string | null;
+  notes?: string | null;
+}
+
+export interface Admission {
+  id: number;
+  vendor_role: string;
+  provider_id: number | null;
+  patient_name: string;
+  patient_user_id: number | null;
+  age: number | null;
+  gender: string | null;
+  contact: string | null;
+  ward: string | null;
+  bed_number: string | null;
+  diagnosis: string | null;
+  attending_doctor: string | null;
+  notes: string | null;
+  tests: TestEntry[];
+  admission_date: string;
+  discharge_date: string | null;
+  status: string; // admitted / discharged
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdmissionCreate {
+  patient_name: string;
+  age?: number;
+  gender?: string;
+  contact?: string;
+  ward?: string;
+  bed_number?: string;
+  diagnosis?: string;
+  attending_doctor?: string;
+  notes?: string;
+  tests?: TestEntry[];
 }
 
 export const vendorAPI = {
@@ -125,6 +287,11 @@ export const vendorAPI = {
   getMyProfile: async (): Promise<VendorProfile> => {
     const response = await api.get<VendorProfile>('/vendor/me');
     return response.data;
+  },
+
+  // Vendor: set/clear own brand logo (base64 data-URL or URL; null clears)
+  updateLogo: async (logo: string | null): Promise<void> => {
+    await api.put('/vendor/logo', { logo });
   },
 
   // Vendor: own bookings only
@@ -162,6 +329,99 @@ export const vendorAPI = {
   }): Promise<VendorUser> => {
     const response = await api.put<VendorUser>('/auth/me', data);
     return response.data;
+  },
+
+  // ── Clinical workspace ──────────────────────────────────────────────────
+
+  // Vendor: patient list aggregated from their bookings (+ clinical notes)
+  getPatients: async (): Promise<VendorPatient[]> => {
+    const response = await api.get<VendorPatient[]>('/vendor/patients');
+    return response.data;
+  },
+
+  getClinicalNotes: async (params?: {
+    patient_name?: string;
+    source_id?: number;
+  }): Promise<ClinicalNote[]> => {
+    const response = await api.get<ClinicalNote[]>('/vendor/clinical-notes', { params });
+    return response.data;
+  },
+
+  createClinicalNote: async (data: ClinicalNoteCreate): Promise<ClinicalNote> => {
+    const response = await api.post<ClinicalNote>('/vendor/clinical-notes', data);
+    return response.data;
+  },
+
+  deleteClinicalNote: async (id: number): Promise<void> => {
+    await api.delete(`/vendor/clinical-notes/${id}`);
+  },
+
+  getReports: async (params?: { patient_name?: string }): Promise<VendorReport[]> => {
+    const response = await api.get<VendorReport[]>('/vendor/reports', { params });
+    return response.data;
+  },
+
+  createReport: async (data: ReportCreate): Promise<VendorReport> => {
+    const response = await api.post<VendorReport>('/vendor/reports', data);
+    return response.data;
+  },
+
+  deleteReport: async (id: number): Promise<void> => {
+    await api.delete(`/vendor/reports/${id}`);
+  },
+
+  getBills: async (params?: { patient_name?: string }): Promise<VendorBill[]> => {
+    const response = await api.get<VendorBill[]>('/vendor/bills', { params });
+    return response.data;
+  },
+
+  createBill: async (data: BillCreate): Promise<VendorBill> => {
+    const response = await api.post<VendorBill>('/vendor/bills', data);
+    return response.data;
+  },
+
+  updateBillStatus: async (id: number, status: string): Promise<VendorBill> => {
+    const response = await api.patch<VendorBill>(`/vendor/bills/${id}/status`, { status });
+    return response.data;
+  },
+
+  deleteBill: async (id: number): Promise<void> => {
+    await api.delete(`/vendor/bills/${id}`);
+  },
+
+  // ── Inpatient admissions ────────────────────────────────────────────────
+
+  getAdmissions: async (status?: string): Promise<Admission[]> => {
+    const params = status ? { status } : undefined;
+    const response = await api.get<Admission[]>('/vendor/admissions', { params });
+    return response.data;
+  },
+
+  createAdmission: async (data: AdmissionCreate): Promise<Admission> => {
+    const response = await api.post<Admission>('/vendor/admissions', data);
+    return response.data;
+  },
+
+  updateAdmission: async (
+    id: number,
+    data: Partial<Omit<AdmissionCreate, 'patient_name'>> & { status?: string; tests?: TestEntry[] },
+  ): Promise<Admission> => {
+    const response = await api.patch<Admission>(`/vendor/admissions/${id}`, data);
+    return response.data;
+  },
+
+  addAdmissionTest: async (id: number, test: TestEntry): Promise<Admission> => {
+    const response = await api.post<Admission>(`/vendor/admissions/${id}/tests`, test);
+    return response.data;
+  },
+
+  dischargeAdmission: async (id: number): Promise<Admission> => {
+    const response = await api.patch<Admission>(`/vendor/admissions/${id}`, { status: 'discharged' });
+    return response.data;
+  },
+
+  deleteAdmission: async (id: number): Promise<void> => {
+    await api.delete(`/vendor/admissions/${id}`);
   },
 
   // Admin: list vendor accounts, optionally filtered by approval status

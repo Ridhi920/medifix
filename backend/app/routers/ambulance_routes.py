@@ -6,6 +6,8 @@ from sqlmodel import Session, select
 
 from ..core.auth import get_current_admin_user, get_current_user
 from ..core.db import get_session
+from ..core.logbook import log_activity
+from ..core.service_requests import create_service_request
 from ..models import Ambulance, AmbulanceBooking, User
 from ..schemas import (
     AmbulanceBookingCreate,
@@ -226,6 +228,35 @@ def create_ambulance_booking(
     )
     
     session.add(db_booking)
+    session.flush()  # assign db_booking.id before logging
+    log_activity(
+        session,
+        action="Ambulance Booked",
+        module="Ambulance",
+        actor=current_user.full_name,
+        actor_user_id=current_user.id,
+        entity_type="AmbulanceBooking",
+        entity_id=db_booking.id,
+        provider_id=db_booking.ambulance_id,
+        patient_id=current_user.id,
+        meta={
+            "booking_type": db_booking.booking_type,
+            "pickup": db_booking.pickup_address,
+        },
+    )
+    create_service_request(
+        session,
+        patient_name=db_booking.patient_name,
+        patient_id=current_user.id,
+        service="ambulance",
+        request_type="Transport",
+        provider_id=db_booking.ambulance_id,
+        scheduled_date=db_booking.scheduled_date,
+        amount=db_booking.ambulance_price,
+        priority="emergency" if db_booking.booking_type == "emergency" else "normal",
+        source_type="ambulance_booking",
+        source_id=db_booking.id,
+    )
     session.commit()
     session.refresh(db_booking)
     

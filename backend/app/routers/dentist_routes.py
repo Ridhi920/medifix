@@ -6,6 +6,8 @@ from sqlmodel import Session, select
 
 from ..core.auth import get_current_admin_user, get_current_user
 from ..core.db import get_session
+from ..core.logbook import log_activity
+from ..core.service_requests import create_service_request
 from ..models import DentistAppointment, Dentist, User
 from ..schemas import DentistAppointmentCreate, DentistAppointmentResponse, DentistAppointmentWithDentist, DentistCreate, DentistUpdate, DentistResponse
 
@@ -92,6 +94,36 @@ def create_appointment(
         status="pending",
     )
     session.add(appointment)
+    session.flush()  # assign appointment.id before logging
+    log_activity(
+        session,
+        action="Dentist Appointment Booked",
+        module="Appointments",
+        actor=current_user.full_name,
+        actor_user_id=current_user.id,
+        entity_type="DentistAppointment",
+        entity_id=appointment.id,
+        provider_id=appointment.dentist_id,
+        patient_id=current_user.id,
+        meta={
+            "dentist": dentist.name,
+            "day": appointment.appointment_day,
+            "slot": appointment.appointment_slot,
+        },
+    )
+    create_service_request(
+        session,
+        patient_name=appointment.patient_name,
+        patient_id=current_user.id,
+        service="dentist",
+        request_type="Consultation",
+        provider_id=dentist.id,
+        provider_name=dentist.name,
+        scheduled_date=appointment.appointment_date,
+        amount=appointment.consultation_fee,
+        source_type="dentist_appointment",
+        source_id=appointment.id,
+    )
     session.commit()
     session.refresh(appointment)
     return DentistAppointmentResponse(

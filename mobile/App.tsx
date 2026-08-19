@@ -26,6 +26,8 @@ import UpcomingBookingsScreen from "./src/screens/profile/UpcomingBookingsScreen
 import CompletedBookingsScreen from "./src/screens/profile/CompletedBookingsScreen";
 import OrderHistoryScreen from "./src/screens/profile/OrderHistoryScreen";
 import GlobalSearchScreen from "./src/screens/search/GlobalSearchScreen";
+import HealthBookScreen from "./src/screens/health/HealthBookScreen";
+import ClaimDeskScreen from "./src/screens/health/ClaimDeskScreen";
 
 type Screen =
   | "login"
@@ -47,6 +49,8 @@ type Screen =
   | "upcoming-bookings"
   | "completed-bookings"
   | "order-history"
+  | "health-book"
+  | "claim-desk"
   | "support";
 
 const serviceScreenMap: Record<ServiceKey, Screen> = {
@@ -119,6 +123,8 @@ function renderScreen(
           onOpenProfile={() => setScreen("profile")}
           onOpenSearch={() => setScreen("search")}
           onOpenSupport={() => setScreen("support")}
+          onOpenHealthBook={() => setScreen("health-book")}
+          onOpenClaimDesk={() => setScreen("claim-desk")}
           onLogout={() => setScreen("login")}
         />
       );
@@ -166,6 +172,10 @@ function renderScreen(
       return <CompletedBookingsScreen onBack={() => setScreen("profile")} />;
     case "order-history":
       return <OrderHistoryScreen onBack={() => setScreen("profile")} />;
+    case "health-book":
+      return <HealthBookScreen onBack={() => setScreen("home")} />;
+    case "claim-desk":
+      return <ClaimDeskScreen onBack={() => setScreen("home")} />;
     case "support":
       return <SupportScreen onBack={() => setScreen("home")} />;
     default:

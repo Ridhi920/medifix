@@ -6,6 +6,8 @@ from sqlmodel import Session, select
 
 from ..core.auth import get_current_user, get_current_admin_user
 from ..core.db import get_session
+from ..core.logbook import log_activity
+from ..core.service_requests import create_service_request
 from ..models import Medicine, MedicineOrder, PrescriptionSubmission, User
 from ..schemas import (
     MedicineCreate,
@@ -268,8 +270,31 @@ def create_medicine_order(
         prescription_image=order_data.prescription_image,
         notes=order_data.notes,
     )
-    
+
     session.add(order)
+    session.flush()  # assign order.id before logging
+    log_activity(
+        session,
+        action="Medicine Order Placed",
+        module="Pharmacy",
+        actor=current_user.full_name,
+        actor_user_id=current_user.id,
+        entity_type="MedicineOrder",
+        entity_id=order.id,
+        patient_id=current_user.id,
+        meta={"items": len(items_json), "total_amount": total_amount},
+    )
+    create_service_request(
+        session,
+        patient_name=order.patient_name,
+        patient_id=current_user.id,
+        service="pharmacy",
+        request_type="Medicine",
+        amount=total_amount,
+        source_type="medicine_order",
+        source_id=order.id,
+        notes=f"{len(items_json)} item(s)",
+    )
     session.commit()
     session.refresh(order)
     

@@ -25,6 +25,8 @@ type HomeScreenProps = {
   readonly onOpenProfile: () => void;
   readonly onOpenSearch: () => void;
   readonly onOpenSupport: () => void;
+  readonly onOpenHealthBook: () => void;
+  readonly onOpenClaimDesk: () => void;
   readonly onLogout: () => void;
 };
 
@@ -44,6 +46,8 @@ export default function HomeScreen({
   onOpenProfile,
   onOpenSearch,
   onOpenSupport,
+  onOpenHealthBook,
+  onOpenClaimDesk,
   onLogout
 }: Readonly<HomeScreenProps>) {
   const { user, logout } = useAuth();
@@ -306,6 +310,51 @@ export default function HomeScreen({
             <Text style={styles.serviceCardText}>More Services</Text>
             <Text style={styles.serviceCardTagline}>More Healthcare Services</Text>
           </Pressable>
+        </View>
+
+        {/* MedEfix Digital Health Suite — ABDM-powered features */}
+        <View style={styles.healthSuiteSection}>
+          <Text style={styles.healthSuiteTitle}>MedEfix Digital Health Suite</Text>
+          <Text style={styles.healthSuiteSubtitle}>
+            Your health records & insurance, powered by ABDM
+          </Text>
+          <View style={styles.healthSuiteRow}>
+            <Pressable
+              style={[styles.healthSuiteCard, styles.healthBookCard]}
+              onPress={onOpenHealthBook}
+            >
+              <View style={styles.healthSuiteIconWrap}>
+                <Text style={styles.healthSuiteIcon}>📖</Text>
+              </View>
+              <View>
+                <Text style={styles.healthSuiteCardTitle}>MedEfix Health Book</Text>
+                <Text style={styles.healthSuiteCardText}>
+                  Store & share your health records
+                </Text>
+                <View style={styles.healthSuiteTag}>
+                  <Text style={styles.healthSuiteTagText}>ABHA</Text>
+                </View>
+              </View>
+            </Pressable>
+
+            <Pressable
+              style={[styles.healthSuiteCard, styles.claimDeskCard]}
+              onPress={onOpenClaimDesk}
+            >
+              <View style={styles.healthSuiteIconWrap}>
+                <Text style={styles.healthSuiteIcon}>🧾</Text>
+              </View>
+              <View>
+                <Text style={styles.healthSuiteCardTitle}>MedEfix Claim Desk</Text>
+                <Text style={styles.healthSuiteCardText}>
+                  File & track insurance claims
+                </Text>
+                <View style={styles.healthSuiteTag}>
+                  <Text style={styles.healthSuiteTagText}>NHCX</Text>
+                </View>
+              </View>
+            </Pressable>
+          </View>
         </View>
 
         {/* Emergency Ambulance Banner */}

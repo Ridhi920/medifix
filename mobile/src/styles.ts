@@ -1,4 +1,7 @@
-import { StyleSheet } from "react-native";
+import { Platform, StatusBar, StyleSheet } from "react-native";
+
+const SAFE_TOP =
+  Platform.OS === "android" ? (StatusBar.currentHeight ?? 24) + 12 : 56;
 
 export const styles = StyleSheet.create({
   gradient: {
@@ -595,6 +598,171 @@ export const styles = StyleSheet.create({
     color: "#FF6B35",
     fontWeight: "700",
     fontSize: 13
+  },
+  // MedEfix Digital Health Suite — ABDM-powered features below More Services
+  healthSuiteSection: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 4
+  },
+  healthSuiteTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#0f172a"
+  },
+  healthSuiteSubtitle: {
+    fontSize: 12,
+    color: "#64748b",
+    marginTop: 2,
+    marginBottom: 14
+  },
+  healthSuiteRow: {
+    flexDirection: "row",
+    gap: 14
+  },
+  healthSuiteCard: {
+    flex: 1,
+    borderRadius: 18,
+    padding: 16,
+    minHeight: 150,
+    justifyContent: "space-between",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 3
+  },
+  healthBookCard: {
+    backgroundColor: "#0f766e"
+  },
+  claimDeskCard: {
+    backgroundColor: "#4338ca"
+  },
+  healthSuiteIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  healthSuiteIcon: {
+    fontSize: 22
+  },
+  healthSuiteCardTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#ffffff",
+    marginTop: 12
+  },
+  healthSuiteCardText: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.85)",
+    marginTop: 3,
+    lineHeight: 15
+  },
+  healthSuiteTag: {
+    alignSelf: "flex-start",
+    marginTop: 10,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 3
+  },
+  healthSuiteTagText: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: "#ffffff",
+    letterSpacing: 0.5
+  },
+  // Shared layout for the Health Book / Claim Desk feature screens
+  featureHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingTop: SAFE_TOP,
+    paddingBottom: 12
+  },
+  featureBackButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#eef2ff",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  featureScreenScroll: {
+    flexGrow: 1,
+    padding: 20,
+    paddingBottom: 40
+  },
+  featureHero: {
+    borderRadius: 20,
+    padding: 22,
+    marginBottom: 20
+  },
+  featureHeroIcon: {
+    fontSize: 34,
+    marginBottom: 10
+  },
+  featureHeroTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#ffffff"
+  },
+  featureHeroSubtitle: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.9)",
+    marginTop: 6,
+    lineHeight: 19
+  },
+  featureItemRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    backgroundColor: "#ffffff",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1
+  },
+  featureItemIcon: {
+    fontSize: 20,
+    marginTop: 1
+  },
+  featureItemTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0f172a"
+  },
+  featureItemText: {
+    fontSize: 12,
+    color: "#64748b",
+    marginTop: 2,
+    lineHeight: 17
+  },
+  featureCta: {
+    borderRadius: 14,
+    paddingVertical: 15,
+    alignItems: "center",
+    marginTop: 8
+  },
+  featureCtaText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "700"
+  },
+  featureNote: {
+    fontSize: 11,
+    color: "#94a3b8",
+    textAlign: "center",
+    marginTop: 12,
+    lineHeight: 16
   },
   whySection: {
     paddingHorizontal: 20,

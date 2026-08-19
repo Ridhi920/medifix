@@ -57,6 +57,182 @@ class HomeFeature(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
 
 
+class DigitalLogEntry(SQLModel, table=True):
+    """A single row in MedEfix's Digital Logbook / activity timeline.
+
+    Every significant action across the platform (registrations, appointments,
+    orders, report uploads, deliveries, claim updates, ABDM events) appends one
+    entry here so a provider workspace — or a patient — can render an
+    operational timeline. Kept deliberately denormalised for cheap reads.
+    """
+
+    __tablename__ = "digital_logbook"
+
+    id: int | None = Field(default=None, primary_key=True)
+    # Display label for who/what acted, e.g. "Lab", "Dr. Sharma", "System",
+    # or a patient's name. Denormalised so the timeline renders without joins.
+    actor: str = Field(default="System")
+    # Optional link to the acting user account.
+    actor_user_id: int | None = Field(default=None, foreign_key="users.id", index=True)
+    action: str  # e.g. "Patient Registered", "Sample Collected", "Report Uploaded"
+    module: str  # e.g. "Registration", "Lab", "Reports", "Pharmacy", "ABDM", "Claims"
+    entity_type: str | None = None  # e.g. "Patient", "Visit", "Report", "Appointment"
+    entity_id: int | None = None
+    # Optional scoping so a workspace / patient can filter their own timeline.
+    provider_id: int | None = Field(default=None, index=True)
+    patient_id: int | None = Field(default=None, index=True)
+    # Free-form JSON string for extra context (named `meta`, not `metadata`,
+    # which is reserved by SQLAlchemy's declarative base).
+    meta: str = Field(default="{}")
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(tz=timezone.utc), index=True
+    )
+
+
+class ServiceRequest(SQLModel, table=True):
+    """The core, unifying transaction object of MedEfix.
+
+    Every patient-facing transaction (doctor/dentist consultation, lab test,
+    pharmacy order, nurse/physiotherapy/ambulance booking) also creates one
+    ServiceRequest so the platform has a single spine to list, filter, and drive
+    a common status lifecycle:
+
+        created -> confirmed -> scheduled -> in_progress -> completed -> closed
+                                                          -> cancelled
+
+    It does NOT replace the specialised booking tables; `source_type` /
+    `source_id` link back to the row that owns the domain-specific fields.
+    """
+
+    __tablename__ = "service_requests"
+
+    id: int | None = Field(default=None, primary_key=True)
+    patient_id: int | None = Field(default=None, foreign_key="users.id", index=True)
+    patient_name: str
+    # The service provider being engaged (doctor/dentist/nurse/physio/ambulance
+    # id). Null for services without a provider record yet (lab test, medicine).
+    provider_id: int | None = Field(default=None, index=True)
+    provider_name: str | None = None
+    # Service key: "doctor", "dentist", "lab", "pharmacy", "nurse",
+    # "physiotherapist", "ambulance".
+    service: str = Field(index=True)
+    # Catalogue request type: Consultation / Diagnostic / Medicine /
+    # Home Collection / Transport / Home Care / Insurance.
+    request_type: str
+    status: str = Field(default="created", index=True)
+    booking_date: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+    scheduled_date: datetime | None = None
+    priority: str = Field(default="normal")  # low / normal / high / emergency
+    amount: float | None = None
+    # Link back to the specialised booking row that owns the domain fields.
+    source_type: str | None = None  # e.g. "doctor_appointment", "lab_booking"
+    source_id: int | None = None
+    notes: str | None = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+
+
+class ClinicalNote(SQLModel, table=True):
+    """A clinical record a vendor (doctor/dentist/physio/...) attaches to a
+    patient encounter: diagnosis (disease details), a free-text remark, and an
+    optional prescription file (stored as a base64 data-URL or external URL,
+    matching the existing prescription_image convention)."""
+
+    __tablename__ = "clinical_notes"
+
+    id: int | None = Field(default=None, primary_key=True)
+    vendor_role: str = Field(index=True)  # doctor / dentist / physiotherapist / ...
+    provider_id: int | None = Field(default=None, index=True)  # doctor/dentist id
+    patient_user_id: int | None = Field(default=None, foreign_key="users.id", index=True)
+    patient_name: str = Field(index=True)
+    # Links back to the appointment/booking this note is about.
+    source_type: str | None = None  # e.g. "doctor_appointment"
+    source_id: int | None = None
+    diagnosis: str | None = None  # disease details
+    remark: str | None = None  # doctor's remark / advice
+    prescription_file: str | None = None  # base64 data-URL or URL
+    prescription_filename: str | None = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+
+
+class VendorReport(SQLModel, table=True):
+    """A report/document a vendor issues for a patient (lab result, scan,
+    discharge summary...). File stored as base64 data-URL or URL."""
+
+    __tablename__ = "vendor_reports"
+
+    id: int | None = Field(default=None, primary_key=True)
+    vendor_role: str = Field(index=True)
+    provider_id: int | None = Field(default=None, index=True)
+    patient_user_id: int | None = Field(default=None, foreign_key="users.id", index=True)
+    patient_name: str = Field(index=True)
+    source_type: str | None = None
+    source_id: int | None = None
+    title: str
+    report_type: str = Field(default="General")  # Lab / Radiology / Prescription / General
+    file: str | None = None  # base64 data-URL or URL
+    filename: str | None = None
+    status: str = Field(default="final")  # draft / final
+    created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+
+
+class VendorBill(SQLModel, table=True):
+    """A simple bill/invoice a vendor raises for a patient. `items` is a
+    JSON-encoded list of {description, quantity, price}."""
+
+    __tablename__ = "vendor_bills"
+
+    id: int | None = Field(default=None, primary_key=True)
+    vendor_role: str = Field(index=True)
+    provider_id: int | None = Field(default=None, index=True)
+    patient_user_id: int | None = Field(default=None, foreign_key="users.id", index=True)
+    patient_name: str = Field(index=True)
+    source_type: str | None = None
+    source_id: int | None = None
+    items: str = Field(default="[]")  # JSON list of {description, quantity, price}
+    subtotal: float = Field(default=0.0)
+    tax: float = Field(default=0.0)
+    discount: float = Field(default=0.0)
+    total: float = Field(default=0.0)
+    status: str = Field(default="unpaid")  # unpaid / paid / cancelled
+    notes: str | None = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+
+
+class Admission(SQLModel, table=True):
+    """An inpatient admission: a patient hospitalised (overnight) under a
+    vendor/provider. Holds ward/bed, diagnosis, admission & discharge dates,
+    and a JSON list of test entries ({name, result, date, notes}). Outpatients
+    are just bookings; this record only exists for admitted patients."""
+
+    __tablename__ = "admissions"
+
+    id: int | None = Field(default=None, primary_key=True)
+    vendor_role: str = Field(index=True)
+    provider_id: int | None = Field(default=None, index=True)
+    patient_user_id: int | None = Field(default=None, foreign_key="users.id", index=True)
+    patient_name: str = Field(index=True)
+    source_type: str | None = None
+    source_id: int | None = None
+    age: int | None = None
+    gender: str | None = None
+    contact: str | None = None
+    ward: str | None = None
+    bed_number: str | None = None
+    diagnosis: str | None = None
+    attending_doctor: str | None = None
+    notes: str | None = None
+    # JSON list of {name, result, date, notes}
+    tests: str = Field(default="[]")
+    admission_date: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+    discharge_date: datetime | None = None
+    status: str = Field(default="admitted")  # admitted / discharged
+    created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+
+
 class User(SQLModel, table=True):
     __tablename__ = "users"
 
@@ -74,6 +250,9 @@ class User(SQLModel, table=True):
     # 'pending', 'approved', 'rejected'. Vendors start as 'pending' and can
     # only log in after an admin approves them.
     approval_status: str = Field(default="approved")
+    # Vendor's own brand logo, stored as a base64 data-URL or URL. Shown in the
+    # vendor dashboard header. Null for most accounts.
+    logo: str | None = Field(default=None)
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))

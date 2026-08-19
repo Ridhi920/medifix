@@ -25,6 +25,9 @@ import PharmacyBookingsManagementPage from "./pages/admin/PharmacyBookingsManage
 import PrescriptionsManagementPage from "./pages/admin/PrescriptionsManagementPage";
 import UsersManagementPage from "./pages/admin/UsersManagementPage";
 import VendorApprovalsPage from "./pages/admin/VendorApprovalsPage";
+import DigitalLogbookPage from "./pages/admin/DigitalLogbookPage";
+import ServiceRequestsPage from "./pages/admin/ServiceRequestsPage";
+import InpatientManagementPage from "./pages/admin/InpatientManagementPage";
 import VendorSignupPage from "./pages/vendor/VendorSignupPage";
 import VendorDashboardPage from "./pages/vendor/VendorDashboardPage";
 
@@ -92,6 +95,9 @@ export default function App() {
             <Route path="reviews" element={<ReviewsManagementPage />} />
             <Route path="why-choose" element={<WhyChooseManagementPage />} />
             <Route path="vendor-approvals" element={<VendorApprovalsPage />} />
+            <Route path="logbook" element={<DigitalLogbookPage />} />
+            <Route path="service-requests" element={<ServiceRequestsPage />} />
+            <Route path="inpatients" element={<InpatientManagementPage />} />
           </Route>
 
           {/* Catch all - redirect to admin login */}
