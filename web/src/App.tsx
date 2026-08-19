@@ -20,6 +20,7 @@ import NursesManagementPage from "./pages/admin/NursesManagementPage";
 import NurseBookingsManagementPage from "./pages/admin/NurseBookingsManagementPage";
 import PhysiotherapistsManagementPage from "./pages/admin/PhysiotherapistsManagementPage";
 import PhysiotherapistBookingsManagementPage from "./pages/admin/PhysiotherapistBookingsManagementPage";
+import PharmacyStoresManagementPage from "./pages/admin/PharmacyStoresManagementPage";
 import PharmacyManagementPage from "./pages/admin/PharmacyManagementPage";
 import PharmacyBookingsManagementPage from "./pages/admin/PharmacyBookingsManagementPage";
 import PrescriptionsManagementPage from "./pages/admin/PrescriptionsManagementPage";
@@ -87,6 +88,7 @@ export default function App() {
             <Route path="nurse-bookings" element={<NurseBookingsManagementPage />} />
             <Route path="physiotherapists" element={<PhysiotherapistsManagementPage />} />
             <Route path="physiotherapist-bookings" element={<PhysiotherapistBookingsManagementPage />} />
+            <Route path="pharmacy-stores" element={<PharmacyStoresManagementPage />} />
             <Route path="pharmacy" element={<PharmacyManagementPage />} />
             <Route path="pharmacy-orders" element={<PharmacyBookingsManagementPage />} />
             <Route path="prescriptions" element={<PrescriptionsManagementPage />} />

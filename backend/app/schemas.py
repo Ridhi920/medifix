@@ -29,17 +29,25 @@ class VendorSignup(BaseModel):
     consultation_fee: int | None = None
     address: str | None = None
 
-    # Ambulance profile fields
+    # Ambulance profile fields (describe the operator's first vehicle)
     ambulance_type: str | None = None
     base_price: int | None = None
     estimated_time: str | None = None
     description: str | None = None
+    vehicle_number: str | None = None
+    driver_name: str | None = None
 
     # Nurse / Physiotherapist profile fields
     specialization: str | None = None
     hourly_rate: int | None = None
     daily_rate: int | None = None
     gender: str | None = None
+
+    # Pharmacy profile fields (backs a PharmacyStore). `address` above is the
+    # store address; `phone` doubles as the store's contact number.
+    city: str | None = None
+    delivery_time: str | None = None
+    opening_hours: str | None = None
 
 
 class UserLogin(BaseModel):
@@ -318,6 +326,7 @@ class LabBookingWithTest(LabBookingResponse):
 # Ambulance Schemas
 class AmbulanceResponse(BaseModel):
     id: int
+    operator_id: int | None = None
     name: str
     description: str
     features: List[str]
@@ -325,6 +334,10 @@ class AmbulanceResponse(BaseModel):
     base_price: int
     image: str
     ambulance_type: str
+    vehicle_number: str | None = None
+    driver_name: str | None = None
+    driver_phone: str | None = None
+    availability: str = "available"
     latitude: float | None = None
     longitude: float | None = None
     is_active: bool
@@ -338,6 +351,10 @@ class AmbulanceCreate(BaseModel):
     base_price: int
     image: str
     ambulance_type: str
+    vehicle_number: str | None = None
+    driver_name: str | None = None
+    driver_phone: str | None = None
+    availability: str = Field(default="available", pattern="^(available|on_trip|off_duty)$")
     latitude: float | None = None
     longitude: float | None = None
 
@@ -350,6 +367,10 @@ class AmbulanceUpdate(BaseModel):
     base_price: int | None = None
     image: str | None = None
     ambulance_type: str | None = None
+    vehicle_number: str | None = None
+    driver_name: str | None = None
+    driver_phone: str | None = None
+    availability: str | None = Field(default=None, pattern="^(available|on_trip|off_duty)$")
     latitude: float | None = None
     longitude: float | None = None
     is_active: bool | None = None
@@ -605,8 +626,55 @@ class PhysiotherapistBookingStatusUpdate(BaseModel):
 
 # ========== Pharmacy Schemas ==========
 
+class PharmacyStoreResponse(BaseModel):
+    id: int
+    name: str
+    address: str
+    city: str | None
+    phone: str | None
+    image: str
+    rating: float
+    delivery_time: str
+    opening_hours: str | None
+    latitude: float | None
+    longitude: float | None
+    is_active: bool
+    # Number of active medicines currently on this store's shelf.
+    medicine_count: int = 0
+    created_at: datetime
+
+
+class PharmacyStoreCreate(BaseModel):
+    name: str
+    address: str
+    city: str | None = None
+    phone: str | None = None
+    image: str = "🏥"
+    rating: float = Field(default=0.0, ge=0, le=5)
+    delivery_time: str = "30-45 mins"
+    opening_hours: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+
+
+class PharmacyStoreUpdate(BaseModel):
+    name: str | None = None
+    address: str | None = None
+    city: str | None = None
+    phone: str | None = None
+    image: str | None = None
+    rating: float | None = Field(default=None, ge=0, le=5)
+    delivery_time: str | None = None
+    opening_hours: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    is_active: bool | None = None
+
+
 class MedicineResponse(BaseModel):
     id: int
+    store_id: int | None
+    store_name: str | None = None
     name: str
     generic_name: str
     manufacturer: str
@@ -623,6 +691,7 @@ class MedicineResponse(BaseModel):
 
 
 class MedicineCreate(BaseModel):
+    store_id: int | None = None
     name: str
     generic_name: str
     manufacturer: str
@@ -637,6 +706,7 @@ class MedicineCreate(BaseModel):
 
 
 class MedicineUpdate(BaseModel):
+    store_id: int | None = None
     name: str | None = None
     generic_name: str | None = None
     manufacturer: str | None = None
@@ -662,6 +732,31 @@ class MedicineOrderCreate(BaseModel):
     patient_phone: str
     delivery_address: str
     items: list[MedicineOrderItem]
+    # Optional: when omitted the store is derived from the ordered medicines.
+    # All items must come from the same store.
+    store_id: int | None = None
+    prescription_image: str | None = None
+    notes: str | None = None
+
+
+class StoreCartCreate(BaseModel):
+    """One store's basket inside a multi-store checkout."""
+
+    store_id: int
+    items: list[MedicineOrderItem]
+
+
+class MultiStoreOrderCreate(BaseModel):
+    """Check out a cart spanning several pharmacies in one go.
+
+    Creates one MedicineOrder per store, all sharing the same delivery
+    details, and returns them in the order the carts were sent.
+    """
+
+    patient_name: str
+    patient_phone: str
+    delivery_address: str
+    carts: list[StoreCartCreate] = Field(..., min_length=1)
     prescription_image: str | None = None
     notes: str | None = None
 
@@ -669,6 +764,8 @@ class MedicineOrderCreate(BaseModel):
 class MedicineOrderResponse(BaseModel):
     id: int
     user_id: int
+    store_id: int | None
+    store_name: str | None
     patient_name: str
     patient_phone: str
     delivery_address: str

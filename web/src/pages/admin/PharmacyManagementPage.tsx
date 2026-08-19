@@ -36,7 +36,7 @@ import {
   Download,
 } from '@mui/icons-material';
 import * as XLSX from 'xlsx';
-import { pharmacyAPI, Medicine, MedicineCreate } from '../../api/pharmacyApi';
+import { pharmacyAPI, Medicine, MedicineCreate, PharmacyStore } from '../../api/pharmacyApi';
 import MedicineImage from '../../components/MedicineImage';
 import SearchBar from '../../components/SearchBar';
 
@@ -45,12 +45,16 @@ const PRESET_CATEGORIES = ['Pain Relief', 'Antibiotics', 'Vitamins', 'First Aid'
 
 export default function PharmacyManagementPage() {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
+  const [stores, setStores] = useState<PharmacyStore[]>([]);
+  // Which store's shelf is being viewed; '' means every store.
+  const [storeFilter, setStoreFilter] = useState<number | ''>('');
   const [search, setSearch] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   
   const [formData, setFormData] = useState<MedicineCreate>({
+    store_id: null,
     name: '',
     generic_name: '',
     manufacturer: '',
@@ -71,6 +75,7 @@ export default function PharmacyManagementPage() {
 
   useEffect(() => {
     fetchMedicines();
+    fetchStores();
   }, []);
 
   const fetchMedicines = async () => {
@@ -82,6 +87,15 @@ export default function PharmacyManagementPage() {
     }
   };
 
+  const fetchStores = async () => {
+    try {
+      // active_only=false so a medicine can still be assigned to a closed store.
+      setStores(await pharmacyAPI.getStores(undefined, false));
+    } catch {
+      showSnackbar('Failed to load pharmacy stores', 'error');
+    }
+  };
+
   const showSnackbar = (message: string, severity: 'success' | 'error') => {
     setSnackbar({ open: true, message, severity });
   };
@@ -90,6 +104,7 @@ export default function PharmacyManagementPage() {
     if (medicine) {
       setEditingMedicine(medicine);
       setFormData({
+        store_id: medicine.store_id,
         name: medicine.name,
         generic_name: medicine.generic_name,
         manufacturer: medicine.manufacturer,
@@ -108,6 +123,9 @@ export default function PharmacyManagementPage() {
     } else {
       setEditingMedicine(null);
       setFormData({
+        // Default to the store currently being filtered on, so adding several
+        // medicines to one store doesn't mean re-picking it every time.
+        store_id: storeFilter === '' ? null : storeFilter,
         name: '',
         generic_name: '',
         manufacturer: '',
@@ -146,6 +164,10 @@ export default function PharmacyManagementPage() {
   };
 
   const handleSubmit = async () => {
+    if (!formData.store_id) {
+      showSnackbar('Pick the store that stocks this medicine', 'error');
+      return;
+    }
     try {
       if (editingMedicine) {
         await pharmacyAPI.updateMedicine(editingMedicine.id, formData);
@@ -208,6 +230,8 @@ export default function PharmacyManagementPage() {
     // Skip rows missing any required field.
     if (!name || !generic || !manufacturer || !category) return null;
     return {
+      // Imported rows land on the store currently selected in the filter.
+      store_id: storeFilter === '' ? null : storeFilter,
       name,
       generic_name: generic,
       manufacturer,
@@ -226,6 +250,10 @@ export default function PharmacyManagementPage() {
     const file = e.target.files?.[0];
     e.target.value = ''; // let the same file be re-selected later
     if (!file) return;
+    if (storeFilter === '') {
+      showSnackbar('Choose a store above first — imported medicines are added to that store', 'error');
+      return;
+    }
     setImporting(true);
     try {
       const buf = await file.arrayBuffer();
@@ -326,6 +354,22 @@ export default function PharmacyManagementPage() {
         </Stack>
       </Box>
 
+      <FormControl size="small" sx={{ minWidth: 260, mb: 2 }}>
+        <InputLabel>Store</InputLabel>
+        <Select
+          label="Store"
+          value={storeFilter}
+          onChange={(e) => setStoreFilter(e.target.value === '' ? '' : Number(e.target.value))}
+        >
+          <MenuItem value="">All stores</MenuItem>
+          {stores.map((store) => (
+            <MenuItem key={store.id} value={store.id}>
+              {store.name} ({store.medicine_count})
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
       <SearchBar
         value={search}
         onChange={setSearch}
@@ -338,6 +382,7 @@ export default function PharmacyManagementPage() {
             <TableRow>
               <TableCell>Icon</TableCell>
               <TableCell>Name</TableCell>
+              <TableCell>Store</TableCell>
               <TableCell sx={{ whiteSpace: 'nowrap' }}>Generic Name</TableCell>
               <TableCell>Category</TableCell>
               <TableCell>Manufacturer</TableCell>
@@ -351,8 +396,9 @@ export default function PharmacyManagementPage() {
           </TableHead>
           <TableBody>
             {medicines
+              .filter((m) => storeFilter === '' || m.store_id === storeFilter)
               .filter((m) =>
-                [m.name, m.generic_name, m.manufacturer, m.category]
+                [m.name, m.generic_name, m.manufacturer, m.category, m.store_name ?? '']
                   .join(' ')
                   .toLowerCase()
                   .includes(search.toLowerCase())
@@ -377,6 +423,13 @@ export default function PharmacyManagementPage() {
                   )}
                 </TableCell>
                 <TableCell>{medicine.name}</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                  {medicine.store_name ? (
+                    <Chip label={medicine.store_name} size="small" variant="outlined" />
+                  ) : (
+                    <Chip label="No store" size="small" color="error" variant="outlined" />
+                  )}
+                </TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{medicine.generic_name}</TableCell>
                 <TableCell>
                   <Chip label={medicine.category} size="small" color="primary" />
@@ -433,6 +486,32 @@ export default function PharmacyManagementPage() {
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
+            <FormControl fullWidth required>
+              <InputLabel>Store</InputLabel>
+              <Select
+                label="Store"
+                value={formData.store_id ?? ''}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    store_id: e.target.value === '' ? null : Number(e.target.value),
+                  })
+                }
+              >
+                {stores.length === 0 && (
+                  <MenuItem value="" disabled>
+                    No stores yet — add one under Pharmacy Stores
+                  </MenuItem>
+                )}
+                {stores.map((store) => (
+                  <MenuItem key={store.id} value={store.id}>
+                    {store.name}
+                    {store.is_active ? '' : ' (closed)'}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
             <TextField
               label="Medicine Name"
               value={formData.name}

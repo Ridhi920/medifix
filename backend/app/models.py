@@ -374,9 +374,21 @@ class LabBooking(SQLModel, table=True):
 
 
 class Ambulance(SQLModel, table=True):
+    """One vehicle in an operator's fleet.
+
+    An ambulance vendor account (users.role == "ambulance") runs a fleet: every
+    vehicle it operates points back at that account via `operator_id`, and the
+    vendor sees the trips booked on any of them. `users.vendor_id` still names
+    the vehicle created at signup, which is the one an admin's approval
+    activates. Rows with a null `operator_id` are platform-owned vehicles that
+    predate fleets.
+    """
+
     __tablename__ = "ambulances"
 
     id: int | None = Field(default=None, primary_key=True)
+    # The vendor account that runs this vehicle. Null for platform-owned ones.
+    operator_id: int | None = Field(default=None, foreign_key="users.id", index=True)
     name: str = Field(index=True)
     description: str
     features: str  # JSON string of array: ["Oxygen supply", "First aid kit"]
@@ -384,6 +396,15 @@ class Ambulance(SQLModel, table=True):
     base_price: int  # in rupees
     image: str  # emoji or image URL
     ambulance_type: str = Field(index=True)  # BLS, ALS, Neonatal, Air
+    # Registration plate and the crew on this vehicle, shown to the operator in
+    # their fleet view and to dispatch once a trip is assigned.
+    vehicle_number: str | None = Field(default=None)
+    driver_name: str | None = Field(default=None)
+    driver_phone: str | None = Field(default=None)
+    # Operational state the operator controls, distinct from `is_active` (which
+    # is the admin's listed/unlisted switch): available / on_trip / off_duty.
+    # Only "available" vehicles are offered to customers.
+    availability: str = Field(default="available", index=True)
     latitude: float | None = Field(default=None)
     longitude: float | None = Field(default=None)
     is_active: bool = Field(default=True)
@@ -507,10 +528,43 @@ class PhysiotherapistBooking(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
 
 
+class PharmacyStore(SQLModel, table=True):
+    """A physical pharmacy/chemist shop the user can order medicines from.
+
+    Every Medicine row belongs to exactly one store, so each store keeps its
+    own price and stock for the products it sells. A customer picks a store,
+    browses that store's shelf, and may fill a cart from several stores at
+    once - checkout then splits the cart into one MedicineOrder per store.
+    """
+
+    __tablename__ = "pharmacy_stores"
+
+    id: int | None = Field(default=None, primary_key=True)
+    name: str = Field(index=True)
+    address: str
+    city: str | None = Field(default=None, index=True)
+    phone: str | None = None
+    # Emoji or image URL / base64 data-URL used as the store's avatar.
+    image: str = Field(default="🏥")
+    rating: float = Field(default=0.0)
+    # Human-readable delivery estimate shown on the store card, e.g. "30-45 mins".
+    delivery_time: str = Field(default="30-45 mins")
+    opening_hours: str | None = None  # e.g. "8:00 AM - 10:00 PM"
+    latitude: float | None = Field(default=None)
+    longitude: float | None = Field(default=None)
+    is_active: bool = Field(default=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+
+
 class Medicine(SQLModel, table=True):
     __tablename__ = "medicines"
 
     id: int | None = Field(default=None, primary_key=True)
+    # The store that stocks this product. Each store keeps its own row for a
+    # product so price/stock are per-store. Null only for legacy rows created
+    # before stores existed.
+    store_id: int | None = Field(default=None, foreign_key="pharmacy_stores.id", index=True)
     name: str = Field(index=True)
     generic_name: str
     manufacturer: str
@@ -532,6 +586,10 @@ class MedicineOrder(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True)
+    # The store fulfilling this order. A cart spanning several stores is split
+    # into one order per store at checkout.
+    store_id: int | None = Field(default=None, foreign_key="pharmacy_stores.id", index=True)
+    store_name: str | None = None  # denormalised for cheap listing
     patient_name: str
     patient_phone: str
     delivery_address: str

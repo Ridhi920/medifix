@@ -15,7 +15,15 @@ from ..core.auth import (
     verify_password,
 )
 from ..core.db import get_session
-from ..models import Ambulance, Dentist, Doctor, Nurse, Physiotherapist, User
+from ..models import (
+    Ambulance,
+    Dentist,
+    Doctor,
+    Nurse,
+    PharmacyStore,
+    Physiotherapist,
+    User,
+)
 from ..schemas import (
     PasswordUpdate,
     Token,
@@ -41,6 +49,7 @@ _ROLE_IMAGE = {
     "ambulance": "🚑",
     "nurse": "👩‍⚕️",
     "physiotherapist": "🧑‍⚕️",
+    "pharmacy": "💊",
 }
 
 
@@ -54,9 +63,9 @@ def _require_fields(role: str, vendor_data: VendorSignup, *fields: str) -> None:
 
 
 def _build_vendor_entity(vendor_data: VendorSignup):
-    """Build the entity row (Doctor/Dentist/Ambulance/Nurse/Physiotherapist)
-    backing a vendor account, from the profile fields collected at signup.
-    Returns None for roles without a dedicated entity table (lab, pharmacy),
+    """Build the entity row (Doctor/Dentist/Ambulance/Nurse/Physiotherapist/
+    PharmacyStore) backing a vendor account, from the profile fields collected
+    at signup. Returns None for roles without a dedicated entity table (lab),
     which operate the whole service rather than a single listed profile.
     The entity starts inactive; approving the vendor account activates it.
     """
@@ -80,6 +89,8 @@ def _build_vendor_entity(vendor_data: VendorSignup):
         )
 
     if role == "ambulance":
+        # This is the operator's first vehicle; they add the rest of the fleet
+        # from their dashboard once approved.
         _require_fields(role, vendor_data, "ambulance_type", "base_price", "estimated_time", "description")
         return Ambulance(
             name=vendor_data.full_name,
@@ -89,6 +100,9 @@ def _build_vendor_entity(vendor_data: VendorSignup):
             base_price=vendor_data.base_price,
             image=_ROLE_IMAGE[role],
             ambulance_type=vendor_data.ambulance_type,
+            vehicle_number=vendor_data.vehicle_number,
+            driver_name=vendor_data.driver_name,
+            driver_phone=vendor_data.phone,
             is_active=False,
         )
 
@@ -112,7 +126,23 @@ def _build_vendor_entity(vendor_data: VendorSignup):
             is_active=False,
         )
 
-    # lab, pharmacy: no per-vendor entity; they see all bookings for the service
+    if role == "pharmacy":
+        # A pharmacy vendor owns one store; customers pick a store in the app
+        # and browse only that store's shelf.
+        _require_fields(role, vendor_data, "address")
+        return PharmacyStore(
+            name=vendor_data.full_name,
+            address=vendor_data.address,
+            city=vendor_data.city,
+            phone=vendor_data.phone,
+            image=_ROLE_IMAGE[role],
+            rating=0.0,
+            delivery_time=vendor_data.delivery_time or "30-45 mins",
+            opening_hours=vendor_data.opening_hours,
+            is_active=False,
+        )
+
+    # lab: no per-vendor entity; sees all bookings for the service
     return None
 
 
@@ -202,6 +232,14 @@ def vendor_signup(vendor_data: VendorSignup, session: Session = Depends(get_sess
         new_user.vendor_id = entity.id
 
     session.add(new_user)
+    session.flush()  # assign new_user.id before back-linking the entity
+
+    # An ambulance vendor runs a fleet, so its vehicles point back at the
+    # operator account. Stamp the vehicle created here with its owner.
+    if entity is not None and vendor_data.role == "ambulance":
+        entity.operator_id = new_user.id
+        session.add(entity)
+
     session.commit()
     session.refresh(new_user)
 

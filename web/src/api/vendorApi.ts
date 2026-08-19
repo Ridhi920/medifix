@@ -34,8 +34,16 @@ export const VENDOR_ROLES = [
   { value: 'pharmacy', label: 'Pharmacy' },
 ];
 
-// Vendor roles that must be linked to an entity record (doctors, dentists, ...)
-export const ENTITY_LINKED_ROLES = ['doctor', 'dentist', 'ambulance', 'nurse', 'physiotherapist'];
+// Vendor roles that must be linked to an entity record (doctors, dentists,
+// pharmacy stores, ...). Only `lab` operates the whole service with no record.
+export const ENTITY_LINKED_ROLES = [
+  'doctor',
+  'dentist',
+  'ambulance',
+  'nurse',
+  'physiotherapist',
+  'pharmacy',
+];
 
 // Statuses a vendor can set on a booking, per vendor role
 export const VENDOR_STATUS_OPTIONS: Record<string, string[]> = {
@@ -73,7 +81,104 @@ export interface VendorSignupData {
   hourly_rate?: number;
   daily_rate?: number;
   gender?: string;
+
+  // Pharmacy store fields (`address` above is the store address, `phone` its
+  // contact number)
+  city?: string;
+  delivery_time?: string;
+  opening_hours?: string;
+
+  // Ambulance: describes the operator's first vehicle
+  vehicle_number?: string;
+  driver_name?: string;
 }
+
+/** Operational state of a vehicle, controlled by its operator. */
+export type VehicleAvailability = 'available' | 'on_trip' | 'off_duty';
+
+export const AVAILABILITY_LABELS: Record<VehicleAvailability, string> = {
+  available: 'Available',
+  on_trip: 'On trip',
+  off_duty: 'Off duty',
+};
+
+export const AVAILABILITY_COLORS: Record<VehicleAvailability, 'success' | 'info' | 'default'> = {
+  available: 'success',
+  on_trip: 'info',
+  off_duty: 'default',
+};
+
+/** One vehicle in the logged-in operator's fleet. */
+export interface FleetVehicle {
+  id: number;
+  operator_id: number | null;
+  name: string;
+  description: string;
+  features: string[];
+  estimated_time: string;
+  base_price: number;
+  image: string;
+  ambulance_type: string;
+  vehicle_number: string | null;
+  driver_name: string | null;
+  driver_phone: string | null;
+  availability: VehicleAvailability;
+  latitude: number | null;
+  longitude: number | null;
+  is_active: boolean;
+}
+
+export interface FleetVehicleCreate {
+  name: string;
+  description: string;
+  features: string[];
+  estimated_time: string;
+  base_price: number;
+  image: string;
+  ambulance_type: string;
+  vehicle_number?: string | null;
+  driver_name?: string | null;
+  driver_phone?: string | null;
+  availability?: VehicleAvailability;
+}
+
+export type FleetVehicleUpdate = Partial<FleetVehicleCreate> & { is_active?: boolean };
+
+/** A medicine on the logged-in pharmacy's own shelf. */
+export interface VendorMedicine {
+  id: number;
+  store_id: number | null;
+  store_name: string | null;
+  name: string;
+  generic_name: string;
+  manufacturer: string;
+  category: string;
+  price: number;
+  stock: number;
+  requires_prescription: boolean;
+  description: string | null;
+  dosage_form: string | null;
+  strength: string | null;
+  image: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface VendorMedicineCreate {
+  name: string;
+  generic_name: string;
+  manufacturer: string;
+  category: string;
+  price: number;
+  stock?: number;
+  requires_prescription?: boolean;
+  description?: string | null;
+  dosage_form?: string | null;
+  strength?: string | null;
+  image?: string | null;
+}
+
+export type VendorMedicineUpdate = Partial<VendorMedicineCreate> & { is_active?: boolean };
 
 export interface VendorUser {
   id: number;
@@ -110,8 +215,8 @@ export interface VendorProfile {
 
 export interface VendorProfileReview {
   account: VendorUser;
-  // Full entity record (Doctor/Dentist/Ambulance/Nurse/Physiotherapist row),
-  // or null for roles without one (lab, pharmacy) or if it's missing.
+  // Full entity record (Doctor/Dentist/Ambulance/Nurse/Physiotherapist/
+  // PharmacyStore row), or null for roles without one (lab) or if it's missing.
   profile: Record<string, any> | null;
 }
 
@@ -329,6 +434,57 @@ export const vendorAPI = {
   }): Promise<VendorUser> => {
     const response = await api.put<VendorUser>('/auth/me', data);
     return response.data;
+  },
+
+  // ── Fleet (ambulance vendors only) ──────────────────────────────────────
+
+  // Every vehicle this operator runs, listed or not.
+  getMyFleet: async (): Promise<FleetVehicle[]> => {
+    const response = await api.get<FleetVehicle[]>('/vendor/fleet');
+    return response.data;
+  },
+
+  addFleetVehicle: async (data: FleetVehicleCreate): Promise<FleetVehicle> => {
+    const response = await api.post<FleetVehicle>('/vendor/fleet', data);
+    return response.data;
+  },
+
+  updateFleetVehicle: async (id: number, data: FleetVehicleUpdate): Promise<FleetVehicle> => {
+    const response = await api.patch<FleetVehicle>(`/vendor/fleet/${id}`, data);
+    return response.data;
+  },
+
+  removeFleetVehicle: async (id: number): Promise<void> => {
+    await api.delete(`/vendor/fleet/${id}`);
+  },
+
+  // ── Pharmacy inventory (pharmacy vendors only) ──────────────────────────
+
+  // Every medicine on the vendor's own shelf, listed or not.
+  getMyMedicines: async (): Promise<VendorMedicine[]> => {
+    const response = await api.get<VendorMedicine[]>('/vendor/medicines');
+    return response.data;
+  },
+
+  createMyMedicine: async (data: VendorMedicineCreate): Promise<VendorMedicine> => {
+    const response = await api.post<VendorMedicine>('/vendor/medicines', data);
+    return response.data;
+  },
+
+  updateMyMedicine: async (id: number, data: VendorMedicineUpdate): Promise<VendorMedicine> => {
+    const response = await api.patch<VendorMedicine>(`/vendor/medicines/${id}`, data);
+    return response.data;
+  },
+
+  toggleMyMedicine: async (id: number, isActive: boolean): Promise<VendorMedicine> => {
+    const response = await api.patch<VendorMedicine>(
+      `/vendor/medicines/${id}/toggle-status?is_active=${isActive}`,
+    );
+    return response.data;
+  },
+
+  deleteMyMedicine: async (id: number): Promise<void> => {
+    await api.delete(`/vendor/medicines/${id}`);
   },
 
   // ── Clinical workspace ──────────────────────────────────────────────────

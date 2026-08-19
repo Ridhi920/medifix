@@ -377,9 +377,10 @@ export default function PharmacyBookingsManagementPage() {
           <TableHead>
             <TableRow>
               <TableCell>Order ID</TableCell>
-              <TableCell>Rx</TableCell>
+              <TableCell>Store</TableCell>
               <TableCell>Patient</TableCell>
               <TableCell>Phone</TableCell>
+              <TableCell>Rx</TableCell>
               <TableCell>Items</TableCell>
               <TableCell>Total Amount</TableCell>
               <TableCell>Status</TableCell>
@@ -391,6 +392,11 @@ export default function PharmacyBookingsManagementPage() {
             {orders.map((order) => (
               <TableRow key={order.id}>
                 <TableCell>#{order.id}</TableCell>
+                <TableCell>
+                  {order.store_name
+                    ? <Chip label={order.store_name} size="small" variant="outlined" />
+                    : <Typography variant="body2" color="textSecondary">—</Typography>}
+                </TableCell>
                 <TableCell>
                   <Box>
                     <Typography variant="body2" fontWeight="bold">

@@ -21,42 +21,63 @@ from ..schemas import (
 router = APIRouter(prefix="/ambulances", tags=["ambulances"])
 
 
+def _ambulance_response(ambulance: Ambulance) -> AmbulanceResponse:
+    """Serialise one vehicle, decoding its JSON-encoded feature list."""
+    return AmbulanceResponse(
+        id=ambulance.id,
+        operator_id=ambulance.operator_id,
+        name=ambulance.name,
+        description=ambulance.description,
+        features=json.loads(ambulance.features),
+        estimated_time=ambulance.estimated_time,
+        base_price=ambulance.base_price,
+        image=ambulance.image,
+        ambulance_type=ambulance.ambulance_type,
+        vehicle_number=ambulance.vehicle_number,
+        driver_name=ambulance.driver_name,
+        driver_phone=ambulance.driver_phone,
+        availability=ambulance.availability,
+        latitude=ambulance.latitude,
+        longitude=ambulance.longitude,
+        is_active=ambulance.is_active,
+    )
+
+
+
 # ========== Ambulance Endpoints ==========
 
 @router.get("", response_model=List[AmbulanceResponse])
 def get_ambulances(
     ambulance_type: str | None = None,
     include_inactive: bool = False,
+    include_unavailable: bool = False,
+    operator_id: int | None = None,
     session: Session = Depends(get_session),
 ) -> List[AmbulanceResponse]:
-    """Get all ambulances, optionally filtered by type. Set include_inactive=True to get all ambulances."""
+    """Get all ambulances, optionally filtered by type or operator.
+
+    By default only vehicles that are listed (`is_active`) *and* free to
+    dispatch (`availability == "available"`) are returned, so a customer is
+    never offered a vehicle that is mid-trip or off duty. Admin views pass
+    include_inactive / include_unavailable to see the whole fleet.
+    """
     query = select(Ambulance)
-    
+
     if not include_inactive:
         query = query.where(Ambulance.is_active == True)
-    
+
+    if not include_unavailable:
+        query = query.where(Ambulance.availability == "available")
+
     if ambulance_type:
         query = query.where(Ambulance.ambulance_type == ambulance_type)
-    
+
+    if operator_id is not None:
+        query = query.where(Ambulance.operator_id == operator_id)
+
     ambulances = session.exec(query).all()
-    
-    # Convert JSON strings to lists for response
-    return [
-        AmbulanceResponse(
-            id=ambulance.id,
-            name=ambulance.name,
-            description=ambulance.description,
-            features=json.loads(ambulance.features),
-            estimated_time=ambulance.estimated_time,
-            base_price=ambulance.base_price,
-            image=ambulance.image,
-            ambulance_type=ambulance.ambulance_type,
-            latitude=ambulance.latitude,
-            longitude=ambulance.longitude,
-            is_active=ambulance.is_active,
-        )
-        for ambulance in ambulances
-    ]
+
+    return [_ambulance_response(a) for a in ambulances]
 
 
 @router.get("/{ambulance_id}", response_model=AmbulanceResponse)
@@ -69,17 +90,7 @@ def get_ambulance(
     if not ambulance:
         raise HTTPException(status_code=404, detail="Ambulance not found")
     
-    return AmbulanceResponse(
-        id=ambulance.id,
-        name=ambulance.name,
-        description=ambulance.description,
-        features=json.loads(ambulance.features),
-        estimated_time=ambulance.estimated_time,
-        base_price=ambulance.base_price,
-        image=ambulance.image,
-        ambulance_type=ambulance.ambulance_type,
-        is_active=ambulance.is_active,
-    )
+    return _ambulance_response(ambulance)
 
 
 @router.post("", response_model=AmbulanceResponse)
@@ -98,6 +109,10 @@ def create_ambulance(
         base_price=ambulance.base_price,
         image=ambulance.image,
         ambulance_type=ambulance.ambulance_type,
+        vehicle_number=ambulance.vehicle_number,
+        driver_name=ambulance.driver_name,
+        driver_phone=ambulance.driver_phone,
+        availability=ambulance.availability,
         latitude=ambulance.latitude,
         longitude=ambulance.longitude,
     )
@@ -106,19 +121,7 @@ def create_ambulance(
     session.commit()
     session.refresh(db_ambulance)
     
-    return AmbulanceResponse(
-        id=db_ambulance.id,
-        name=db_ambulance.name,
-        description=db_ambulance.description,
-        features=json.loads(db_ambulance.features),
-        estimated_time=db_ambulance.estimated_time,
-        base_price=db_ambulance.base_price,
-        image=db_ambulance.image,
-        ambulance_type=db_ambulance.ambulance_type,
-        latitude=db_ambulance.latitude,
-        longitude=db_ambulance.longitude,
-        is_active=db_ambulance.is_active,
-    )
+    return _ambulance_response(db_ambulance)
 
 
 @router.patch("/{ambulance_id}", response_model=AmbulanceResponse)
@@ -147,19 +150,7 @@ def update_ambulance(
     session.commit()
     session.refresh(db_ambulance)
     
-    return AmbulanceResponse(
-        id=db_ambulance.id,
-        name=db_ambulance.name,
-        description=db_ambulance.description,
-        features=json.loads(db_ambulance.features),
-        estimated_time=db_ambulance.estimated_time,
-        base_price=db_ambulance.base_price,
-        image=db_ambulance.image,
-        ambulance_type=db_ambulance.ambulance_type,
-        latitude=db_ambulance.latitude,
-        longitude=db_ambulance.longitude,
-        is_active=db_ambulance.is_active,
-    )
+    return _ambulance_response(db_ambulance)
 
 
 @router.delete("/{ambulance_id}")

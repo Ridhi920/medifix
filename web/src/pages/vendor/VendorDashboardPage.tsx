@@ -34,13 +34,15 @@ import ReportsTab from './tabs/ReportsTab';
 import ScanShareTab from './tabs/ScanShareTab';
 import BillingTab from './tabs/BillingTab';
 import ProfileTab from './tabs/ProfileTab';
+import InventoryTab from './tabs/InventoryTab';
+import FleetTab from './tabs/FleetTab';
 
 const BOOKINGS_LABEL: Record<string, string> = {
   doctor: 'Appointments',
   dentist: 'Appointments',
   lab: 'Bookings',
   pharmacy: 'Orders',
-  ambulance: 'Bookings',
+  ambulance: 'Trips',
   nurse: 'Bookings',
   physiotherapist: 'Bookings',
 };
@@ -99,22 +101,50 @@ export default function VendorDashboardPage() {
   const statusOptions = VENDOR_STATUS_OPTIONS[role] ?? [];
   const bookingsLabel = BOOKINGS_LABEL[role] ?? 'Bookings';
 
-  // Tab set. Clinical/entity roles get the full clinical workspace; pharmacy
-  // keeps a lighter set (no per-patient clinical notes / scan & share).
-  const tabs: { label: string; render: () => JSX.Element }[] = [
-    { label: 'Overview', render: () => <OverviewTab bookings={bookings} /> },
+  const isPharmacy = role === 'pharmacy';
+  const isAmbulance = role === 'ambulance';
+
+  // Tab set. Clinical/entity roles get the full clinical workspace. Roles that
+  // supply rather than treat swap the clinical tabs (per-patient notes,
+  // reports, scan & share, billing) for the thing they actually manage: a
+  // pharmacy stocks a shelf, an ambulance operator runs a fleet.
+  const commonTabs: { label: string; render: () => JSX.Element }[] = [
+    { label: 'Overview', render: () => <OverviewTab bookings={bookings} role={role} /> },
     {
       label: bookingsLabel,
       render: () => (
         <AppointmentsTab bookings={bookings} role={role} statusOptions={statusOptions} onStatusChange={handleStatusChange} />
       ),
     },
-    { label: 'Patients', render: () => <PatientsTab /> },
-    { label: 'Reports', render: () => <ReportsTab /> },
-    { label: 'Scan & Share', render: () => <ScanShareTab /> },
-    { label: 'Billing', render: () => <BillingTab /> },
-    { label: 'Profile', render: () => <ProfileTab initialLogo={logo} onLogoUpdated={setLogo} /> },
   ];
+
+  const profileTab = {
+    label: 'Profile',
+    render: () => <ProfileTab initialLogo={logo} onLogoUpdated={setLogo} />,
+  };
+
+  const supplierTabs: { label: string; render: () => JSX.Element }[] | null = isPharmacy
+    ? [
+        { label: 'Inventory', render: () => <InventoryTab storeName={profile?.entity_name} /> },
+        { label: 'Customers', render: () => <PatientsTab /> },
+      ]
+    : isAmbulance
+      ? [
+          { label: 'Fleet', render: () => <FleetTab operatorName={profile?.entity_name} /> },
+          { label: 'Patients', render: () => <PatientsTab /> },
+        ]
+      : null;
+
+  const tabs: { label: string; render: () => JSX.Element }[] = supplierTabs
+    ? [...commonTabs, ...supplierTabs, profileTab]
+    : [
+        ...commonTabs,
+        { label: 'Patients', render: () => <PatientsTab /> },
+        { label: 'Reports', render: () => <ReportsTab /> },
+        { label: 'Scan & Share', render: () => <ScanShareTab /> },
+        { label: 'Billing', render: () => <BillingTab /> },
+        profileTab,
+      ];
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f1f5f9', position: 'relative' }}>

@@ -7,21 +7,31 @@ from sqlmodel import Session, select
 
 from ..core.auth import VENDOR_ROLES, get_current_admin_user, get_password_hash
 from ..core.db import get_session
-from ..models import Ambulance, Dentist, Doctor, Nurse, Physiotherapist, User
+from ..models import (
+    Ambulance,
+    Dentist,
+    Doctor,
+    Nurse,
+    PharmacyStore,
+    Physiotherapist,
+    User,
+)
 from ..schemas import UserResponse
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 VALID_ROLES = {"user", "admin"} | VENDOR_ROLES
 
-# Maps a vendor role to the entity table that backs its profile. Lab and
-# pharmacy vendors have no dedicated entity table (see auth_routes.py).
+# Maps a vendor role to the entity table that backs its profile. Lab vendors
+# have no dedicated entity table (see auth_routes.py); a pharmacy vendor owns
+# one PharmacyStore. Approving a vendor activates their entity.
 ENTITY_MODEL_BY_ROLE = {
     "doctor": Doctor,
     "dentist": Dentist,
     "ambulance": Ambulance,
     "nurse": Nurse,
     "physiotherapist": Physiotherapist,
+    "pharmacy": PharmacyStore,
 }
 
 

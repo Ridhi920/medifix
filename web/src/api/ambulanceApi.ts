@@ -39,6 +39,12 @@ api.interceptors.response.use(
 // Types
 export interface Ambulance {
   id: number;
+  // The vendor account that runs this vehicle; null for platform-owned ones.
+  operator_id: number | null;
+  vehicle_number: string | null;
+  driver_name: string | null;
+  driver_phone: string | null;
+  availability: 'available' | 'on_trip' | 'off_duty';
   name: string;
   description: string;
   features: string[];
@@ -70,10 +76,17 @@ export interface AmbulanceUpdate extends Partial<AmbulanceCreate> {
 // API Methods
 export const ambulanceAPI = {
   // Get all ambulances
-  getAmbulances: async (type?: string, includeInactive?: boolean): Promise<Ambulance[]> => {
+  // The customer-facing list hides vehicles that are unlisted or not free to
+  // dispatch. Admin views pass both flags to see every vehicle.
+  getAmbulances: async (
+    type?: string,
+    includeInactive?: boolean,
+    includeUnavailable?: boolean,
+  ): Promise<Ambulance[]> => {
     const params: any = {};
     if (type) params.ambulance_type = type;
     if (includeInactive) params.include_inactive = true;
+    if (includeUnavailable) params.include_unavailable = true;
     const response = await api.get<Ambulance[]>('/ambulances', { params });
     return response.data;
   },

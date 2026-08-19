@@ -13,6 +13,8 @@ export type Medicine = {
   description: string;
   prescriptionRequired: boolean;
   image?: string;      // stored product photo (from the backend catalogue)
+  storeId?: number;    // the pharmacy store that stocks this product
+  storeName?: string;
 };
 
 export const MEDICINE_CATEGORIES = [

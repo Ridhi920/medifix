@@ -15,7 +15,20 @@ function Tile({ label, value, color }: { label: string; value: string | number; 
   );
 }
 
-export default function OverviewTab({ bookings }: { bookings: VendorBooking[] }) {
+export default function OverviewTab({
+  bookings,
+  role = '',
+}: {
+  bookings: VendorBooking[];
+  role?: string;
+}) {
+  // A pharmacy fills orders for customers; an ambulance operator runs trips.
+  const isPharmacy = role === 'pharmacy';
+  const isAmbulance = role === 'ambulance';
+  const workLabel = isPharmacy ? 'Orders' : isAmbulance ? 'Trips' : 'Bookings';
+  const workNoun = workLabel.toLowerCase();
+  const personLabel = isPharmacy ? 'Customers' : 'Patients';
+
   const today = new Date().toDateString();
   const todays = bookings.filter((b) => new Date(b.created_at).toDateString() === today);
   const pending = bookings.filter((b) => b.status === 'pending');
@@ -35,18 +48,18 @@ export default function OverviewTab({ bookings }: { bookings: VendorBooking[] })
         Today at a glance
       </Typography>
       <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', gap: 2, mb: 4 }}>
-        <Tile label="Today's Bookings" value={todays.length} color="#0d9488" />
+        <Tile label={`Today's ${workLabel}`} value={todays.length} color="#0d9488" />
         <Tile label="Pending Actions" value={pending.length} color="#ea580c" />
-        <Tile label="Total Patients" value={uniquePatients} color="#2563eb" />
+        <Tile label={`Total ${personLabel}`} value={uniquePatients} color="#2563eb" />
         <Tile label="Completed" value={completed.length} color="#16a34a" />
         <Tile label="Revenue (completed)" value={money(revenue)} color="#7c3aed" />
       </Stack>
 
       <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
-        Booking status breakdown
+        {workLabel.replace(/s$/, '')} status breakdown
       </Typography>
       {bookings.length === 0 ? (
-        <Typography color="text.secondary">No bookings yet.</Typography>
+        <Typography color="text.secondary">No {workNoun} yet.</Typography>
       ) : (
         <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
           {Object.entries(byStatus).map(([status, count]) => (

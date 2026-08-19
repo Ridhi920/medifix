@@ -26,6 +26,25 @@ import {
 import type { VendorBooking } from '../../../api/vendorApi';
 import { STATUS_COLORS, prettyStatus, money, formatDateTime, acceptStatus, rejectStatus } from '../vendorUtils';
 
+/** Order line items arrive as objects; plain join() would print [object Object]. */
+type LineItem = { medicine_name?: string; quantity?: number; price?: number };
+
+const isLineItems = (v: any): v is LineItem[] =>
+  Array.isArray(v) && v.length > 0 && typeof v[0] === 'object' && v[0] !== null;
+
+function LineItems({ items }: { items: LineItem[] }) {
+  return (
+    <Box component="ul" sx={{ m: 0, pl: 2 }}>
+      {items.map((item, i) => (
+        <Typography component="li" variant="body2" key={`${item.medicine_name}-${i}`}>
+          {item.medicine_name ?? 'Item'} × {item.quantity ?? 1}
+          {item.price != null ? ` — ${money((item.price ?? 0) * (item.quantity ?? 1))}` : ''}
+        </Typography>
+      ))}
+    </Box>
+  );
+}
+
 function Row({
   booking,
   role,
@@ -106,9 +125,13 @@ function Row({
                   <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
                     {key.replace(/_/g, ' ')}
                   </Typography>
-                  <Typography variant="body2">
-                    {Array.isArray(value) ? value.join(', ') : String(value ?? '—')}
-                  </Typography>
+                  {isLineItems(value) ? (
+                    <LineItems items={value} />
+                  ) : (
+                    <Typography variant="body2">
+                      {Array.isArray(value) ? value.join(', ') : String(value ?? '—')}
+                    </Typography>
+                  )}
                 </Box>
               ))}
             </Box>
@@ -131,11 +154,17 @@ export default function AppointmentsTab({
   onStatusChange: (id: number, status: string) => void;
 }) {
   const pendingCount = bookings.filter((b) => b.status === 'pending').length;
+  const isPharmacy = role === 'pharmacy';
+  const isAmbulance = role === 'ambulance';
+  const personLabel = isPharmacy ? 'Customer' : 'Patient';
+  const workNoun = isPharmacy ? 'order' : isAmbulance ? 'trip' : 'request';
 
   if (bookings.length === 0) {
     return (
       <Paper sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
-        No bookings yet. New requests from patients will appear here.
+        {isPharmacy && 'No orders yet. New medicine orders from customers will appear here.'}
+        {isAmbulance && 'No trips yet. New ambulance requests will appear here.'}
+        {!isPharmacy && !isAmbulance && 'No bookings yet. New requests from patients will appear here.'}
       </Paper>
     );
   }
@@ -144,7 +173,7 @@ export default function AppointmentsTab({
     <Box>
       {pendingCount > 0 && (
         <Typography variant="body2" sx={{ mb: 2, color: '#ea580c', fontWeight: 600 }}>
-          {pendingCount} request{pendingCount > 1 ? 's' : ''} awaiting your response
+          {pendingCount} {workNoun}{pendingCount > 1 ? 's' : ''} awaiting your response
         </Typography>
       )}
       <TableContainer component={Paper} variant="outlined">
@@ -153,7 +182,7 @@ export default function AppointmentsTab({
             <TableRow sx={{ '& th': { fontWeight: 700, bgcolor: '#f8fafc' } }}>
               <TableCell />
               <TableCell>ID</TableCell>
-              <TableCell>Patient</TableCell>
+              <TableCell>{personLabel}</TableCell>
               <TableCell>Amount</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Requested</TableCell>

@@ -164,6 +164,11 @@ export default function OrderHistoryScreen({ onBack }: Props) {
                             </Text>
                           </View>
                         </View>
+                        {order.store_name ? (
+                          <Text style={{ fontSize: 12, fontWeight: "600", color: "#0f172a", marginBottom: 2 }} numberOfLines={1}>
+                            🏪 {order.store_name}
+                          </Text>
+                        ) : null}
                         <Text style={{ fontSize: 12, color: "#64748b" }}>
                           {formatDate(order.created_at)}
                         </Text>

@@ -29,6 +29,8 @@ const EMPTY = {
   ambulance_type: 'BLS', base_price: '', estimated_time: '', description: '', features: '',
   specialization: '', hourly_rate: '', daily_rate: '', gender: 'Male', services: '',
   available_shifts: '', languages: '',
+  city: '', delivery_time: '', opening_hours: '',
+  vehicle_number: '', driver_name: '', driver_phone: '',
 };
 
 export default function ProfileTab({
@@ -43,6 +45,7 @@ export default function ProfileTab({
   const isDoctorLike = ['doctor', 'dentist'].includes(role);
   const isAmbulance = role === 'ambulance';
   const isCareRole = ['nurse', 'physiotherapist'].includes(role);
+  const isPharmacy = role === 'pharmacy';
   const hasBusinessProfile = ENTITY_LINKED_ROLES.includes(role);
 
   const [form, setForm] = useState(EMPTY);
@@ -111,6 +114,12 @@ export default function ProfileTab({
               services: listToText(p.services),
               available_shifts: listToText(p.available_shifts),
               languages: listToText(p.languages),
+              city: p.city ?? '',
+              delivery_time: p.delivery_time ?? '',
+              opening_hours: p.opening_hours ?? '',
+              vehicle_number: p.vehicle_number ?? '',
+              driver_name: p.driver_name ?? '',
+              driver_phone: p.driver_phone ?? '',
             });
           }
         }
@@ -149,6 +158,9 @@ export default function ProfileTab({
             estimated_time: form.estimated_time,
             description: form.description,
             features: textToList(form.features),
+            vehicle_number: form.vehicle_number,
+            driver_name: form.driver_name,
+            driver_phone: form.driver_phone,
           }),
           ...(isCareRole && {
             qualification: form.qualification,
@@ -160,6 +172,13 @@ export default function ProfileTab({
             services: textToList(form.services),
             available_shifts: textToList(form.available_shifts),
             languages: textToList(form.languages),
+          }),
+          ...(isPharmacy && {
+            address: form.address,
+            city: form.city,
+            phone: form.phone,
+            delivery_time: form.delivery_time,
+            opening_hours: form.opening_hours,
           }),
         });
       }
@@ -257,6 +276,15 @@ export default function ProfileTab({
                 </Stack>
                 <TextField label="Description" value={form.description} onChange={set('description')} fullWidth />
                 <TextField label="Features (comma-separated)" value={form.features} onChange={set('features')} fullWidth />
+                <Stack direction="row" spacing={2}>
+                  <TextField label="Registration number" placeholder="e.g. MH-12-AB-1234" value={form.vehicle_number} onChange={set('vehicle_number')} fullWidth />
+                  <TextField label="Driver / crew lead" value={form.driver_name} onChange={set('driver_name')} fullWidth />
+                </Stack>
+                <TextField label="Driver phone" value={form.driver_phone} onChange={set('driver_phone')} fullWidth />
+                <Alert severity="info">
+                  This is the vehicle your account was registered with. Manage the rest of your
+                  fleet from the Fleet tab.
+                </Alert>
               </>
             )}
 
@@ -281,13 +309,28 @@ export default function ProfileTab({
                 <TextField label="Languages (comma-separated)" value={form.languages} onChange={set('languages')} fullWidth />
               </>
             )}
+
+            {isPharmacy && (
+              <>
+                <Alert severity="info" sx={{ mb: 1 }}>
+                  This is your store card in the MedEfix app — customers see it before they
+                  browse your shelf. Stock the shelf itself from the Inventory tab.
+                </Alert>
+                <TextField label="Store address" value={form.address} onChange={set('address')} fullWidth />
+                <Stack direction="row" spacing={2}>
+                  <TextField label="City" value={form.city} onChange={set('city')} fullWidth />
+                  <TextField label="Delivery time" placeholder="e.g. 30-45 mins" value={form.delivery_time} onChange={set('delivery_time')} fullWidth />
+                </Stack>
+                <TextField label="Opening hours" placeholder="e.g. 8:00 AM - 10:00 PM" value={form.opening_hours} onChange={set('opening_hours')} fullWidth />
+              </>
+            )}
           </Stack>
         </>
       )}
 
       {!hasBusinessProfile && (
         <Typography variant="body2" color="text.secondary">
-          {role === 'lab' || role === 'pharmacy'
+          {role === 'lab'
             ? 'Your account operates the whole service, so there is no separate business profile to edit here.'
             : 'No editable business profile for this account.'}
         </Typography>

@@ -41,6 +41,19 @@ const AMBULANCE_TYPES = [
   'Patient Transport',
 ];
 
+// Operational state an operator sets on their own vehicles.
+const DUTY_LABELS: Record<string, string> = {
+  available: 'Available',
+  on_trip: 'On trip',
+  off_duty: 'Off duty',
+};
+
+const DUTY_COLORS: Record<string, 'success' | 'info' | 'default'> = {
+  available: 'success',
+  on_trip: 'info',
+  off_duty: 'default',
+};
+
 export default function AmbulancesManagementPage() {
   const [ambulances, setAmbulances] = useState<Ambulance[]>([]);
   const [search, setSearch] = useState('');
@@ -68,7 +81,8 @@ export default function AmbulancesManagementPage() {
 
   const fetchAmbulances = async () => {
     try {
-      const data = await ambulanceAPI.getAmbulances(undefined, true); // Include inactive ambulances for admin
+      // Admin sees the whole fleet: unlisted and off-duty vehicles included.
+      const data = await ambulanceAPI.getAmbulances(undefined, true, true);
       setAmbulances(data);
     } catch (error: any) {
       showSnackbar('Failed to load ambulances', 'error');
@@ -254,6 +268,7 @@ export default function AmbulancesManagementPage() {
               <TableCell><strong>Features</strong></TableCell>
               <TableCell><strong>Est. Time</strong></TableCell>
               <TableCell><strong>Base Price (₹)</strong></TableCell>
+              <TableCell><strong>Duty</strong></TableCell>
               <TableCell><strong>Status</strong></TableCell>
               <TableCell align="right"><strong>Actions</strong></TableCell>
             </TableRow>
@@ -282,8 +297,14 @@ export default function AmbulancesManagementPage() {
                 <TableCell>
                   <Typography fontWeight={600}>{ambulance.name}</Typography>
                   <Typography variant="body2" color="text.secondary">
+                    {ambulance.vehicle_number ? `${ambulance.vehicle_number} · ` : ''}
                     {ambulance.description}
                   </Typography>
+                  {ambulance.operator_id && (
+                    <Typography variant="caption" color="text.secondary">
+                      Operator-owned — managed from the vendor's Fleet tab
+                    </Typography>
+                  )}
                 </TableCell>
                 <TableCell>
                   <Chip label={ambulance.ambulance_type} size="small" color="primary" variant="outlined" />
@@ -293,6 +314,13 @@ export default function AmbulancesManagementPage() {
                 </TableCell>
                 <TableCell>{ambulance.estimated_time}</TableCell>
                 <TableCell>₹{ambulance.base_price}</TableCell>
+                <TableCell>
+                  <Chip
+                    label={DUTY_LABELS[ambulance.availability] ?? ambulance.availability}
+                    size="small"
+                    color={DUTY_COLORS[ambulance.availability] ?? 'default'}
+                  />
+                </TableCell>
                 <TableCell>
                   <Switch
                     checked={ambulance.is_active}

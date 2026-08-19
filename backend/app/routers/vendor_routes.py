@@ -2,8 +2,9 @@
 physiotherapist, pharmacy).
 
 A vendor only ever sees the bookings that belong to their own linked entity
-record (users.vendor_id). Lab and pharmacy vendors operate the whole service,
-so they see all lab bookings / medicine orders.
+record (users.vendor_id). Lab vendors operate the whole service, so they see
+all lab bookings. A pharmacy vendor linked to a store sees only that store's
+medicine orders; one without a linked store still sees all of them.
 """
 
 import json
@@ -24,25 +25,36 @@ from ..models import (
     Doctor,
     LabBooking,
     LabTest,
+    Medicine,
     MedicineOrder,
     Nurse,
     NurseBooking,
+    PharmacyStore,
     Physiotherapist,
     PhysiotherapistBooking,
     User,
 )
+from ..schemas import (
+    AmbulanceCreate,
+    AmbulanceResponse,
+    AmbulanceUpdate,
+    MedicineCreate,
+    MedicineResponse,
+    MedicineUpdate,
+)
 
 router = APIRouter(prefix="/vendor", tags=["vendor"])
 
-# Maps a vendor role to the entity table that backs its profile. Lab and
-# pharmacy vendors have no dedicated entity table - they operate the whole
-# service rather than a single listed profile.
+# Maps a vendor role to the entity table that backs its profile. Lab vendors
+# have no dedicated entity table - they operate the whole service rather than a
+# single listed profile. A pharmacy vendor owns one store.
 ENTITY_MODEL_BY_ROLE = {
     "doctor": Doctor,
     "dentist": Dentist,
     "ambulance": Ambulance,
     "nurse": Nurse,
     "physiotherapist": Physiotherapist,
+    "pharmacy": PharmacyStore,
 }
 
 # Entity fields stored as JSON-encoded strings; decoded to/from lists at the API boundary.
@@ -60,7 +72,7 @@ ALLOWED_STATUSES = {
 }
 
 # Roles whose bookings are tied to a specific entity record via users.vendor_id.
-ENTITY_LINKED_ROLES = {"doctor", "dentist", "ambulance", "nurse", "physiotherapist"}
+ENTITY_LINKED_ROLES = {"doctor", "dentist", "ambulance", "nurse", "physiotherapist", "pharmacy"}
 
 
 class BookingStatusUpdate(BaseModel):
@@ -100,6 +112,13 @@ class VendorProfileUpdate(BaseModel):
     services: list[str] | None = None
     available_shifts: list[str] | None = None
     languages: list[str] | None = None
+
+    # Pharmacy store (`address` and `image` above are reused for the store's
+    # address and logo).
+    city: str | None = None
+    phone: str | None = None
+    delivery_time: str | None = None
+    opening_hours: str | None = None
 
 
 class VendorBooking(BaseModel):
@@ -208,11 +227,33 @@ def _lab_bookings(vendor: User, session: Session) -> list[VendorBooking]:
     ]
 
 
+def _operator_vehicle_ids(vendor: User, session: Session) -> list[int]:
+    """Every vehicle in this operator's fleet.
+
+    Covers the vehicle created at signup (users.vendor_id) plus any the
+    operator added later (ambulances.operator_id), so a fleet operator sees
+    trips across all of them.
+    """
+    ids = set(
+        session.exec(
+            select(Ambulance.id).where(Ambulance.operator_id == vendor.id)
+        ).all()
+    )
+    if vendor.vendor_id is not None:
+        ids.add(vendor.vendor_id)
+    if not ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Your vendor account has no vehicles yet. Add one from the Fleet tab.",
+        )
+    return list(ids)
+
+
 def _ambulance_bookings(vendor: User, session: Session) -> list[VendorBooking]:
-    ambulance_id = _require_linked_entity(vendor)
+    vehicle_ids = _operator_vehicle_ids(vendor, session)
     results = session.exec(
         select(AmbulanceBooking, Ambulance)
-        .where(AmbulanceBooking.ambulance_id == ambulance_id)
+        .where(AmbulanceBooking.ambulance_id.in_(vehicle_ids))
         .join(Ambulance, AmbulanceBooking.ambulance_id == Ambulance.id)
         .order_by(AmbulanceBooking.created_at.desc())
     ).all()
@@ -233,6 +274,9 @@ def _ambulance_bookings(vendor: User, session: Session) -> list[VendorBooking]:
                 "scheduled_date": b.scheduled_date,
                 "scheduled_time": b.scheduled_time,
                 "ambulance_name": a.name,
+                "vehicle_number": a.vehicle_number,
+                "driver_name": a.driver_name,
+                "driver_phone": a.driver_phone,
             },
         )
         for b, a in results
@@ -310,9 +354,12 @@ def _physiotherapist_bookings(vendor: User, session: Session) -> list[VendorBook
 
 
 def _pharmacy_bookings(vendor: User, session: Session) -> list[VendorBooking]:
-    orders = session.exec(
-        select(MedicineOrder).order_by(MedicineOrder.created_at.desc())
-    ).all()
+    query = select(MedicineOrder)
+    # A pharmacy vendor linked to a store (users.vendor_id -> pharmacy_stores.id)
+    # only sees that store's orders; an unlinked one still sees every order.
+    if vendor.vendor_id is not None:
+        query = query.where(MedicineOrder.store_id == vendor.vendor_id)
+    orders = session.exec(query.order_by(MedicineOrder.created_at.desc())).all()
     return [
         VendorBooking(
             id=o.id,
@@ -324,6 +371,8 @@ def _pharmacy_bookings(vendor: User, session: Session) -> list[VendorBooking]:
             details={
                 "patient_phone": o.patient_phone,
                 "delivery_address": o.delivery_address,
+                "store_id": o.store_id,
+                "store_name": o.store_name,
                 "items": json.loads(o.items),
                 "notes": o.notes,
             },
@@ -357,7 +406,7 @@ def _get_owned_booking(vendor: User, booking_id: int, session: Session):
         owned = booking is not None
     elif role == "ambulance":
         booking = session.get(AmbulanceBooking, booking_id)
-        owned = booking and booking.ambulance_id == _require_linked_entity(vendor)
+        owned = booking and booking.ambulance_id in _operator_vehicle_ids(vendor, session)
     elif role == "nurse":
         booking = session.get(NurseBooking, booking_id)
         owned = booking and booking.nurse_id == _require_linked_entity(vendor)
@@ -366,7 +415,9 @@ def _get_owned_booking(vendor: User, booking_id: int, session: Session):
         owned = booking and booking.physiotherapist_id == _require_linked_entity(vendor)
     elif role == "pharmacy":
         booking = session.get(MedicineOrder, booking_id)
-        owned = booking is not None
+        owned = booking is not None and (
+            vendor.vendor_id is None or booking.store_id == vendor.vendor_id
+        )
     else:
         booking, owned = None, False
 
@@ -509,3 +560,315 @@ def update_booking_status(
     session.commit()
 
     return {"message": "Status updated successfully", "status": update.status}
+
+
+# ========== Pharmacy inventory (pharmacy vendors only) ==========
+
+def _require_own_store(vendor: User, session: Session) -> PharmacyStore:
+    """The PharmacyStore this vendor owns, or a 4xx explaining why not."""
+    if vendor.role != "pharmacy":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only pharmacy accounts can manage a medicine inventory",
+        )
+    if vendor.vendor_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Your account isn't linked to a store yet. Please contact the admin.",
+        )
+    store = session.get(PharmacyStore, vendor.vendor_id)
+    if store is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Store not found")
+    return store
+
+
+def _own_medicine(vendor: User, medicine_id: int, session: Session) -> Medicine:
+    """Fetch one medicine, verifying it sits on this vendor's own shelf."""
+    store = _require_own_store(vendor, session)
+    medicine = session.get(Medicine, medicine_id)
+    if medicine is None or medicine.store_id != store.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Medicine not found")
+    return medicine
+
+
+def _vendor_medicine_response(medicine: Medicine, store: PharmacyStore) -> MedicineResponse:
+    return MedicineResponse(
+        id=medicine.id,
+        store_id=medicine.store_id,
+        store_name=store.name,
+        name=medicine.name,
+        generic_name=medicine.generic_name,
+        manufacturer=medicine.manufacturer,
+        category=medicine.category,
+        price=medicine.price,
+        stock=medicine.stock,
+        requires_prescription=medicine.requires_prescription,
+        description=medicine.description,
+        dosage_form=medicine.dosage_form,
+        strength=medicine.strength,
+        image=medicine.image,
+        is_active=medicine.is_active,
+        created_at=medicine.created_at,
+    )
+
+
+@router.get("/medicines", response_model=list[MedicineResponse])
+def get_my_medicines(
+    vendor: User = Depends(get_current_vendor_user),
+    session: Session = Depends(get_session),
+) -> list[MedicineResponse]:
+    """Every medicine on the logged-in pharmacy's own shelf, active or not."""
+    store = _require_own_store(vendor, session)
+    medicines = session.exec(
+        select(Medicine).where(Medicine.store_id == store.id).order_by(Medicine.name)
+    ).all()
+    return [_vendor_medicine_response(m, store) for m in medicines]
+
+
+@router.post("/medicines", response_model=MedicineResponse, status_code=status.HTTP_201_CREATED)
+def create_my_medicine(
+    data: MedicineCreate,
+    vendor: User = Depends(get_current_vendor_user),
+    session: Session = Depends(get_session),
+) -> MedicineResponse:
+    """Add a medicine to the logged-in pharmacy's shelf.
+
+    Any `store_id` in the payload is ignored — a vendor can only stock their
+    own store.
+    """
+    store = _require_own_store(vendor, session)
+
+    fields = data.model_dump(exclude={"store_id"})
+    medicine = Medicine(store_id=store.id, **fields)
+
+    session.add(medicine)
+    session.commit()
+    session.refresh(medicine)
+
+    return _vendor_medicine_response(medicine, store)
+
+
+@router.patch("/medicines/{medicine_id}", response_model=MedicineResponse)
+def update_my_medicine(
+    medicine_id: int,
+    data: MedicineUpdate,
+    vendor: User = Depends(get_current_vendor_user),
+    session: Session = Depends(get_session),
+) -> MedicineResponse:
+    """Edit a medicine on the logged-in pharmacy's own shelf."""
+    medicine = _own_medicine(vendor, medicine_id, session)
+    store = session.get(PharmacyStore, medicine.store_id)
+
+    # store_id is never vendor-editable: a medicine can't be moved to another
+    # store from here.
+    for field, value in data.model_dump(exclude_unset=True, exclude={"store_id"}).items():
+        setattr(medicine, field, value)
+
+    medicine.updated_at = datetime.now(tz=timezone.utc)
+    session.add(medicine)
+    session.commit()
+    session.refresh(medicine)
+
+    return _vendor_medicine_response(medicine, store)
+
+
+@router.patch("/medicines/{medicine_id}/toggle-status", response_model=MedicineResponse)
+def toggle_my_medicine_status(
+    medicine_id: int,
+    is_active: bool,
+    vendor: User = Depends(get_current_vendor_user),
+    session: Session = Depends(get_session),
+) -> MedicineResponse:
+    """List or delist one of the pharmacy's own medicines."""
+    medicine = _own_medicine(vendor, medicine_id, session)
+    store = session.get(PharmacyStore, medicine.store_id)
+
+    medicine.is_active = is_active
+    medicine.updated_at = datetime.now(tz=timezone.utc)
+    session.add(medicine)
+    session.commit()
+    session.refresh(medicine)
+
+    return _vendor_medicine_response(medicine, store)
+
+
+@router.delete("/medicines/{medicine_id}", response_model=dict)
+def delete_my_medicine(
+    medicine_id: int,
+    vendor: User = Depends(get_current_vendor_user),
+    session: Session = Depends(get_session),
+) -> dict:
+    """Remove a medicine from the logged-in pharmacy's shelf."""
+    medicine = _own_medicine(vendor, medicine_id, session)
+    session.delete(medicine)
+    session.commit()
+    return {"message": "Medicine deleted successfully"}
+
+
+# ========== Fleet management (ambulance vendors only) ==========
+
+def _require_ambulance_operator(vendor: User) -> User:
+    if vendor.role != "ambulance":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only ambulance accounts can manage a fleet",
+        )
+    return vendor
+
+
+def _own_vehicle(vendor: User, vehicle_id: int, session: Session) -> Ambulance:
+    """Fetch one vehicle, verifying it belongs to this operator's fleet."""
+    _require_ambulance_operator(vendor)
+    vehicle = session.get(Ambulance, vehicle_id)
+    owned = vehicle is not None and (
+        vehicle.operator_id == vendor.id or vehicle.id == vendor.vendor_id
+    )
+    if not owned:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vehicle not found")
+    return vehicle
+
+
+def _vehicle_response(vehicle: Ambulance) -> AmbulanceResponse:
+    return AmbulanceResponse(
+        id=vehicle.id,
+        operator_id=vehicle.operator_id,
+        name=vehicle.name,
+        description=vehicle.description,
+        features=json.loads(vehicle.features),
+        estimated_time=vehicle.estimated_time,
+        base_price=vehicle.base_price,
+        image=vehicle.image,
+        ambulance_type=vehicle.ambulance_type,
+        vehicle_number=vehicle.vehicle_number,
+        driver_name=vehicle.driver_name,
+        driver_phone=vehicle.driver_phone,
+        availability=vehicle.availability,
+        latitude=vehicle.latitude,
+        longitude=vehicle.longitude,
+        is_active=vehicle.is_active,
+    )
+
+
+@router.get("/fleet", response_model=list[AmbulanceResponse])
+def get_my_fleet(
+    vendor: User = Depends(get_current_vendor_user),
+    session: Session = Depends(get_session),
+) -> list[AmbulanceResponse]:
+    """Every vehicle this operator runs, listed or not."""
+    _require_ambulance_operator(vendor)
+    vehicles = session.exec(
+        select(Ambulance)
+        .where(
+            (Ambulance.operator_id == vendor.id)
+            | (Ambulance.id == vendor.vendor_id)
+        )
+        .order_by(Ambulance.name)
+    ).all()
+    return [_vehicle_response(v) for v in vehicles]
+
+
+@router.post("/fleet", response_model=AmbulanceResponse, status_code=status.HTTP_201_CREATED)
+def add_fleet_vehicle(
+    data: AmbulanceCreate,
+    vendor: User = Depends(get_current_vendor_user),
+    session: Session = Depends(get_session),
+) -> AmbulanceResponse:
+    """Add a vehicle to this operator's fleet.
+
+    The vehicle is stamped with the operator's id, so it can never be filed
+    under someone else's fleet.
+    """
+    _require_ambulance_operator(vendor)
+
+    vehicle = Ambulance(
+        operator_id=vendor.id,
+        name=data.name,
+        description=data.description,
+        features=json.dumps(data.features),
+        estimated_time=data.estimated_time,
+        base_price=data.base_price,
+        image=data.image,
+        ambulance_type=data.ambulance_type,
+        vehicle_number=data.vehicle_number,
+        driver_name=data.driver_name,
+        driver_phone=data.driver_phone,
+        availability=data.availability,
+        latitude=data.latitude,
+        longitude=data.longitude,
+        # A new vehicle goes live straight away; the operator was already
+        # vetted when their account was approved.
+        is_active=True,
+    )
+
+    session.add(vehicle)
+    session.commit()
+    session.refresh(vehicle)
+
+    return _vehicle_response(vehicle)
+
+
+@router.patch("/fleet/{vehicle_id}", response_model=AmbulanceResponse)
+def update_fleet_vehicle(
+    vehicle_id: int,
+    data: AmbulanceUpdate,
+    vendor: User = Depends(get_current_vendor_user),
+    session: Session = Depends(get_session),
+) -> AmbulanceResponse:
+    """Edit one of this operator's own vehicles."""
+    vehicle = _own_vehicle(vendor, vehicle_id, session)
+
+    update_data = data.model_dump(exclude_unset=True)
+    if update_data.get("features") is not None:
+        update_data["features"] = json.dumps(update_data["features"])
+
+    for field, value in update_data.items():
+        setattr(vehicle, field, value)
+
+    vehicle.updated_at = datetime.now(tz=timezone.utc)
+    session.add(vehicle)
+    session.commit()
+    session.refresh(vehicle)
+
+    return _vehicle_response(vehicle)
+
+
+@router.delete("/fleet/{vehicle_id}", response_model=dict)
+def remove_fleet_vehicle(
+    vehicle_id: int,
+    vendor: User = Depends(get_current_vendor_user),
+    session: Session = Depends(get_session),
+) -> dict:
+    """Retire a vehicle from this operator's fleet.
+
+    Refused while trips are still booked on it (deleting would orphan them)
+    and for the vehicle the account was registered with, which the Profile tab
+    owns — take that one off duty instead.
+    """
+    vehicle = _own_vehicle(vendor, vehicle_id, session)
+
+    if vehicle.id == vendor.vendor_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "This is the vehicle your account was registered with. Mark it off duty "
+                "instead of deleting it."
+            ),
+        )
+
+    live = session.exec(
+        select(AmbulanceBooking)
+        .where(AmbulanceBooking.ambulance_id == vehicle.id)
+        .where(AmbulanceBooking.status.in_(["pending", "confirmed", "dispatched"]))
+    ).first()
+    if live:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"{vehicle.name} still has trips in progress. Complete or cancel them "
+                "first, or mark the vehicle off duty."
+            ),
+        )
+
+    session.delete(vehicle)
+    session.commit()
+    return {"message": "Vehicle removed from your fleet"}

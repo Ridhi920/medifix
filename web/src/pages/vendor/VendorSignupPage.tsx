@@ -43,7 +43,14 @@ export default function VendorSignupPage() {
     specialization: '',
     hourly_rate: '',
     daily_rate: '',
-    gender: 'Male'
+    gender: 'Male',
+    // pharmacy store
+    city: '',
+    delivery_time: '',
+    opening_hours: '',
+    // ambulance vehicle
+    vehicle_number: '',
+    driver_name: ''
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -56,6 +63,7 @@ export default function VendorSignupPage() {
   const isDoctorLike = DOCTOR_LIKE_ROLES.includes(form.role);
   const isAmbulance = form.role === 'ambulance';
   const isCareRole = CARE_ROLES.includes(form.role);
+  const isPharmacy = form.role === 'pharmacy';
   const needsProfile = ENTITY_LINKED_ROLES.includes(form.role);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,7 +94,9 @@ export default function VendorSignupPage() {
           ambulance_type: form.ambulance_type,
           base_price: Number(form.base_price),
           estimated_time: form.estimated_time,
-          description: form.description
+          description: form.description,
+          vehicle_number: form.vehicle_number || undefined,
+          driver_name: form.driver_name || undefined
         }),
         ...(isCareRole && {
           qualification: form.qualification,
@@ -95,6 +105,12 @@ export default function VendorSignupPage() {
           hourly_rate: Number(form.hourly_rate),
           daily_rate: Number(form.daily_rate),
           gender: form.gender
+        }),
+        ...(isPharmacy && {
+          address: form.address,
+          city: form.city || undefined,
+          delivery_time: form.delivery_time || undefined,
+          opening_hours: form.opening_hours || undefined
         })
       });
       setSuccess(true);
@@ -262,6 +278,25 @@ export default function VendorSignupPage() {
 
                 {isAmbulance && (
                   <>
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      These details describe your first vehicle. Once approved you can add the
+                      rest of your fleet from the Fleet tab in your dashboard.
+                    </Alert>
+                    <TextField
+                      label="Vehicle Registration Number"
+                      placeholder="e.g. MH-12-AB-1234"
+                      fullWidth
+                      value={form.vehicle_number}
+                      onChange={handleChange('vehicle_number')}
+                      sx={{ mb: 2 }}
+                    />
+                    <TextField
+                      label="Driver / Crew Lead"
+                      fullWidth
+                      value={form.driver_name}
+                      onChange={handleChange('driver_name')}
+                      sx={{ mb: 2 }}
+                    />
                     <TextField
                       label="Ambulance Type"
                       select
@@ -372,6 +407,48 @@ export default function VendorSignupPage() {
                         </MenuItem>
                       ))}
                     </TextField>
+                  </>
+                )}
+
+                {isPharmacy && (
+                  <>
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      These details become your store card in the MedEfix app. Customers pick a
+                      store first, then browse the medicines you stock. You add those medicines
+                      yourself from the Inventory tab once you're approved.
+                    </Alert>
+                    <TextField
+                      label="Store Address"
+                      fullWidth
+                      required
+                      value={form.address}
+                      onChange={handleChange('address')}
+                      sx={{ mb: 2 }}
+                    />
+                    <TextField
+                      label="City"
+                      fullWidth
+                      value={form.city}
+                      onChange={handleChange('city')}
+                      sx={{ mb: 2 }}
+                    />
+                    <TextField
+                      label="Delivery Time"
+                      placeholder="e.g. 30-45 mins"
+                      helperText="Shown on your store card. Defaults to 30-45 mins."
+                      fullWidth
+                      value={form.delivery_time}
+                      onChange={handleChange('delivery_time')}
+                      sx={{ mb: 2 }}
+                    />
+                    <TextField
+                      label="Opening Hours"
+                      placeholder="e.g. 8:00 AM - 10:00 PM"
+                      fullWidth
+                      value={form.opening_hours}
+                      onChange={handleChange('opening_hours')}
+                      sx={{ mb: 2 }}
+                    />
                   </>
                 )}
 
