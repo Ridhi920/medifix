@@ -13,6 +13,7 @@ from .routers.pharmacy_routes import router as pharmacy_router
 from .routers.user_routes import router as user_router
 from .routers.vendor_routes import router as vendor_router
 from .routers.vendor_workspace_routes import router as vendor_workspace_router
+from .routers.pharmacy_pos_routes import router as pharmacy_pos_router
 from .routers.admin_inpatient_routes import router as admin_inpatient_router
 from .routers.settings_routes import router as settings_router
 from .routers.content_routes import router as content_router
@@ -33,6 +34,7 @@ app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(vendor_router)
 app.include_router(vendor_workspace_router)
+app.include_router(pharmacy_pos_router)
 app.include_router(admin_inpatient_router)
 app.include_router(doctor_router)
 app.include_router(dentist_router)

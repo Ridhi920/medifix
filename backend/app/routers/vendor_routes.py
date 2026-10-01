@@ -32,6 +32,7 @@ from ..models import (
     PharmacyStore,
     Physiotherapist,
     PhysiotherapistBooking,
+    StockBatch,
     User,
 )
 from ..schemas import (
@@ -607,6 +608,8 @@ def _vendor_medicine_response(medicine: Medicine, store: PharmacyStore) -> Medic
         dosage_form=medicine.dosage_form,
         strength=medicine.strength,
         image=medicine.image,
+        barcode=medicine.barcode,
+        min_stock=medicine.min_stock,
         is_active=medicine.is_active,
         created_at=medicine.created_at,
     )
@@ -700,6 +703,9 @@ def delete_my_medicine(
 ) -> dict:
     """Remove a medicine from the logged-in pharmacy's shelf."""
     medicine = _own_medicine(vendor, medicine_id, session)
+    # Its batches can't outlive it (FK); sale/purchase history keeps the name.
+    for batch in session.exec(select(StockBatch).where(StockBatch.medicine_id == medicine.id)).all():
+        session.delete(batch)
     session.delete(medicine)
     session.commit()
     return {"message": "Medicine deleted successfully"}

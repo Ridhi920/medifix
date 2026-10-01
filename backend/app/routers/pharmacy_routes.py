@@ -8,7 +8,7 @@ from ..core.auth import get_current_user, get_current_admin_user
 from ..core.db import get_session
 from ..core.logbook import log_activity
 from ..core.service_requests import create_service_request
-from ..models import Medicine, MedicineOrder, PharmacyStore, PrescriptionSubmission, User
+from ..models import Medicine, MedicineOrder, PharmacyStore, PrescriptionSubmission, StockBatch, User
 from ..schemas import (
     MedicineCreate,
     MedicineOrderCreate,
@@ -45,6 +45,8 @@ def _medicine_response(medicine: Medicine, store_name: str | None = None) -> Med
         dosage_form=medicine.dosage_form,
         strength=medicine.strength,
         image=medicine.image,
+        barcode=medicine.barcode,
+        min_stock=medicine.min_stock,
         is_active=medicine.is_active,
         created_at=medicine.created_at,
     )
@@ -413,6 +415,8 @@ def delete_medicine(
     if not medicine:
         raise HTTPException(status_code=404, detail="Medicine not found")
 
+    for batch in session.exec(select(StockBatch).where(StockBatch.medicine_id == medicine.id)).all():
+        session.delete(batch)
     session.delete(medicine)
     session.commit()
 

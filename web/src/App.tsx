@@ -48,7 +48,7 @@ export default function App() {
 
           {/* Vendor dashboard - vendors only see their own bookings */}
           <Route
-            path="/vendor"
+            path="/vendor/*"
             element={
               <ProtectedRoute allow={["vendor"]}>
                 <VendorDashboardPage />

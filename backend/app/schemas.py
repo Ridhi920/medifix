@@ -686,6 +686,8 @@ class MedicineResponse(BaseModel):
     dosage_form: str | None
     strength: str | None
     image: str | None
+    barcode: str | None = None
+    min_stock: int = 10
     is_active: bool
     created_at: datetime
 
@@ -703,6 +705,8 @@ class MedicineCreate(BaseModel):
     dosage_form: str | None = None
     strength: str | None = None
     image: str | None = None
+    barcode: str | None = None
+    min_stock: int = Field(default=10, ge=0)
 
 
 class MedicineUpdate(BaseModel):
@@ -718,6 +722,8 @@ class MedicineUpdate(BaseModel):
     dosage_form: str | None = None
     strength: str | None = None
     image: str | None = None
+    barcode: str | None = None
+    min_stock: int | None = Field(default=None, ge=0)
 
 
 class MedicineOrderItem(BaseModel):

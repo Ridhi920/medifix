@@ -576,6 +576,10 @@ class Medicine(SQLModel, table=True):
     dosage_form: str | None = None  # Tablet, Capsule, Syrup, etc.
     strength: str | None = None  # e.g., "500mg", "10ml"
     image: str | None = None
+    # Point-of-sale fields used by the pharmacy vendor workspace.
+    barcode: str | None = Field(default=None, index=True)
+    # Reorder level: stock at or below this is flagged as low.
+    min_stock: int = Field(default=10)
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
@@ -612,3 +616,80 @@ class PrescriptionSubmission(SQLModel, table=True):
     admin_notes: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
 
+
+
+# ── Pharmacy point-of-sale (walk-in counter, purchases, batches) ───────────
+# These belong to one PharmacyStore and are managed from the pharmacy vendor's
+# web workspace. Online app orders stay in MedicineOrder; these cover the
+# store's own counter business.
+
+
+class PharmacyCustomer(SQLModel, table=True):
+    """A walk-in customer a pharmacy keeps on file (for credit sales, history)."""
+
+    __tablename__ = "pharmacy_customers"
+
+    id: int | None = Field(default=None, primary_key=True)
+    store_id: int = Field(foreign_key="pharmacy_stores.id", index=True)
+    name: str = Field(index=True)
+    phone: str | None = None
+    email: str | None = None
+    address: str | None = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+
+
+class PharmacyPurchase(SQLModel, table=True):
+    """Stock bought from a supplier. Each line creates a StockBatch.
+    `items` is a JSON list of {medicine_id, medicine_name, batch_no,
+    expiry_date, quantity, purchase_price, sale_price}."""
+
+    __tablename__ = "pharmacy_purchases"
+
+    id: int | None = Field(default=None, primary_key=True)
+    store_id: int = Field(foreign_key="pharmacy_stores.id", index=True)
+    supplier_name: str
+    invoice_no: str | None = None
+    purchase_date: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc), index=True)
+    items: str = Field(default="[]")
+    total_amount: float = Field(default=0.0)
+    notes: str | None = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+
+
+class StockBatch(SQLModel, table=True):
+    """One batch (lot) of a medicine with its own expiry and remaining qty.
+    Sales draw down batches earliest-expiry first."""
+
+    __tablename__ = "pharmacy_stock_batches"
+
+    id: int | None = Field(default=None, primary_key=True)
+    store_id: int = Field(foreign_key="pharmacy_stores.id", index=True)
+    medicine_id: int = Field(foreign_key="medicines.id", index=True)
+    purchase_id: int | None = Field(default=None, foreign_key="pharmacy_purchases.id", index=True)
+    batch_no: str
+    expiry_date: datetime | None = Field(default=None, index=True)
+    quantity: int = Field(default=0)  # units remaining
+    purchase_price: float = Field(default=0.0)  # cost per unit
+    sale_price: float = Field(default=0.0)  # MRP per unit
+    created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
+
+
+class PharmacySale(SQLModel, table=True):
+    """A counter sale with its receipt. `items` is a JSON list of
+    {medicine_id, medicine_name, quantity, price, amount}."""
+
+    __tablename__ = "pharmacy_sales"
+
+    id: int | None = Field(default=None, primary_key=True)
+    store_id: int = Field(foreign_key="pharmacy_stores.id", index=True)
+    receipt_no: str = Field(index=True)
+    customer_id: int | None = Field(default=None, foreign_key="pharmacy_customers.id", index=True)
+    customer_name: str = Field(default="Walk-in")
+    sale_type: str = Field(default="cash")  # cash / credit
+    items: str = Field(default="[]")
+    subtotal: float = Field(default=0.0)
+    discount: float = Field(default=0.0)
+    total: float = Field(default=0.0)
+    paid_amount: float = Field(default=0.0)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc), index=True)

@@ -160,6 +160,8 @@ export interface VendorMedicine {
   dosage_form: string | null;
   strength: string | null;
   image: string | null;
+  barcode: string | null;
+  min_stock: number;
   is_active: boolean;
   created_at: string;
 }
@@ -176,6 +178,8 @@ export interface VendorMedicineCreate {
   dosage_form?: string | null;
   strength?: string | null;
   image?: string | null;
+  barcode?: string | null;
+  min_stock?: number;
 }
 
 export type VendorMedicineUpdate = Partial<VendorMedicineCreate> & { is_active?: boolean };
@@ -612,5 +616,8 @@ export const vendorAPI = {
     await api.delete(`/users/${userId}`);
   },
 };
+
+/** Shared authenticated client for other vendor-workspace API modules. */
+export const vendorHttp = api;
 
 export default vendorAPI;
