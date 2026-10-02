@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: medefix-backend
+    runtime: docker
+    region: singapore # same region as the Neon database (ap-southeast-1)
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /docs
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        sync: false # paste the Neon pooled connection string in the Render dashboard
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "30"
