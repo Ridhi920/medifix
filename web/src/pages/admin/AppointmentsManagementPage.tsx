@@ -24,6 +24,8 @@ import {
 import { Visibility as ViewIcon, CheckCircle as ConfirmIcon, Cancel as RejectIcon } from '@mui/icons-material';
 import axios from 'axios';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+
 interface Appointment {
   id: number;
   doctor_id: number;
@@ -58,7 +60,7 @@ export default function AppointmentsManagementPage() {
   const fetchAppointments = async () => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await axios.get('http://localhost:8000/doctors/appointments/all', {
+      const response = await axios.get(`${API_BASE_URL}/doctors/appointments/all`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAppointments(response.data);
@@ -86,7 +88,7 @@ export default function AppointmentsManagementPage() {
     try {
       const token = localStorage.getItem('adminToken');
       await axios.patch(
-        `http://localhost:8000/doctors/appointments/${selectedAppointment.id}/confirm`,
+        `${API_BASE_URL}/doctors/appointments/${selectedAppointment.id}/confirm`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -115,7 +117,7 @@ export default function AppointmentsManagementPage() {
     try {
       const token = localStorage.getItem('adminToken');
       await axios.patch(
-        `http://localhost:8000/doctors/appointments/${selectedAppointment.id}/reject`,
+        `${API_BASE_URL}/doctors/appointments/${selectedAppointment.id}/reject`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
